@@ -9,16 +9,26 @@
 %}
 
 %%
-[0-9]+ 		{
-						// Match integer numbers, set `yyval` to their integer value, and 
-						// return an integer token.
-	   				yylval = atoi(yytext);
-	   				return INTEGER;
-					}
+[a-z] 		{
+	// Match single character lowercase variable names.
+	// Convert the matched character to an index into our symbol table by subtracting from 'a'.
+	// This follows from the C's ASCII representation of characters where 'a' = 97, 'z'=122
+	// This maps them to 0 -> 26.
+	yylval = *yytext - 'a';
+	return VARIABLE;
+}
 
-[-+\n] 		return *yytext ;              /* Pluses, minuses, and newlines are returned as is.
-																					 yytext is a pointer to the string that matched, *yytext here
-																					 returns the character we matched. */
+[0-9]+ 		{
+	// Match integer numbers, set `yyval` to their integer value, and 
+	// return an integer token.
+	yylval = atoi(yytext);
+	return INTEGER;
+}
+
+[-+()=/*\n] {
+	// Match operators as they are.
+	return *yytext;
+}
 
 [ \t]  		;                             /* skip whitespace */
 
