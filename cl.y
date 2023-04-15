@@ -81,6 +81,7 @@ expr:
 
 %%
 
+// Create constant value / literal node.
 nodeType *con(int value) {
     nodeType *p;
 
@@ -95,6 +96,7 @@ nodeType *con(int value) {
     return p;
 }
 
+// Create an identifier node.
 nodeType *id(int i) {
     nodeType *p;
 
@@ -109,6 +111,8 @@ nodeType *id(int i) {
     return p;
 }
 
+// Create an operator node with a variable number of inputs (usually 2)
+// Note that `oper` is an enum value (or #ifdef), you can find the definintions in `y.tab.h`.
 nodeType *opr(int oper, int nops, ...) {
     va_list ap;
     nodeType *p;
@@ -129,6 +133,7 @@ nodeType *opr(int oper, int nops, ...) {
     return p;
 }
 
+// De-allocates a node and all of its children (if any).
 void freeNode(nodeType *p) {
     int i;
 
