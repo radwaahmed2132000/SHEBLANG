@@ -1,0 +1,34 @@
+// Simple ShebLang example to demonstrate nested loop functionality.
+// This script prints the following:
+// 1 
+// 1
+// 1
+// 2
+// 1
+// 3
+// 2
+// 1
+// 2
+// 2
+// 2
+// 3
+// 3
+// 1
+// 3
+// 2
+// 3
+// 3
+
+a = 1;
+while (a < 4) {
+	b = 1;
+	while (b < 4) {
+		
+		print a;
+		print b;
+
+		b = b + 1;
+	}
+
+	a = a + 1;
+}
