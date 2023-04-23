@@ -18,6 +18,16 @@ int ex(nodeType *p) {
         case PRINT:     printf("%d\n", ex(p->opr.op[0])); return 0;
         case ';':       ex(p->opr.op[0]); return ex(p->opr.op[1]);
         case '=':       return sym[p->opr.op[0]->id.i] = ex(p->opr.op[1]);
+        case PA:        return sym[p->opr.op[0]->id.i] += ex(p->opr.op[1]);
+        case SA:        return sym[p->opr.op[0]->id.i] -= ex(p->opr.op[1]);
+        case MA:        return sym[p->opr.op[0]->id.i] *= ex(p->opr.op[1]);
+        case DA:        return sym[p->opr.op[0]->id.i] /= ex(p->opr.op[1]);
+        case RA:        return sym[p->opr.op[0]->id.i] %= ex(p->opr.op[1]);
+        case LSA:       return sym[p->opr.op[0]->id.i] <<= ex(p->opr.op[1]);
+        case RSA:       return sym[p->opr.op[0]->id.i] >>= ex(p->opr.op[1]);
+        case ANDA:      return sym[p->opr.op[0]->id.i] &= ex(p->opr.op[1]);
+        case EORA:      return sym[p->opr.op[0]->id.i] ^= ex(p->opr.op[1]);
+        case IORA:      return sym[p->opr.op[0]->id.i] |= ex(p->opr.op[1]);
         case UMINUS:    return -ex(p->opr.op[0]);
         case '+':       return ex(p->opr.op[0]) + ex(p->opr.op[1]);
         case '-':       return ex(p->opr.op[0]) - ex(p->opr.op[1]);

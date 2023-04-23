@@ -50,7 +50,17 @@
      EQ = 266,
      LE = 267,
      GE = 268,
-     UMINUS = 269
+     IORA = 269,
+     EORA = 270,
+     ANDA = 271,
+     RSA = 272,
+     LSA = 273,
+     RA = 274,
+     DA = 275,
+     MA = 276,
+     SA = 277,
+     PA = 278,
+     UMINUS = 279
    };
 #endif
 /* Tokens.  */
@@ -65,7 +75,17 @@
 #define EQ 266
 #define LE 267
 #define GE 268
-#define UMINUS 269
+#define IORA 269
+#define EORA 270
+#define ANDA 271
+#define RSA 272
+#define LSA 273
+#define RA 274
+#define DA 275
+#define MA 276
+#define SA 277
+#define PA 278
+#define UMINUS 279
 
 
 
@@ -84,7 +104,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 88 "y.tab.h"
+#line 108 "y.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

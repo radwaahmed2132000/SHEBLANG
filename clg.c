@@ -73,11 +73,21 @@ void exNode
         case typeId:  sprintf (word, "id(%c)", p->id.i + 'A'); break;
         case typeOpr:
             switch(p->opr.oper){
-                case WHILE:     s = "while"; break;
-                case IF:        s = "if";    break;
-                case PRINT:     s = "print"; break;
+                case WHILE:     s = "while";   break;
+                case IF:        s = "if";      break;
+                case PRINT:     s = "print";   break;
                 case ';':       s = "[;]";     break;
                 case '=':       s = "[=]";     break;
+                case PA:        s = "[+=]";    break;
+                case SA:        s = "[-=]";    break;
+                case MA:        s = "[*=]";    break;
+                case DA:        s = "[/=]";    break;
+                case RA:        s = "[%=]";    break;
+                case LSA:       s = "[<<=]";   break;
+                case RSA:       s = "[>>=]";   break;
+                case ANDA:      s = "[&=]";    break;
+                case IORA:      s = "[^=]";    break;
+                case EORA:      s = "[|=]";    break;
                 case UMINUS:    s = "[_]";     break;
                 case '+':       s = "[+]";     break;
                 case '-':       s = "[-]";     break;

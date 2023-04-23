@@ -50,6 +50,46 @@ int ex(nodeType *p) {
             ex(p->opr.op[1]);
             printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
             break;
+        case PA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case SA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case MA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case DA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case RA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case LSA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case RSA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case ANDA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case EORA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
+        case IORA:       
+            ex(p->opr.op[1]);
+            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            break;
         case UMINUS:    
             ex(p->opr.op[0]);
             printf("\tneg\n");

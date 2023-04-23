@@ -39,18 +39,18 @@ Design a suitable programming language; you may use an existing one. The importa
 		* ~
 		* <<
 		* \>>
-3. Assignment statement:
-	* =
-	* +=
-	* -=
-	* *=
-	* /=
-	* %=
-	* <<=
-	* \>>=
-	* &=
-	* ^=
-	* |=
+3. Assignment statement: ✔
+	* = ✅
+	* += ✅
+	* -= ✅
+	* *= ✅
+	* /= ✅
+	* %= ✅
+	* <<= ✅
+	* \>>= ✅
+	* &= ✅
+	* ^= ✅
+	* |= ✅
 4. Logic Blocks:
 	1. If-then-else statement
 	2. While loops

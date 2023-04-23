@@ -31,6 +31,7 @@ int sym[26];                    /* symbol table */
 %left GE LE EQ NE '>' '<'
 %left '+' '-'
 %left '*' '/'
+%right '=' PA SA MA DA RA LSA RSA ANDA EORA IORA
 %nonassoc UMINUS
 
 %type <nPtr> stmt expr stmt_list
@@ -51,6 +52,16 @@ stmt:
         | expr ';'                       { $$ = $1; }
         | PRINT expr ';'                 { $$ = opr(PRINT, 1, $2); }
         | VARIABLE '=' expr ';'          { $$ = opr('=', 2, id($1), $3); }
+        | VARIABLE PA expr ';'           { $$ = opr(PA, 2, id($1), $3); }
+        | VARIABLE SA expr ';'           { $$ = opr(SA, 2, id($1), $3); }
+        | VARIABLE MA expr ';'           { $$ = opr(MA, 2, id($1), $3); }
+        | VARIABLE DA expr ';'           { $$ = opr(DA, 2, id($1), $3); }
+        | VARIABLE RA expr ';'           { $$ = opr(RA, 2, id($1), $3); }
+        | VARIABLE LSA expr ';'          { $$ = opr(LSA, 2, id($1), $3); }
+        | VARIABLE RSA expr ';'          { $$ = opr(RSA, 2, id($1), $3); }
+        | VARIABLE ANDA expr ';'         { $$ = opr(ANDA, 2, id($1), $3); }
+        | VARIABLE EORA expr ';'         { $$ = opr(EORA, 2, id($1), $3); }
+        | VARIABLE IORA expr ';'         { $$ = opr(IORA, 2, id($1), $3); }
         | WHILE '(' expr ')' stmt        { $$ = opr(WHILE, 2, $3, $5); }
         | IF '(' expr ')' stmt %prec IFX { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt { $$ = opr(IF, 3, $3, $5, $7); }
