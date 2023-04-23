@@ -83,6 +83,7 @@ void exNode
                 case '-':       s = "[-]";     break;
                 case '*':       s = "[*]";     break;
                 case '/':       s = "[/]";     break;
+                case '%':       s = "[%]";     break;
                 case '<':       s = "[<]";     break;
                 case '>':       s = "[>]";     break;
                 case GE:        s = "[>=]";    break;

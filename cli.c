@@ -23,6 +23,7 @@ int ex(nodeType *p) {
         case '-':       return ex(p->opr.op[0]) - ex(p->opr.op[1]);
         case '*':       return ex(p->opr.op[0]) * ex(p->opr.op[1]);
         case '/':       return ex(p->opr.op[0]) / ex(p->opr.op[1]);
+        case '%':       return ex(p->opr.op[0]) % ex(p->opr.op[1]);
         case '<':       return ex(p->opr.op[0]) < ex(p->opr.op[1]);
         case '>':       return ex(p->opr.op[0]) > ex(p->opr.op[1]);
         case GE:        return ex(p->opr.op[0]) >= ex(p->opr.op[1]);

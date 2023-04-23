@@ -62,6 +62,7 @@ int ex(nodeType *p) {
             case '-':   printf("\tsub\n"); break; 
             case '*':   printf("\tmul\n"); break;
             case '/':   printf("\tdiv\n"); break;
+            case '%':   printf("\tmod\n"); break;
             case '<':   printf("\tcompLT\n"); break;
             case '>':   printf("\tcompGT\n"); break;
             case GE:    printf("\tcompGE\n"); break;
