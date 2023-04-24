@@ -90,19 +90,38 @@ int ex(nodeType *p) {
             ex(p->opr.op[1]);
             printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
             break;
+        case UPLUS:    
+            ex(p->opr.op[0]);
+            printf("\tpos\n");
+            break;
         case UMINUS:    
             ex(p->opr.op[0]);
             printf("\tneg\n");
+            break;
+        case '!':    
+            ex(p->opr.op[0]);
+            printf("\tnot\n");
+            break;
+        case '~':    
+            ex(p->opr.op[0]);
+            printf("\tbitNOT\n");
             break;
         default:
             ex(p->opr.op[0]);
             ex(p->opr.op[1]);
             switch(p->opr.oper) {
-            case '+':   printf("\tadd\n"); break;
-            case '-':   printf("\tsub\n"); break; 
-            case '*':   printf("\tmul\n"); break;
-            case '/':   printf("\tdiv\n"); break;
-            case '%':   printf("\tmod\n"); break;
+            case '&':   printf("\tbitAND\n"); break;
+            case '|':   printf("\tbitOR\n");  break;
+            case '^':   printf("\tbitXOR\n"); break;
+            case LS:    printf("\tLshift\n"); break;
+            case RS:    printf("\tRshift\n"); break;
+            case '+':   printf("\tadd\n");    break;
+            case '-':   printf("\tsub\n");    break; 
+            case '*':   printf("\tmul\n");    break;
+            case '/':   printf("\tdiv\n");    break;
+            case '%':   printf("\tmod\n");    break;
+            case AND:   printf("\tand\n");    break;
+            case OR:    printf("\tor\n");     break;
             case '<':   printf("\tcompLT\n"); break;
             case '>':   printf("\tcompGT\n"); break;
             case GE:    printf("\tcompGE\n"); break;

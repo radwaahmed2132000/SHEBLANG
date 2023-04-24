@@ -22,10 +22,14 @@ void yyerror(char *);
                 return INTEGER;
             }
 
-[-()<>=+*/%;{}.] {
+[-()<>=+*/%!~&|^;{}.] {
                 return *yytext;
              }
 
+"&&"            return AND;
+"||"            return OR;
+"<<"            return LS;
+">>"            return RS;
 ">="            return GE;
 "<="            return LE;
 "=="            return EQ;

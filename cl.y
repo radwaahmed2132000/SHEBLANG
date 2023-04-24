@@ -28,11 +28,19 @@ int sym[26];                    /* symbol table */
 %nonassoc IFX
 %nonassoc ELSE
 
-%left GE LE EQ NE '>' '<'
-%left '+' '-'
-%left '*' '/'
 %right '=' PA SA MA DA RA LSA RSA ANDA EORA IORA
-%nonassoc UMINUS
+%left OR
+%left AND
+%left '|'
+%left '^'
+%left '&'
+%left EQ NE
+%left GE LE '>' '<'
+%left LS RS
+%left '+' '-'
+%left '*' '/' '%'
+%right UPLUS UMINUS '!' '~' /* add ++a  --a Prefix increment and decrement */
+/* left a++   a--	Suffix/postfix increment and decrement */
 
 %type <nPtr> stmt expr stmt_list
 
@@ -76,7 +84,15 @@ stmt_list:
 expr:
           INTEGER               { $$ = con($1); }
         | VARIABLE              { $$ = id($1); }
+        | '+' expr %prec UPLUS  { $$ = opr(UPLUS, 1, $2); }
         | '-' expr %prec UMINUS { $$ = opr(UMINUS, 1, $2); }
+        | '!' expr              { $$ = opr('!', 1, $2); }
+        | '~' expr              { $$ = opr('~', 1, $2); }
+        | expr '&' expr         { $$ = opr('&', 2, $1, $3); }
+        | expr '|' expr         { $$ = opr('|', 2, $1, $3); }
+        | expr '^' expr         { $$ = opr('^', 2, $1, $3); }
+        | expr LS expr          { $$ = opr(LS, 2, $1, $3); }
+        | expr RS expr          { $$ = opr(RS, 2, $1, $3); }
         | expr '+' expr         { $$ = opr('+', 2, $1, $3); }
         | expr '-' expr         { $$ = opr('-', 2, $1, $3); }
         | expr '*' expr         { $$ = opr('*', 2, $1, $3); }
@@ -84,6 +100,8 @@ expr:
         | expr '%' expr         { $$ = opr('%', 2, $1, $3); }
         | expr '<' expr         { $$ = opr('<', 2, $1, $3); }
         | expr '>' expr         { $$ = opr('>', 2, $1, $3); }
+        | expr AND expr         { $$ = opr(AND, 2, $1, $3); }
+        | expr OR expr          { $$ = opr(OR, 2, $1, $3); }
         | expr GE expr          { $$ = opr(GE, 2, $1, $3); }
         | expr LE expr          { $$ = opr(LE, 2, $1, $3); }
         | expr NE expr          { $$ = opr(NE, 2, $1, $3); }

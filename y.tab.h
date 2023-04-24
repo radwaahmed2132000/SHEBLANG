@@ -46,21 +46,26 @@
      PRINT = 262,
      IFX = 263,
      ELSE = 264,
-     NE = 265,
-     EQ = 266,
-     LE = 267,
-     GE = 268,
-     IORA = 269,
-     EORA = 270,
-     ANDA = 271,
-     RSA = 272,
-     LSA = 273,
-     RA = 274,
-     DA = 275,
-     MA = 276,
-     SA = 277,
-     PA = 278,
-     UMINUS = 279
+     IORA = 265,
+     EORA = 266,
+     ANDA = 267,
+     RSA = 268,
+     LSA = 269,
+     RA = 270,
+     DA = 271,
+     MA = 272,
+     SA = 273,
+     PA = 274,
+     OR = 275,
+     AND = 276,
+     NE = 277,
+     EQ = 278,
+     LE = 279,
+     GE = 280,
+     RS = 281,
+     LS = 282,
+     UMINUS = 283,
+     UPLUS = 284
    };
 #endif
 /* Tokens.  */
@@ -71,21 +76,26 @@
 #define PRINT 262
 #define IFX 263
 #define ELSE 264
-#define NE 265
-#define EQ 266
-#define LE 267
-#define GE 268
-#define IORA 269
-#define EORA 270
-#define ANDA 271
-#define RSA 272
-#define LSA 273
-#define RA 274
-#define DA 275
-#define MA 276
-#define SA 277
-#define PA 278
-#define UMINUS 279
+#define IORA 265
+#define EORA 266
+#define ANDA 267
+#define RSA 268
+#define LSA 269
+#define RA 270
+#define DA 271
+#define MA 272
+#define SA 273
+#define PA 274
+#define OR 275
+#define AND 276
+#define NE 277
+#define EQ 278
+#define LE 279
+#define GE 280
+#define RS 281
+#define LS 282
+#define UMINUS 283
+#define UPLUS 284
 
 
 
@@ -104,7 +114,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 108 "y.tab.h"
+#line 118 "y.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

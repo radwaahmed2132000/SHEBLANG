@@ -12,7 +12,7 @@ Design a suitable programming language; you may use an existing one. The importa
 	2. Constant:
 		* Using const keyword.
 		* Using #define preprocessor.
-2. Mathematical and logical expressions.
+2. Mathematical and logical expressions:
     1. Arithmetic Operators:
 		* \+ ✅
 		* \- ✅
@@ -21,24 +21,27 @@ Design a suitable programming language; you may use an existing one. The importa
 		* % ✅
 		* ++
 		* --
-    2. Relational Operators:
+    2. Relational Operators: ✔
 		* == ✅
 		* != ✅
 		* \> ✅
 		* < ✅
 		* \>= ✅
 		* <= ✅
-    3. Logical Operators:
-		* &&
-		* ||
-		* !
-    4. Bitwise Operators:
-		* &
-		* |
-		* ^
-		* ~
-		* <<
-		* \>>
+    3. Logical Operators: ✔
+		* && ✅
+		* || ✅
+		* ! ✅
+    4. Bitwise Operators: ✔
+		* & ✅
+		* | ✅
+		* ^ ✅
+		* ~ ✅
+		* << ✅
+		* \>> ✅
+	5. Other: ✔
+		* Unary + ✅
+		* Unary - ✅
 3. Assignment statement: ✔
 	* = ✅
 	* += ✅
