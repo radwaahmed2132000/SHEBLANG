@@ -19,8 +19,9 @@ Design a suitable programming language; you may use an existing one. The importa
 		* \* ✅
 		* / ✅
 		* % ✅
-		* ++
-		* --
+		* ++ & --
+			* Prefix: ❌ Buggy
+			* Postfix
     2. Relational Operators: ✔
 		* == ✅
 		* != ✅
@@ -74,5 +75,6 @@ declared at the beginning of blocks):
 	* Parameters (+ their data types and default values if available) [Assume all are by value]
 	* Function Body
 	* Function call
-### Helpful Sources:
+### Helpful Sources/References:
 * https://www.tutorialspoint.com/cplusplus/cpp_operators.htm
+* https://en.cppreference.com/w/cpp/language/operator_precedence

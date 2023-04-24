@@ -64,8 +64,10 @@
      GE = 280,
      RS = 281,
      LS = 282,
-     UMINUS = 283,
-     UPLUS = 284
+     MM = 283,
+     PP = 284,
+     UMINUS = 285,
+     UPLUS = 286
    };
 #endif
 /* Tokens.  */
@@ -94,8 +96,10 @@
 #define GE 280
 #define RS 281
 #define LS 282
-#define UMINUS 283
-#define UPLUS 284
+#define MM 283
+#define PP 284
+#define UMINUS 285
+#define UPLUS 286
 
 
 
@@ -114,7 +118,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 118 "y.tab.h"
+#line 122 "y.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

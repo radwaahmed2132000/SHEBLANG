@@ -28,6 +28,8 @@ int ex(nodeType *p) {
         case ANDA:      return sym[p->opr.op[0]->id.i] &= ex(p->opr.op[1]);
         case EORA:      return sym[p->opr.op[0]->id.i] ^= ex(p->opr.op[1]);
         case IORA:      return sym[p->opr.op[0]->id.i] |= ex(p->opr.op[1]);
+        case PP:        return sym[p->opr.op[0]->id.i] = ex(p->opr.op[0]) + 1;
+        case MM:        return sym[p->opr.op[0]->id.i] = ex(p->opr.op[0]) - 1;
         case UPLUS:     return ex(p->opr.op[0]);
         case UMINUS:    return -ex(p->opr.op[0]);
         case '!':       return !ex(p->opr.op[0]);

@@ -88,6 +88,8 @@ void exNode
                 case ANDA:      s = "[&=]";    break;
                 case IORA:      s = "[^=]";    break;
                 case EORA:      s = "[|=]";    break;
+                case PP:        s = "[++]";    break;
+                case MM:        s = "[--]";    break;
                 case UPLUS:     s = "[+]";     break;
                 case UMINUS:    s = "[-]";     break;
                 case '!':       s = "[!]";     break;

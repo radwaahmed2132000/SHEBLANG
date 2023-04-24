@@ -26,6 +26,8 @@ void yyerror(char *);
                 return *yytext;
              }
 
+"++"            return PP;
+"--"            return MM;
 "&&"            return AND;
 "||"            return OR;
 "<<"            return LS;

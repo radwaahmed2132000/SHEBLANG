@@ -39,7 +39,7 @@ int sym[26];                    /* symbol table */
 %left LS RS
 %left '+' '-'
 %left '*' '/' '%'
-%right UPLUS UMINUS '!' '~' /* add ++a  --a Prefix increment and decrement */
+%right UPLUS UMINUS '!' '~' PP MM
 /* left a++   a--	Suffix/postfix increment and decrement */
 
 %type <nPtr> stmt expr stmt_list
@@ -84,6 +84,8 @@ stmt_list:
 expr:
           INTEGER               { $$ = con($1); }
         | VARIABLE              { $$ = id($1); }
+        | PP expr               { $$ = opr(PP, 1, $2); }
+        | MM expr               { $$ = opr(MM, 1, $2); }
         | '+' expr %prec UPLUS  { $$ = opr(UPLUS, 1, $2); }
         | '-' expr %prec UMINUS { $$ = opr(UMINUS, 1, $2); }
         | '!' expr              { $$ = opr('!', 1, $2); }

@@ -90,6 +90,14 @@ int ex(nodeType *p) {
             ex(p->opr.op[1]);
             printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
             break;
+        case PP:    
+            ex(p->opr.op[0]);
+            printf("\tinc1pre\n");
+            break;
+        case MM:    
+            ex(p->opr.op[0]);
+            printf("\tdec1pre\n");
+            break;
         case UPLUS:    
             ex(p->opr.op[0]);
             printf("\tpos\n");
