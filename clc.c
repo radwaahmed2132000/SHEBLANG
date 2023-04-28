@@ -18,29 +18,106 @@ int ex(nodeType *p) {
     case typeOpr:
         switch(p->opr.oper) {
         case WHILE:
+            // op[0] is the condition
+            // op[1] is the statement list
+            
+            // label1:
             printf("L%03d:\n", lbl1 = lbl++);
+
+            //      check condition
             ex(p->opr.op[0]);
+            
+            //      if condition doesn't hold, jump to label2
             printf("\tjz\tL%03d\n", lbl2 = lbl++);
+
+            //      code ...
             ex(p->opr.op[1]);
+
+            //      jump to label1
             printf("\tjmp\tL%03d\n", lbl1);
+
+            //  label2:
             printf("L%03d:\n", lbl2);
+            break;
+        case DO:
+            // op[0] here should be the statement list (code inside the do-while block)
+            // op[1] should be the condition
+
+            // label:
+            printf("L%03d:\n", lbl1 = lbl++);
+
+            //      code....
+            ex(p->opr.op[0]);
+
+            //      condition check 
+            ex(p->opr.op[1]);
+
+            //      jump to label if condition holds
+            printf("\tjz\tL%03d\n", lbl1);
+
             break;
         case IF:
             ex(p->opr.op[0]);
-            if (p->opr.nops > 2) {
-                /* if else */
-                printf("\tjz\tL%03d\n", lbl1 = lbl++);
-                ex(p->opr.op[1]);
-                printf("\tjmp\tL%03d\n", lbl2 = lbl++);
-                printf("L%03d:\n", lbl1);
-                ex(p->opr.op[2]);
-                printf("L%03d:\n", lbl2);
-            } else {
-                /* if */
-                printf("\tjz\tL%03d\n", lbl1 = lbl++);
-                ex(p->opr.op[1]);
-                printf("L%03d:\n", lbl1);
+            switch(p->opr.nops) {
+                /* if op[0] { op[1] } else { op[2] } */
+                case 3:
+                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
+                    ex(p->opr.op[1]);
+                    printf("\tjmp\tL%03d\n", lbl2 = lbl++);
+                    printf("L%03d:\n", lbl1);
+                    ex(p->opr.op[2]);
+                    printf("L%03d:\n", lbl2);
+                    break;
+
+                /* if op[0] { op[1] } */
+                case 2:
+                    /* if */
+                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
+                    ex(p->opr.op[1]);
+                    printf("L%03d:\n", lbl1);
+                    break;
+
+                /* if op[0]; */
+                // Shouldn't be too common, but I think we should handle it.
+                case 1:
+                    printf("\tjz\tL%03d\n", lbl1 = lbl++);
+                    break;
             }
+            break;
+        case FOR:
+            // op[0] shouldd be the initialzation expression, called only once.
+            // op[1] should be the loop condition, checked before every iteration.
+            // op[2] should be the loop post-iteration condition, called after every iteration.
+            // op[3] should be the loop body.
+
+            // Should go like this:
+            //      loop initialization expression  (op[0])
+            //  label1:
+            //      check loop condition    (op[1])
+            //      if it doesn't hold jump to label2
+            //
+            //      code... (op[3])
+            //
+            //      loop post-iteration code (op[2])
+            //      jump to label1
+            //  label2:
+            
+
+            ex(p->opr.op[0]);
+
+            printf("L%03d:\n", lbl1 = lbl++);
+
+            ex(p->opr.op[1]);
+
+            printf("\tjnz\tL%03d\n", lbl2 = lbl++);
+
+            ex(p->opr.op[3]);
+            
+            ex(p->opr.op[2]);
+
+            printf("\tjmp\tL%03d\n", lbl1);
+
+            printf("L%03d:\n", lbl2);
             break;
         case PRINT:     
             ex(p->opr.op[0]);
@@ -114,7 +191,7 @@ int ex(nodeType *p) {
             ex(p->opr.op[0]);
             printf("\tbitNOT\n");
             break;
-        default:
+       default:
             ex(p->opr.op[0]);
             ex(p->opr.op[1]);
             switch(p->opr.oper) {

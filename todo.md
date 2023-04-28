@@ -2,10 +2,10 @@ Design a suitable programming language; you may use an existing one. The importa
 1. Variables and Constants declaration:
 	* Variable/Constant Names: [a-zA-Z_][a-zA-Z0-9_]* (1-225 char)
     1. Variable Types:
-		* bool
-		* char
 		* int ✅
 		* float
+		* bool
+		* char
 		* double
 		* void
 		* string
@@ -56,11 +56,15 @@ Design a suitable programming language; you may use an existing one. The importa
 	* ^= ✅
 	* |= ✅
 4. Logic Blocks:
-	1. If-then-else statement
-	2. While loops
-	3. Repeat-until loops [i.e. do-while loops]
-	4. For loops
-	5. Switch statement
+	1. [x] If-then-else statement
+	2. [x] While loops
+	3. [x] Repeat-until loops [i.e. do-while loops]
+	4. [x] For loops
+        - Limitation: can't do for(;;) {...}, for(; expr; expr) {...}, etc..., mut always be for(expr; expr; expr) {...}
+        - Can omit the braces if there's only one statement.
+	5. [ ] Switch statement
+        - Bad implementation, but something that works. The badness stems from relying on global variables to keep state between case checks.
+        - Compiler code still not implemented.
 5. Block structure (nested scopes where variables may be
 declared at the beginning of blocks):
 	* Handle { }
@@ -72,7 +76,7 @@ declared at the beginning of blocks):
 	* Function Declaration (optional)
 	* Return Type
 	* Function Name
-	* Parameters (+ their data types and default values if available) [Assume all are by value]
+	* Parameters (+ their data types and default values if available) [Assume all are by value
 	* Function Body
 	* Function call
 ### Helpful Sources/References:

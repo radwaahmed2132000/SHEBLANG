@@ -1,0 +1,20 @@
+a = 1;
+switch(a) {
+	default: {
+		b = 42;
+		print b;
+		break;
+	}
+	case 3: {
+			b = 3;
+			print b;
+	}
+	case 1: {
+		b = 1;
+		print b;
+	}
+	case 2: {
+		 	b = 2;
+			print b;
+	}
+}

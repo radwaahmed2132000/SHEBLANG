@@ -22,7 +22,7 @@ void yyerror(char *);
                 return INTEGER;
             }
 
-[-()<>=+*/%!~&|^;{}.] {
+[-()<>=+*/%!~&|^;{}.:] {
                 return *yytext;
              }
 
@@ -47,9 +47,15 @@ void yyerror(char *);
 "^="            return EORA;
 "|="            return IORA;
 "while"         return WHILE;
+"do"            return DO;
 "if"            return IF;
 "else"          return ELSE;
 "print"         return PRINT;
+"for"           return FOR;
+"switch"        return SWITCH;
+"case"          return CASE;
+"default"       return DEFAULT;
+"break"         return BREAK;
 
 [ \t\n]+        ;       /* ignore whitespace */
 
