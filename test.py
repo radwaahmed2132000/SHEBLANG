@@ -29,9 +29,9 @@ class Testcase:
         s = f"{self.filename}"
 
         test_types = []
-        if self.interpreter_ref:
+        if self.interpreter_ref is not None:
             test_types.append("interpreter")
-        if self.compiler_ref:
+        if self.compiler_ref is not None:
             test_types.append("compiler")
 
         if len(test_types) > 0:
