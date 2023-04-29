@@ -62,9 +62,7 @@ Design a suitable programming language; you may use an existing one. The importa
 	4. [x] For loops
         - Limitation: can't do for(;;) {...}, for(; expr; expr) {...}, etc..., mut always be for(expr; expr; expr) {...}
         - Can omit the braces if there's only one statement.
-	5. [ ] Switch statement
-        - Bad implementation, but something that works. The badness stems from relying on global variables to keep state between case checks.
-        - Compiler code still not implemented.
+	5. [x] Switch statement
 5. Block structure (nested scopes where variables may be
 declared at the beginning of blocks):
 	* Handle { }
