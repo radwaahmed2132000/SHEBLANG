@@ -15,12 +15,12 @@ generate_code() {
 }
 
 build() {
-	gcc -g lex.yy.c y.tab.c $1 -o $2 		# compile/link
+	g++ -g lex.yy.c y.tab.c $1 -o $2 -Wwrite-strings 		# compile/link
 }
 
 interpreter() {
 	generate_code
-	build cli.c shbl_interpreter 
+	build cli.cpp shbl_interpreter 
 }
 
 graph() {

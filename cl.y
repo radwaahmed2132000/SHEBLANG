@@ -2,11 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unordered_map>
+#include <string>
 #include "cl.h"
 
 /* prototypes */
 nodeType *opr(int oper, int nops, ...);
-nodeType *id(int i);
+nodeType *id(const char* id);
 nodeType *con(int value);
 nodeType *sw(nodeType* var, nodeType* case_list_head);
 nodeType *cs(nodeType* self, nodeType* next);
@@ -20,16 +22,16 @@ int yylex(void);
 
 void yyerror(char *s);
 int sym[26];                    /* symbol table */
+std::unordered_map<std::string, int> sym2;
 %}
 
 %union {
     int iValue;                 /* integer value */
-    char sIndex;                /* symbol table index */
     nodeType *nPtr;             /* node pointer */
 };
 
 %token <iValue> INTEGER
-%token <sIndex> VARIABLE
+%token <nPtr> IDENTIFIER
 %token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK
 %nonassoc IFX
 %nonassoc ELSE
@@ -70,8 +72,8 @@ stmt:
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
         | FOR '(' expr ';' expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $5, $7, $9); }
-        | SWITCH '(' VARIABLE ')' case            { 
-                $$ = sw(id($3), $5); 
+        | SWITCH '(' IDENTIFIER ')' case            { 
+                $$ = sw($3, $5); 
                 set_break_parent($5, $$);
         }
         | '{' stmt_list '}'                       { $$ = $2; }
@@ -95,18 +97,18 @@ stmt_list:
 
 expr:
           INTEGER                       { $$ = con($1); }
-        | VARIABLE                      { $$ = id($1); }
-        | VARIABLE '=' expr          { $$ = opr('=', 2, id($1), $3); }
-        | VARIABLE PA expr           { $$ = opr(PA, 2, id($1), $3); }
-        | VARIABLE SA expr           { $$ = opr(SA, 2, id($1), $3); }
-        | VARIABLE MA expr           { $$ = opr(MA, 2, id($1), $3); }
-        | VARIABLE DA expr           { $$ = opr(DA, 2, id($1), $3); }
-        | VARIABLE RA expr           { $$ = opr(RA, 2, id($1), $3); }
-        | VARIABLE LSA expr          { $$ = opr(LSA, 2, id($1), $3); }
-        | VARIABLE RSA expr          { $$ = opr(RSA, 2, id($1), $3); }
-        | VARIABLE ANDA expr         { $$ = opr(ANDA, 2, id($1), $3); }
-        | VARIABLE EORA expr         { $$ = opr(EORA, 2, id($1), $3); }
-        | VARIABLE IORA expr         { $$ = opr(IORA, 2, id($1), $3); }
+        | IDENTIFIER                      { $$ = $1; }
+        | IDENTIFIER '=' expr          { $$ = opr('=', 2, $1, $3); }
+        | IDENTIFIER PA expr           { $$ = opr(PA, 2, $1, $3); }
+        | IDENTIFIER SA expr           { $$ = opr(SA, 2, $1, $3); }
+        | IDENTIFIER MA expr           { $$ = opr(MA, 2, $1, $3); }
+        | IDENTIFIER DA expr           { $$ = opr(DA, 2, $1, $3); }
+        | IDENTIFIER RA expr           { $$ = opr(RA, 2, $1, $3); }
+        | IDENTIFIER LSA expr          { $$ = opr(LSA, 2, $1, $3); }
+        | IDENTIFIER RSA expr          { $$ = opr(RSA, 2, $1, $3); }
+        | IDENTIFIER ANDA expr         { $$ = opr(ANDA, 2, $1, $3); }
+        | IDENTIFIER EORA expr         { $$ = opr(EORA, 2, $1, $3); }
+        | IDENTIFIER IORA expr         { $$ = opr(IORA, 2, $1, $3); }
         | PP expr                       { $$ = opr(PP, 1, $2); }
         | MM expr                       { $$ = opr(MM, 1, $2); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
@@ -137,29 +139,32 @@ expr:
 %%
 
 void set_break_parent(nodeType* node, nodeType* parent_switch) {
-       if(node == NULL) return;
-
-       if(node->type == typeBreak) {
-                node->br.parent_switch = parent_switch;
-       } else if (node->type == typeOpr) {
-                for(int i = 0; i < node->opr.nops; i++) {
-                        set_break_parent(node->opr.op[i], parent_switch);
+        if(node == NULL) return;
+        
+        if(node->type == typeBreak) {
+               auto b = std::get<breakNodeType>(node->un);
+               b.parent_switch = parent_switch;
+        } else if(node->type == typeOpr) {
+               auto opr = std::get<oprNodeType>(node->un);
+                for(int i = 0; i < opr.op.size(); i++) {
+                        set_break_parent(opr.op[i], parent_switch);
                 }
-       } else if (node->type == typeCase) {
-               set_break_parent(node->cs.self, parent_switch);
-               set_break_parent(node->cs.prev, parent_switch);
-       }
+        } else if(node->type == typeCase) {
+               auto c = std::get<caseNodeType>(node->un);
+               set_break_parent(c.self, parent_switch);
+               set_break_parent(c.prev, parent_switch);
+        }
 }
 
 nodeType *br() {
     nodeType *p;
 
     /* allocate node */
-    if ((p = malloc(sizeof(nodeType))) == NULL)
+    if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
     p->type = typeBreak;
-    p->br.parent_switch = NULL;
+    p->un = std::variant<NODE_TYPES>(breakNodeType{NULL});
 
     return p;
 }
@@ -168,16 +173,20 @@ nodeType *cs(nodeType* self, nodeType* prev) {
     nodeType *p;
 
     /* allocate node */
-    if ((p = malloc(sizeof(nodeType))) == NULL)
+    if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
     p->type = typeCase;
+    p->un = std::variant<NODE_TYPES>(caseNodeType{});
+
+    auto& cs = std::get<caseNodeType>(p->un);
+
     if(self->type == typeOpr) {
-        p->cs.self = self;
-        p->cs.prev = NULL;
+        cs.self = self;
+        cs.prev = NULL;
     } else if (self->type == typeCase) {
-        p->cs.prev = self;
-        p->cs.self = prev;
+        cs.prev = self;
+        cs.self = prev;
     }
 
     return p;
@@ -187,13 +196,15 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
     nodeType *p;
 
     /* allocate node */
-    if ((p = malloc(sizeof(nodeType))) == NULL)
+    if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
     /* copy information */
     p->type = typeSwitch;
-    p->sw.var = var;
-    p->sw.case_list_head = case_list_head;
+
+    p->un = std::variant<NODE_TYPES>(switchNodeType{
+            0, 0, var, case_list_head
+    });
 
     return p;
 }
@@ -204,27 +215,27 @@ nodeType *con(int value) {
     nodeType *p;
 
     /* allocate node */
-    if ((p = malloc(sizeof(nodeType))) == NULL)
+    if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
     /* copy information */
     p->type = typeCon;
-    p->con.value = value;
+    p->un = std::variant<NODE_TYPES>(conNodeType{value});
 
     return p;
 }
 
 // Create an identifier node.
-nodeType *id(int i) {
+nodeType *id(const char* id) {
     nodeType *p;
 
     /* allocate node */
-    if ((p = malloc(sizeof(nodeType))) == NULL)
+    if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
     /* copy information */
     p->type = typeId;
-    p->id.i = i;
+    p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
 
     return p;
 }
@@ -237,30 +248,31 @@ nodeType *opr(int oper, int nops, ...) {
     int i;
 
     /* allocate node, extending op array */
-    if ((p = malloc(sizeof(nodeType) + (nops-1) * sizeof(nodeType *))) == NULL)
+    if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
     /* copy information */
     p->type = typeOpr;
-    p->opr.oper = oper;
-    p->opr.nops = nops;
+    p->un = std::variant<NODE_TYPES>(oprNodeType{});
+    auto& opr = std::get<oprNodeType>(p->un);
+    opr.oper = oper;
     va_start(ap, nops);
     for (i = 0; i < nops; i++)
-        p->opr.op[i] = va_arg(ap, nodeType*);
+        opr.op.push_back(va_arg(ap, nodeType*));
     va_end(ap);
     return p;
 }
 
 // De-allocates a node and all of its children (if any).
 void freeNode(nodeType *p) {
-    int i;
-
-    if (!p) return;
-    if (p->type == typeOpr) {
-        for (i = 0; i < p->opr.nops; i++)
-            freeNode(p->opr.op[i]);
-    }
-    free (p);
+//    int i;
+//
+//    if (!p) return;
+//    if (p->type == typeOpr) {
+//        for (i = 0; i < p->opr.nops; i++)
+//            freeNode(p->opr.op[i]);
+//    }
+//    free (p);
 }
 
 void yyerror(char *s) {

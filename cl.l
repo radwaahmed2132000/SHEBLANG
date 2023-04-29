@@ -3,14 +3,10 @@
 #include "cl.h"
 #include "y.tab.h"
 void yyerror(char *);
+nodeTypeTag *id(const char* id);
 %}
 
 %%
-
-[a-z]       { 
-                yylval.sIndex = *yytext - 'a';
-                return VARIABLE;
-            }
 
 0           {
                 yylval.iValue = atoi(yytext);
@@ -56,6 +52,12 @@ void yyerror(char *);
 "case"          return CASE;
 "default"       return DEFAULT;
 "break"         return BREAK;
+
+[a-z_][a-z_0-9]* { 
+                yylval.nPtr = id(yytext);
+                return IDENTIFIER;
+            }
+
 
 [ \t\n]+        ;       /* ignore whitespace */
 
