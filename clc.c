@@ -1,8 +1,101 @@
 #include <stdio.h>
+#include <assert.h>
+#include <stdlib.h>
+
 #include "cl.h"
 #include "y.tab.h"
 
 static int lbl;
+
+int ex(nodeType* p);
+
+//     switch(j) {
+//      default:
+//          i *= j;
+//      case 0:
+//          i += 1;
+//      case 10:
+//          i /= 2;
+//  }
+//  
+//  compiles down to:
+//
+//         test    eax, eax
+//         je      .L2
+//         cmp     eax, 10
+//         je      .L3
+//         mov     edx, DWORD PTR i[rip]
+//         mov     eax, DWORD PTR j[rip]
+//         imul    eax, edx
+//         mov     DWORD PTR i[rip], eax
+// .L2:
+//         mov     eax, DWORD PTR i[rip]
+//         add     eax, 1
+//         mov     DWORD PTR i[rip], eax
+// .L3:
+//         mov     eax, DWORD PTR i[rip]
+//         mov     edx, eax
+//         shr     edx, 31
+//         add     eax, edx
+//         sar     eax
+//
+int compile_switch(nodeType* p) {
+
+    int matching_case_index = -1;
+    int default_case_index = -1;
+    int break_encountered = 0;
+
+    assert(p->sw.case_list_head->type == typeCase);
+    caseNodeType cases[MAX_SWITCH_CASES];
+    int labels[MAX_SWITCH_CASES];
+    int num_cases = 0;
+
+    nodeType* head = p->sw.case_list_head;
+    do {
+        assert(head->type == typeCase);
+        cases[num_cases] = head->cs;
+        labels[num_cases] = lbl++;
+        num_cases++;
+        head = head->cs.prev;
+    } while(head != NULL);
+
+    p->sw.exit_label = lbl++;
+
+    assert(num_cases < MAX_SWITCH_CASES);
+
+    for(int i = num_cases - 1; i >=0 && !break_encountered ; i--) { 
+        if(cases[i].self->opr.oper == DEFAULT) {
+            default_case_index = i;
+        } else {
+            ex(cases[i].self);                       // Label value
+            printf("\tpush\t%c\n", p->sw.var->id.i + 'a');   // variable value
+            printf("\tcompEQ\n");
+            printf("\tje\tL%03d\n", labels[i]);
+        }
+    }
+
+    // If there exists a default case, jump to it if no other cases
+    // match. Otherwise, jump to the exit label (skip the whole swtich).
+    if(default_case_index != -1) {
+        printf("\tjmp\tL%03d\n", labels[default_case_index]);
+    } else {
+        printf("\tjmp\tL%03d\n", p->sw.exit_label);
+    }
+
+    for(int i = num_cases - 1; i >=0 && !break_encountered ; i--) { 
+        printf("L%03d:\n", labels[i]);
+
+        if(cases[i].self->opr.oper == DEFAULT) {
+            ex(cases[i].self->opr.op[0]);
+        } else {
+            ex(cases[i].self->opr.op[1]);
+        }
+    }
+
+    printf("L%03d:\n", p->sw.exit_label);
+
+    return 0;
+}
 
 int ex(nodeType *p) {
     int lbl1, lbl2;
@@ -14,7 +107,15 @@ int ex(nodeType *p) {
         break;
     case typeId:        
         printf("\tpush\t%c\n", p->id.i + 'a'); 
-        break;
+        return sym[p->id.i];
+    case typeCase:
+        printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
+        exit(EXIT_FAILURE);
+    case typeSwitch: compile_switch(p); break;
+    case typeBreak: 
+         int exit_label = p->br.parent_switch->sw.exit_label;
+         printf("\tjmp\tL%03d\n", exit_label);
+         break;
     case typeOpr:
         switch(p->opr.oper) {
         case WHILE:
@@ -118,6 +219,10 @@ int ex(nodeType *p) {
             printf("\tjmp\tL%03d\n", lbl1);
 
             printf("L%03d:\n", lbl2);
+            break;
+        case DEFAULT:   
+        case CASE:     
+            printf("\tpush\t%d\n", p->opr.op[0]->con.value);
             break;
         case PRINT:     
             ex(p->opr.op[0]);

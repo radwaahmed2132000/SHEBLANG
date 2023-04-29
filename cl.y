@@ -8,16 +8,18 @@
 nodeType *opr(int oper, int nops, ...);
 nodeType *id(int i);
 nodeType *con(int value);
+nodeType *sw(nodeType* var, nodeType* case_list_head);
+nodeType *cs(nodeType* self, nodeType* next);
+nodeType *br();
+void set_break_parent(nodeType* case_list, nodeType* parent_switch);
+
+
 void freeNode(nodeType *p);
 int ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
 int sym[26];                    /* symbol table */
-int switch_var;                 // Stores the value contained by the switch case variable.
-
-// A flag that's cleared when entering a switch case and  set on the first break encountered
-int break_encountered; 
 %}
 
 %union {
@@ -61,26 +63,29 @@ function:
 stmt:
           ';'                                     { $$ = opr(';', 0, NULL, NULL); }
         | expr ';'                                { $$ = $1; }
-        | BREAK ';'                               { $$ = opr(BREAK, 0); }
+        | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
         | WHILE '(' expr ')' stmt                 { $$ = opr(WHILE, 2, $3, $5); }
         | DO stmt WHILE '(' expr ')' ';'          { $$ = opr(DO, 2, $5, $2); }
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
         | FOR '(' expr ';' expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $5, $7, $9); }
-        | SWITCH '(' VARIABLE ')' case           { $$ = opr(SWITCH, 2, id($3), $5); }
+        | SWITCH '(' VARIABLE ')' case            { 
+                $$ = sw(id($3), $5); 
+                set_break_parent($5, $$);
+        }
         | '{' stmt_list '}'                       { $$ = $2; }
         ;
 
 case: 
      CASE INTEGER ':' stmt      { $$ = opr(CASE, 2, con($2), $4); }
-     | DEFAULT ':' stmt         { $$ = opr(CASE, 1, $3); }
+     | DEFAULT ':' stmt         { $$ = opr(DEFAULT, 1, $3); }
      | '{' case_list '}'        { $$ = $2; }
      ;
 
 case_list:
-         case                     { $$ = $1; }
-         | case_list case         { $$ = opr(CASE_LIST, 2, $1, $2); }
+         case                     { $$ = cs($1, NULL); }
+         | case_list case         { $$ = cs($1, $2); }
          ;
 
 stmt_list:
@@ -130,6 +135,69 @@ expr:
         ;
 
 %%
+
+void set_break_parent(nodeType* node, nodeType* parent_switch) {
+       if(node == NULL) return;
+
+       if(node->type == typeBreak) {
+                node->br.parent_switch = parent_switch;
+       } else if (node->type == typeOpr) {
+                for(int i = 0; i < node->opr.nops; i++) {
+                        set_break_parent(node->opr.op[i], parent_switch);
+                }
+       } else if (node->type == typeCase) {
+               set_break_parent(node->cs.self, parent_switch);
+               set_break_parent(node->cs.prev, parent_switch);
+       }
+}
+
+nodeType *br() {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = malloc(sizeof(nodeType))) == NULL)
+        yyerror("out of memory");
+
+    p->type = typeBreak;
+    p->br.parent_switch = NULL;
+
+    return p;
+}
+
+nodeType *cs(nodeType* self, nodeType* prev) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = malloc(sizeof(nodeType))) == NULL)
+        yyerror("out of memory");
+
+    p->type = typeCase;
+    if(self->type == typeOpr) {
+        p->cs.self = self;
+        p->cs.prev = NULL;
+    } else if (self->type == typeCase) {
+        p->cs.prev = self;
+        p->cs.self = prev;
+    }
+
+    return p;
+}
+
+nodeType *sw(nodeType* var, nodeType* case_list_head) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = malloc(sizeof(nodeType))) == NULL)
+        yyerror("out of memory");
+
+    /* copy information */
+    p->type = typeSwitch;
+    p->sw.var = var;
+    p->sw.case_list_head = case_list_head;
+
+    return p;
+}
+
 
 // Create constant value / literal node.
 nodeType *con(int value) {

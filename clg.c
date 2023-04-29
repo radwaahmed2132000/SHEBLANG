@@ -26,7 +26,7 @@ void exNode (nodeType *p, int c, int l, int *ce, int *cm);
 
 /* main entry point of the manipulation of the syntax tree */
 int ex (nodeType *p) {
-    int rte, rtm;
+    int rte = 0, rtm = 0;
 
     graphInit ();
     exNode (p, 0, 0, &rte, &rtm);
@@ -60,7 +60,7 @@ void exNode
     char *s;            /* node text */
     int cbar;           /* "real" start column of node (centred above subnodes) */
     int k;              /* child number */
-    int che, chm;       /* end column and mid of children */
+    int che = 0, chm = 0;       /* end column and mid of children */
     int cs;             /* start column of children */
     char word[20];      /* extended node text */
 
@@ -71,6 +71,17 @@ void exNode
     switch(p->type) {
         case typeCon: sprintf (word, "c(%d)", p->con.value); break;
         case typeId:  sprintf (word, "id(%c)", p->id.i + 'A'); break;
+        case typeSwitch: 
+                sprintf(word, "switch(%c)", p->sw.var->id.i + 'A'); 
+                break;
+        case typeBreak: s = "break"; break;
+        case typeCase: 
+                if(p->cs.self->opr.oper == DEFAULT) {
+                    sprintf(word, "default");
+                } else {
+                    sprintf(word, "case(%d)", p->cs.self->opr.op[0]->con.value);
+                }
+                break;
         case typeOpr:
             switch(p->opr.oper){
                 case WHILE:     s = "while";   break;
@@ -79,7 +90,12 @@ void exNode
                 case PRINT:     s = "print";   break;
                 case FOR:       s = "for";   break;
                 case SWITCH:    s = "switch"; break;
-                case CASE:      s = "case";  break;
+                case CASE:      
+                    sprintf(s, "case(%d)", p->opr.op[0]->con.value);
+                    break;
+                case DEFAULT:      
+                    sprintf(s, "default");
+                    break;
                 case BREAK:      s = "break";  break;
                 case CASE_LIST: s = "case list"; break;
                 case ';':       s = "[;]";     break;
@@ -129,16 +145,26 @@ void exNode
     *cm = c + w / 2;
 
     /* node is leaf */
-    if (p->type == typeCon || p->type == typeId || p->opr.nops == 0) {
+    if (p->type == typeCon || p->type == typeId || (p->opr.nops == 0 && p->type != typeSwitch)) {
         graphDrawBox (s, cbar, l);
         return;
     }
 
     /* node has children */
     cs = c;
-    for (k = 0; k < p->opr.nops; k++) {
-        exNode (p->opr.op[k], cs, l+h+eps, &che, &chm);
-        cs = che;
+    if(p->type == typeOpr) {
+        for (k = 0; k < p->opr.nops; k++) {
+            exNode (p->opr.op[k], cs, l+h+eps, &che, &chm);
+            cs = che;
+        }
+    } else if (p->type == typeSwitch) {
+        nodeType* head = p->sw.case_list_head; int k = 0; 
+        do {
+            exNode (head, cs, l+h+eps, &che, &chm);
+            cs = che; head = head->cs.prev; k++;
+        } while(head != NULL);
+    } else if (p->type == typeCase) {
+        exNode(p->cs.self, cs, l+h+eps, &che, &chm);
     }
 
     /* total node width */
@@ -153,10 +179,19 @@ void exNode
 
     /* draw arrows (not optimal: children are drawn a second time) */
     cs = c;
-    for (k = 0; k < p->opr.nops; k++) {
-        exNode (p->opr.op[k], cs, l+h+eps, &che, &chm);
-        graphDrawArrow (*cm, l+h, chm, l+h+eps-1);
-        cs = che;
+    if(p->type == typeOpr) {
+        for (k = 0; k < p->opr.nops; k++) {
+            exNode (p->opr.op[k], cs, l+h+eps, &che, &chm);
+            graphDrawArrow (*cm, l+h, chm, l+h+eps-1);
+            cs = che;
+        }
+    } else if (p->type == typeSwitch) {
+        nodeType* head = p->sw.case_list_head; int k = 0; 
+        do {
+            exNode (head, cs, l+h+eps, &che, &chm);
+            graphDrawArrow (*cm, l+h, chm, l+h+eps-1);
+            cs = che; head = head->cs.prev; k++;
+        } while(head != NULL);
     }
 }
 

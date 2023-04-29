@@ -6,15 +6,15 @@ switch(a) {
 		break;
 	}
 	case 3: {
-			b = 3;
-			print b;
+		b = 3;
+		print b;
 	}
 	case 1: {
 		b = 1;
 		print b;
 	}
 	case 2: {
-		 	b = 2;
-			print b;
+		b = 2;
+		print b;
 	}
 }

@@ -1,0 +1,7 @@
+a = 0;
+switch(a) {
+    default: {
+        print 69;
+    }
+}
+print 420;

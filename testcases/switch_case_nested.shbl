@@ -1,0 +1,25 @@
+a = 2;
+
+switch(a) {
+	case 1: {
+		print 1;
+	}
+	case 2: {
+		print 2;
+		b = 3;
+		switch(b) {
+			case 2: {
+				print 2;
+				break;
+			}
+			case 3: {
+				print b;
+				break;
+			}
+		}
+		c = 5;
+		if(c > 0) {
+			print c;
+		}
+	}
+}

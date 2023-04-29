@@ -5,17 +5,17 @@ help() {
 }
 
 clean() {
-	rm y.tab.c y.tab.h lex.yy.c rm shbl_interpreter shbl_compiler shbl_graph
+	rm y.tab.c y.tab.h lex.yy.c shbl_interpreter shbl_compiler shbl_graph
 }
 
 generate_code() {
 	set -xe
-	bison -y -d $debug cl.y									                  # create y.tab.h, y.tab.c
-	lex cl.l                                            # create lex.yy.c
+	bison -y -d $debug cl.y            # create y.tab.h, y.tab.c
+	lex cl.l                           # create lex.yy.c
 }
 
 build() {
-	gcc -g lex.yy.c y.tab.c $1 -o $2 -fsanitize=address   # compile/link
+	gcc -g lex.yy.c y.tab.c $1 -o $2 		# compile/link
 }
 
 interpreter() {
