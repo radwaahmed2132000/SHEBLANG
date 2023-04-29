@@ -9,29 +9,39 @@
 /* prototypes */
 nodeType *opr(int oper, int nops, ...);
 nodeType *id(const char* id);
-nodeType *con(int value);
+nodeType *con(conTypeEnum type, int ivalue, float fvalue, bool bValue, char cValue);
+// nodeType *con(typeEnum type, int ivalue=0, float fvalue=0.0, bool bValue=false, char cValue='', std::string sValue="");
 nodeType *sw(nodeType* var, nodeType* case_list_head);
 nodeType *cs(nodeType* self, nodeType* next);
 nodeType *br();
 void set_break_parent(nodeType* case_list, nodeType* parent_switch);
 
 void freeNode(nodeType *p);
-int ex(nodeType *p);
+float ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
-int sym[26];                    /* symbol table */
-std::unordered_map<std::string, int> sym2;
+float sym[26];                    /* symbol table */
+std::unordered_map<std::string, float> sym2;
 %}
 
 %union {
     int iValue;                 /* integer value */
+    float fValue;               /* double value */
+    bool bValue;                /* boolean value */
+    char cValue;                /* char value */
+    /* std::string sValue;         /* string value */
     nodeType *nPtr;             /* node pointer */
 };
 
-%token <iValue> INTEGER
 %token <nPtr> IDENTIFIER
+%token <iValue> INTEGER
+%token <fValue> REAL
+%token <bValue> BOOLEAN
+%token <cValue> CHARACTER
+%token <sValue> STR
 %token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK
+%token CONST INT FLOAT BOOL CHAR STRING
 %nonassoc IFX
 %nonassoc ELSE
 
@@ -49,7 +59,7 @@ std::unordered_map<std::string, int> sym2;
 %right UPLUS UMINUS '!' '~' PP MM
 /* left a++   a--	Suffix/postfix increment and decrement */
 
-%type <nPtr> stmt expr stmt_list case case_list
+%type <nPtr> stmt expr stmt_list case case_list var_list 
 %%
 
 program:
@@ -71,15 +81,37 @@ stmt:
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
         | FOR '(' expr ';' expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $5, $7, $9); }
-        | SWITCH '(' IDENTIFIER ')' case            { 
+        | SWITCH '(' IDENTIFIER ')' case          { 
                 $$ = sw($3, $5); 
                 set_break_parent($5, $$);
         }
         | '{' stmt_list '}'                       { $$ = $2; }
+        | INT var_list ';'                        { $$ = $2; }
+        | FLOAT var_list ';'                      { $$ = $2; }
+        | BOOL var_list ';'                       { $$ = $2; }
+        | CHAR var_list ';'                       { $$ = $2; }
+       /*| STRING var_list ';'                     { $$ = $2; }*/
+        | INT CONST var_list ';'                  { $$ = $3; }
+        | FLOAT CONST var_list ';'                { $$ = $3; }
+        | BOOL CONST var_list ';'                 { $$ = $3; }
+        | CHAR CONST var_list ';'                 { $$ = $3; }
+       /* | STRING CONST var_list ';'               { $$ = $3; }*/
+        | CONST INT var_list ';'                  { $$ = $3; }
+        | CONST FLOAT var_list ';'                { $$ = $3; }
+        | CONST BOOL var_list ';'                 { $$ = $3; }
+        | CONST CHAR var_list ';'                 { $$ = $3; }
+       /* | CONST STRING var_list ';'               { $$ = $3; }*/
         ;
 
+var_list:
+          IDENTIFIER                              { $$ = $1; }
+        | IDENTIFIER '=' expr                     { $$ = opr('=', 2, $1, $3); }
+        | var_list ',' IDENTIFIER '=' expr        { $$ = $1; opr('=', 2, $3, $5); } 
+        | var_list ',' IDENTIFIER                 { $$ = $1; } 
+        ; 
+
 case: 
-     CASE INTEGER ':' stmt      { $$ = opr(CASE, 2, con($2), $4); }
+     CASE INTEGER ':' stmt      { $$ = opr(CASE, 2, con(intType,$2,0.0,0,' '), $4); }
      | DEFAULT ':' stmt         { $$ = opr(DEFAULT, 1, $3); }
      | '{' case_list '}'        { $$ = $2; }
      ;
@@ -95,19 +127,23 @@ stmt_list:
         ;
 
 expr:
-          INTEGER                       { $$ = con($1); }
-        | IDENTIFIER                      { $$ = $1; }
-        | IDENTIFIER '=' expr          { $$ = opr('=', 2, $1, $3); }
-        | IDENTIFIER PA expr           { $$ = opr(PA, 2, $1, $3); }
-        | IDENTIFIER SA expr           { $$ = opr(SA, 2, $1, $3); }
-        | IDENTIFIER MA expr           { $$ = opr(MA, 2, $1, $3); }
-        | IDENTIFIER DA expr           { $$ = opr(DA, 2, $1, $3); }
-        | IDENTIFIER RA expr           { $$ = opr(RA, 2, $1, $3); }
-        | IDENTIFIER LSA expr          { $$ = opr(LSA, 2, $1, $3); }
-        | IDENTIFIER RSA expr          { $$ = opr(RSA, 2, $1, $3); }
-        | IDENTIFIER ANDA expr         { $$ = opr(ANDA, 2, $1, $3); }
-        | IDENTIFIER EORA expr         { $$ = opr(EORA, 2, $1, $3); }
-        | IDENTIFIER IORA expr         { $$ = opr(IORA, 2, $1, $3); }
+          INTEGER                       { $$ = con(intType,$1,0.0,false,' '); }
+        | REAL                          { $$ = con(floatType,0,$1,false,' '); }
+        | BOOLEAN                       { $$ = con(boolType,0,0.0,$1,' '); }
+        | CHARACTER                     { $$ = con(charType,0,0.0,false,$1); }
+ /*       | STR                           { $$ = con(stringType,0,0.0,false,' ',$1); } */
+        | IDENTIFIER                    { $$ = $1; }
+        | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
+        | IDENTIFIER PA expr            { $$ = opr(PA, 2, $1, $3); }
+        | IDENTIFIER SA expr            { $$ = opr(SA, 2, $1, $3); }
+        | IDENTIFIER MA expr            { $$ = opr(MA, 2, $1, $3); }
+        | IDENTIFIER DA expr            { $$ = opr(DA, 2, $1, $3); }
+        | IDENTIFIER RA expr            { $$ = opr(RA, 2, $1, $3); }
+        | IDENTIFIER LSA expr           { $$ = opr(LSA, 2, $1, $3); }
+        | IDENTIFIER RSA expr           { $$ = opr(RSA, 2, $1, $3); }
+        | IDENTIFIER ANDA expr          { $$ = opr(ANDA, 2, $1, $3); }
+        | IDENTIFIER EORA expr          { $$ = opr(EORA, 2, $1, $3); }
+        | IDENTIFIER IORA expr          { $$ = opr(IORA, 2, $1, $3); }
         | PP expr                       { $$ = opr(PP, 1, $2); }
         | MM expr                       { $$ = opr(MM, 1, $2); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
@@ -209,8 +245,7 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
 }
 
 
-// Create constant value / literal node.
-nodeType *con(int value) {
+nodeType *con(conTypeEnum type, int ivalue, float fvalue, bool bValue, char cValue) {
     nodeType *p;
 
     /* allocate node */
@@ -219,9 +254,19 @@ nodeType *con(int value) {
 
     /* copy information */
     p->type = typeCon;
-    p->un = std::variant<NODE_TYPES>(conNodeType{value});
-
-    return p;
+    p->un = std::variant<NODE_TYPES>(conNodeType{});
+    auto& con = std::get<conNodeType>(p->un);
+    con.conType = type;
+    switch(type) {
+            case intType: con.iValue = ivalue;  break;
+            case floatType: con.fValue = fvalue; break;
+            case boolType: con.bValue = bValue; break;
+            case charType: con.cValue = cValue; break;
+    }
+   // else if(type ==  stringType) {
+   // std::get<conNodeType>(p->un).sValue = sValue;
+   // std::get<conNodeType>(p->un).conType = stringType;
+   return p;
 }
 
 // Create an identifier node.

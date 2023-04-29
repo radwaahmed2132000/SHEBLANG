@@ -1,0 +1,9 @@
+float a = 1.0;
+print a;
+===
+1.000000
+===
+push 1.000000
+pop a
+push a
+print

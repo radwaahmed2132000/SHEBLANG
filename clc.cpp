@@ -9,7 +9,7 @@
 
 static int lbl;
 
-int ex(nodeType* p);
+float ex(nodeType* p);
 
 //     switch(j) {
 //      default:
@@ -45,7 +45,7 @@ int compile_switch(nodeType* p) {
 
     int matching_case_index = -1;
     int default_case_index = -1;
-    int break_encountered = 0;
+    bool break_encountered = false;
 
     auto sw = std::get<switchNodeType>(p->un);
 
@@ -105,20 +105,28 @@ int compile_switch(nodeType* p) {
     return 0;
 }
 
-int ex(nodeType *p) {
+float ex(nodeType *p) {
     int lbl1, lbl2;
 
     if (!p) return 0;
     switch(p->type) {
-    case typeCon:       
-        printf("\tpush\t%d\n", std::get<conNodeType>(p->un).value); 
-        break;
-    case typeId: {
-
-        auto identifierNode = std::get<idNodeType>(p->un);
-        printf("\tpush\t%s\n", identifierNode.id.c_str()); 
-        return sym2[identifierNode.id];
-    }
+        case typeCon:{
+            auto con = std::get<conNodeType>(p->un);
+            switch(con.conType) {
+                case intType:   printf("\tpush\t%d\n", con.iValue);       return con.iValue;
+                case floatType: printf("\tpush\t%f\n", con.fValue);       return con.fValue;
+                case boolType:  printf("\tpush\t%d\n", (int)con.bValue);  return con.bValue;
+                case charType:  printf("\tpush\t%c\n", con.cValue);       return con.cValue;
+                default:
+                case stringType:
+                    break;
+            }
+        } break;
+        case typeId: {
+             auto identifierNode = std::get<idNodeType>(p->un);
+             printf("\tpush\t%s\n", identifierNode.id.c_str()); 
+             return sym2[identifierNode.id];
+        } break;
     case typeCase: {
         printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
         exit(EXIT_FAILURE);
@@ -237,8 +245,7 @@ int ex(nodeType *p) {
             break;
         case DEFAULT:   
         case CASE:     
-            printf("\tpush\t%d\n", std::get<conNodeType>(opr.op[0]->un).value);
-            break;
+            ex(opr.op[0]); break;
         case PRINT:     
             ex(opr.op[0]);
             printf("\tprint\n");

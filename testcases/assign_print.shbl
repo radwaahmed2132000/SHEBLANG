@@ -1,5 +1,11 @@
 a = 2;
 print a + 12;
 ===
-14
+14.000000
 ===
+push 2
+pop a
+push a 
+push 12
+add
+print 

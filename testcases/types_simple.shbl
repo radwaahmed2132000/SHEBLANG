@@ -1,0 +1,33 @@
+int myInt1 = 10, myInt2;
+float myFloat = 20.45;
+bool myBool = true;
+print myInt1;
+print myInt2;
+print myFloat;
+print myBool;
+===
+10.000000
+0.000000
+20.450001
+1.000000
+===
+push    10
+pop     myInt1
+
+push    20.450001
+pop     myFloat
+
+push    1
+pop     myBool
+
+push    myInt1
+print
+
+push    myInt2
+print
+
+push    myFloat
+print
+
+push    myBool
+print

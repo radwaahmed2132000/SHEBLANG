@@ -7,7 +7,7 @@
 #include "cl.h"
 #include "y.tab.h"
 
-int ex(nodeType* p);
+float ex(nodeType* p);
 
 int evaluate_switch(nodeType* p) {
     auto sw = std::get<switchNodeType>(p->un);
@@ -56,10 +56,29 @@ int evaluate_switch(nodeType* p) {
     return 0;
 }
 
-int ex(nodeType *p) {
+float ex(nodeType *p) {
     if (!p) return 0;
     switch(p->type) {
-        case typeCon:       return std::get<conNodeType>(p->un).value;
+        case typeCon:
+        {
+            if(std::get<conNodeType>(p->un).conType == intType) {
+                return std::get<conNodeType>(p->un).iValue;
+            // return p->con.iValue;
+            }    else if(std::get<conNodeType>(p->un).conType == floatType) {
+                return std::get<conNodeType>(p->un).fValue;
+                // return p->con.fValue;
+            }    else if(std::get<conNodeType>(p->un).conType == boolType) {
+                return std::get<conNodeType>(p->un).bValue;
+                // return p->con.bValue;
+            }
+            // }    else if(std::get<conNodeType>(p->un).conType == charType) {
+            //     return std::get<conNodeType>(p->un).cValue;
+            //     // return (int)p->con.cValue;
+            // }    else if(std::get<conNodeType>(p->un).conType ==  stringType) {
+            //     return std::get<conNodeType>(p->un).sValue;
+            //     // p->con.sValue = sValue;
+            // }
+        }
         case typeId:        return sym2[std::get<idNodeType>(p->un).id];
     case typeCase:
                         printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
@@ -89,35 +108,56 @@ int ex(nodeType *p) {
             case DEFAULT:   break;
             case CASE:      return ex(opr.op[0]);
 
-            case PRINT:     printf("%d\n", ex(opr.op[0])); return 0;
+            case PRINT:  
+            {
+                // auto val = std::get<conNodeType>(opr.op[0]->un);
+                printf("%f\n", ex(opr.op[0]));
+                // if(val.conType == intType) {
+                //     printf("%d\n", ((int)ex(opr.op[0])));
+                // }    else if(val.conType == floatType)    {
+                //     printf("%f\n", ex(opr.op[0]));
+                // }    else if(val.conType == boolType) {
+                //         if(ex(opr.op[0]) == 0)
+                //             printf("false\n");
+                //         else if(ex(opr.op[0]) == 1)
+                //             printf("true\n");
+                // }    
+                /* else if(p->con.conType == charType) {
+                        printf("%c\n", itoa(ex(p->opr.op[0])));
+                }    
+                 else if(type ==  stringType) {
+                    p->con.sValue = sValue;
+                } */
+                return 0;
+            }
             case ';':       ex(opr.op[0]); return ex(opr.op[1]);
             case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
             case PA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] += ex(opr.op[1]);
             case SA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] -= ex(opr.op[1]);
             case MA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] *= ex(opr.op[1]);
             case DA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] /= ex(opr.op[1]);
-            case RA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] %= ex(opr.op[1]);
-            case LSA:       return sym2[std::get<idNodeType>(opr.op[0]->un).id] <<= ex(opr.op[1]);
-            case RSA:       return sym2[std::get<idNodeType>(opr.op[0]->un).id] >>= ex(opr.op[1]);
-            case ANDA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] &= ex(opr.op[1]);
-            case EORA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] ^= ex(opr.op[1]);
-            case IORA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] |= ex(opr.op[1]);
+            case RA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) % ((int)ex(opr.op[1]));
+            case LSA:       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) << ((int)ex(opr.op[1]));
+            case RSA:       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) >> ((int)ex(opr.op[1]));
+            case ANDA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) & ((int)ex(opr.op[1]));
+            case EORA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) ^ ((int)ex(opr.op[1]));
+            case IORA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) | ((int)ex(opr.op[1]));
             case PP:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[0]) + 1;
             case MM:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[0]) - 1;
             case UPLUS:     return ex(opr.op[0]);
             case UMINUS:    return -ex(opr.op[0]);
             case '!':       return !ex(opr.op[0]);
-            case '~':       return ~ex(opr.op[0]);
-            case '&':       return ex(opr.op[0]) & ex(opr.op[1]);
-            case '|':       return ex(opr.op[0]) | ex(opr.op[1]);
-            case '^':       return ex(opr.op[0]) ^ ex(opr.op[1]);
-            case LS:        return ex(opr.op[0]) << ex(opr.op[1]);
-            case RS:        return ex(opr.op[0]) >> ex(opr.op[1]);
+            case '~':       return ~((int)ex(opr.op[0]));
+            case '&':       return ((int)ex(opr.op[0])) & ((int)ex(opr.op[1]));
+            case '|':       return ((int)ex(opr.op[0])) | ((int)ex(opr.op[1]));
+            case '^':       return ((int)ex(opr.op[0])) ^ ((int)ex(opr.op[1]));
+            case LS:        return ((int)ex(opr.op[0])) << ((int)ex(opr.op[1]));
+            case RS:        return ((int)ex(opr.op[0])) >> ((int)ex(opr.op[1]));
             case '+':       return ex(opr.op[0]) + ex(opr.op[1]);
             case '-':       return ex(opr.op[0]) - ex(opr.op[1]);
             case '*':       return ex(opr.op[0]) * ex(opr.op[1]);
             case '/':       return ex(opr.op[0]) / ex(opr.op[1]);
-            case '%':       return ex(opr.op[0]) % ex(opr.op[1]);
+            case '%':       return ((int)ex(opr.op[0])) % ((int)ex(opr.op[1]));
             case AND:       return ex(opr.op[0]) && ex(opr.op[1]);
             case OR:        return ex(opr.op[0]) || ex(opr.op[1]);
             case '<':       return ex(opr.op[0]) < ex(opr.op[1]);
