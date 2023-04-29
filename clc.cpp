@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <variant>
 
 #include "cl.h"
 #include "y.tab.h"
@@ -45,30 +47,34 @@ int compile_switch(nodeType* p) {
     int default_case_index = -1;
     int break_encountered = 0;
 
-    assert(p->sw.case_list_head->type == typeCase);
-    caseNodeType cases[MAX_SWITCH_CASES];
-    int labels[MAX_SWITCH_CASES];
-    int num_cases = 0;
+    auto sw = std::get<switchNodeType>(p->un);
 
-    nodeType* head = p->sw.case_list_head;
+    std::vector<caseNodeType> cases;
+    std::vector<int> labels;
+
+    // Check cli.cpp for an explanation of why we're collecting and reversing.
+    nodeType* head = sw.case_list_head;
     do {
-        assert(head->type == typeCase);
-        cases[num_cases] = head->cs;
-        labels[num_cases] = lbl++;
-        num_cases++;
-        head = head->cs.prev;
+        auto cs = std::get<caseNodeType>(head->un);
+
+        cases.push_back(cs);
+        labels.push_back(lbl++);
+
+        head = cs.prev;
     } while(head != NULL);
+    std::reverse(cases.begin(), cases.end());
+    std::reverse(labels.begin(), labels.end());
 
-    p->sw.exit_label = lbl++;
+    sw.exit_label = lbl++;
 
-    assert(num_cases < MAX_SWITCH_CASES);
-
-    for(int i = num_cases - 1; i >=0 && !break_encountered ; i--) { 
-        if(cases[i].self->opr.oper == DEFAULT) {
+    for(int i = 0; i < cases.size() && !break_encountered ; i--) { 
+        auto opr = std::get<oprNodeType>(cases[i].self->un);
+        if(opr.oper == DEFAULT) {
             default_case_index = i;
         } else {
-            ex(cases[i].self);                       // Label value
-            printf("\tpush\t%c\n", p->sw.var->id.i + 'a');   // variable value
+            auto case_identifier = std::get<idNodeType>(sw.var->un);
+            ex(cases[i].self);                                    // Label value
+            printf("\tpush\t%s\n", case_identifier.id.c_str());   // variable value
             printf("\tcompEQ\n");
             printf("\tje\tL%03d\n", labels[i]);
         }
@@ -79,20 +85,22 @@ int compile_switch(nodeType* p) {
     if(default_case_index != -1) {
         printf("\tjmp\tL%03d\n", labels[default_case_index]);
     } else {
-        printf("\tjmp\tL%03d\n", p->sw.exit_label);
+        printf("\tjmp\tL%03d\n", sw.exit_label);
     }
 
-    for(int i = num_cases - 1; i >=0 && !break_encountered ; i--) { 
+    for(int i = 0; i < cases.size() && !break_encountered ; i--) { 
         printf("L%03d:\n", labels[i]);
 
-        if(cases[i].self->opr.oper == DEFAULT) {
-            ex(cases[i].self->opr.op[0]);
+        auto opr = std::get<oprNodeType>(cases[i].self->un);
+
+        if(opr.oper == DEFAULT) {
+            ex(opr.op[0]);
         } else {
-            ex(cases[i].self->opr.op[1]);
+            ex(opr.op[1]);
         }
     }
 
-    printf("L%03d:\n", p->sw.exit_label);
+    printf("L%03d:\n", sw.exit_label);
 
     return 0;
 }
@@ -103,21 +111,28 @@ int ex(nodeType *p) {
     if (!p) return 0;
     switch(p->type) {
     case typeCon:       
-        printf("\tpush\t%d\n", p->con.value); 
+        printf("\tpush\t%d\n", std::get<conNodeType>(p->un).value); 
         break;
-    case typeId:        
-        printf("\tpush\t%c\n", p->id.i + 'a'); 
-        return sym[p->id.i];
-    case typeCase:
+    case typeId: {
+
+        auto identifierNode = std::get<idNodeType>(p->un);
+        printf("\tpush\t%s\n", identifierNode.id.c_str()); 
+        return sym2[identifierNode.id];
+    }
+    case typeCase: {
         printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
         exit(EXIT_FAILURE);
+    }
     case typeSwitch: compile_switch(p); break;
-    case typeBreak: 
-         int exit_label = p->br.parent_switch->sw.exit_label;
+    case typeBreak: {
+         auto br = std::get<breakNodeType>(p->un);
+         auto sw = std::get<switchNodeType>(br.parent_switch->un);
+         int exit_label = sw.exit_label;
          printf("\tjmp\tL%03d\n", exit_label);
-         break;
+    } break;
     case typeOpr:
-        switch(p->opr.oper) {
+        auto opr = std::get<oprNodeType>(p->un);
+        switch(opr.oper) {
         case WHILE:
             // op[0] is the condition
             // op[1] is the statement list
@@ -126,13 +141,13 @@ int ex(nodeType *p) {
             printf("L%03d:\n", lbl1 = lbl++);
 
             //      check condition
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             
             //      if condition doesn't hold, jump to label2
             printf("\tjz\tL%03d\n", lbl2 = lbl++);
 
             //      code ...
-            ex(p->opr.op[1]);
+            ex(opr.op[1]);
 
             //      jump to label1
             printf("\tjmp\tL%03d\n", lbl1);
@@ -148,25 +163,25 @@ int ex(nodeType *p) {
             printf("L%03d:\n", lbl1 = lbl++);
 
             //      code....
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
 
             //      condition check 
-            ex(p->opr.op[1]);
+            ex(opr.op[1]);
 
             //      jump to label if condition holds
             printf("\tjz\tL%03d\n", lbl1);
 
             break;
         case IF:
-            ex(p->opr.op[0]);
-            switch(p->opr.nops) {
+            ex(opr.op[0]);
+            switch(opr.op.size()) {
                 /* if op[0] { op[1] } else { op[2] } */
                 case 3:
                     printf("\tjz\tL%03d\n", lbl1 = lbl++);
-                    ex(p->opr.op[1]);
+                    ex(opr.op[1]);
                     printf("\tjmp\tL%03d\n", lbl2 = lbl++);
                     printf("L%03d:\n", lbl1);
-                    ex(p->opr.op[2]);
+                    ex(opr.op[2]);
                     printf("L%03d:\n", lbl2);
                     break;
 
@@ -174,7 +189,7 @@ int ex(nodeType *p) {
                 case 2:
                     /* if */
                     printf("\tjz\tL%03d\n", lbl1 = lbl++);
-                    ex(p->opr.op[1]);
+                    ex(opr.op[1]);
                     printf("L%03d:\n", lbl1);
                     break;
 
@@ -204,17 +219,17 @@ int ex(nodeType *p) {
             //  label2:
             
 
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
 
             printf("L%03d:\n", lbl1 = lbl++);
 
-            ex(p->opr.op[1]);
+            ex(opr.op[1]);
 
             printf("\tjnz\tL%03d\n", lbl2 = lbl++);
 
-            ex(p->opr.op[3]);
+            ex(opr.op[3]);
             
-            ex(p->opr.op[2]);
+            ex(opr.op[2]);
 
             printf("\tjmp\tL%03d\n", lbl1);
 
@@ -222,84 +237,85 @@ int ex(nodeType *p) {
             break;
         case DEFAULT:   
         case CASE:     
-            printf("\tpush\t%d\n", p->opr.op[0]->con.value);
+            printf("\tpush\t%d\n", std::get<conNodeType>(opr.op[0]->un).value);
             break;
         case PRINT:     
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tprint\n");
             break;
         case '=':       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case PA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case SA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case MA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case DA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case RA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case LSA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case RSA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case ANDA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case EORA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case IORA:       
-            ex(p->opr.op[1]);
-            printf("\tpop\t%c\n", p->opr.op[0]->id.i + 'a');
+            ex(opr.op[1]);
+            printf("\tpop\t%s\n", std::get<idNodeType>(opr.op[0]->un).id.c_str());
             break;
         case PP:    
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tinc1pre\n");
             break;
         case MM:    
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tdec1pre\n");
             break;
         case UPLUS:    
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tpos\n");
             break;
         case UMINUS:    
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tneg\n");
             break;
         case '!':    
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tnot\n");
             break;
         case '~':    
-            ex(p->opr.op[0]);
+            ex(opr.op[0]);
             printf("\tbitNOT\n");
             break;
        default:
-            ex(p->opr.op[0]);
-            ex(p->opr.op[1]);
-            switch(p->opr.oper) {
+            if(!opr.op.empty()) ex(opr.op[0]);
+            if(opr.op.size() > 1) ex(opr.op[1]);
+
+            switch(opr.oper) {
             case '&':   printf("\tbitAND\n"); break;
             case '|':   printf("\tbitOR\n");  break;
             case '^':   printf("\tbitXOR\n"); break;

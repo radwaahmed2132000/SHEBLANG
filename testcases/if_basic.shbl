@@ -7,3 +7,19 @@ if(a > 0){
 ===
 0
 ===
+    push 1
+    pop a
+
+    push a
+    push 0
+    compGT 
+    jz L000
+
+    push 0
+    print
+    jmp L001
+
+L000:
+    push a
+    print
+L001:

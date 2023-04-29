@@ -1,7 +1,6 @@
 a = 1;
 ===
 ===
-push 1
-pop a
-push a
-print
+push	1
+pop	a
+

@@ -2,9 +2,10 @@
 
 from argparse import ArgumentParser
 from typing import List
-import subprocess
 
+import subprocess
 import os
+import re
 
 TEST_TYPE_SEPARATOR = "===\n"
 
@@ -70,18 +71,29 @@ print(indent_list(list_test_cases(test_cases)))
 
 skipped = passed = failed = 0
 for test_case in test_cases:
-    if test_case.interpreter_ref is None and test_case.compiler_ref is None:
-        print(f"SKIPPED: {test_case.filename}, no test case output.")
+    expected_output = test_case.get_binary_type_output(args.shbl_binary_type)
+    if expected_output is None:
         skipped += 1
+        print(f"SKIPPED: {test_case.filename}, no test case output.")
         continue
 
     proc = subprocess.run([binary], input=test_case.code.encode(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     actual_output = proc.stdout.decode().strip()
-    expected_output = test_case.get_binary_type_output(args.shbl_binary_type)
 
-    if actual_output == expected_output:
-        print(f"PASSED: {test_case.filename}")
+    # Removes all whitespace
+    # For example:
+    #   push	1
+    #   pop	a
+    # becomes:
+    #   push1popa
+    # This is to make the checks not affected by whitespace or indentation
+    re_nowhitespace = re.compile(r"\W")
+    expected_no_whitespace = re_nowhitespace.sub("", expected_output)
+    actual_no_whitespace = re_nowhitespace.sub("", actual_output)
+
+    if expected_no_whitespace == actual_no_whitespace:
         passed += 1
+        print(f"PASSED: {test_case.filename}")
     else:
         failed += 1
         print(f"FAILED: {test_case.filename}")

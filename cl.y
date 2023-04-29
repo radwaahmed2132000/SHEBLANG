@@ -15,7 +15,6 @@ nodeType *cs(nodeType* self, nodeType* next);
 nodeType *br();
 void set_break_parent(nodeType* case_list, nodeType* parent_switch);
 
-
 void freeNode(nodeType *p);
 int ex(nodeType *p);
 int yylex(void);

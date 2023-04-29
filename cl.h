@@ -12,15 +12,13 @@ typedef struct {
 
 /* identifiers */
 typedef struct {
-    std::string id = "";
+    std::string id;
 } idNodeType;
 
 /* operators */
 typedef struct {
     int oper;                   /* operator */
     std::vector<struct nodeTypeTag*> op;
-// int nops;                   /* number of operands */
-//  struct nodeTypeTag *op[1];	/* operands, extended at runtime */
 } oprNodeType;
 
 typedef struct {
@@ -29,7 +27,7 @@ typedef struct {
 
 typedef struct {
     int exit_label;
-    int break_encountered;
+    bool break_encountered;
     struct nodeTypeTag* var, *case_list_head;
 } switchNodeType;
 
@@ -42,19 +40,7 @@ typedef struct {
 typedef struct nodeTypeTag {
     nodeEnum type;              /* type of node. Still need it since std::visit seems to not play well with recursive functions */
     std::variant<NODE_TYPES> un;
-
-    // union {
-    //     conNodeType con;        /* constants */
-    //     idNodeType id;          /* identifiers */
-    //     oprNodeType opr;        /* operators */
-    //     switchNodeType sw;      /* switch cases */
-    //     caseNodeType cs;        /* cases inside switch cases */
-    //     breakNodeType br;       /* break statements in switch cases */
-    // };
 } nodeType;
 
 extern int sym[26];
 extern std::unordered_map<std::string, int> sym2;
-
-#define MAX_SWITCH_CASES 16
-

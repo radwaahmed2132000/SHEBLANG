@@ -30,7 +30,7 @@ graph() {
 
 compiler() {
 	generate_code
-	build clc.c shbl_compiler 
+	build clc.cpp shbl_compiler 
 }
 
 case $1 in 

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <variant>
+#include <algorithm>
 
 #include "cl.h"
 #include "y.tab.h"
@@ -16,8 +17,7 @@ int evaluate_switch(nodeType* p) {
     int var_value = ex(sw.var);
 
     assert(sw.case_list_head->type == typeCase);
-    caseNodeType cases[MAX_SWITCH_CASES];
-    int num_cases = 0;
+    std::vector<caseNodeType> cases;
 
     nodeType* head = sw.case_list_head;
 
@@ -26,16 +26,15 @@ int evaluate_switch(nodeType* p) {
     // in reverse to have the switch case in the proper
     // order.
     do {
-        /* assert(head->type == typeCase); */
-        cases[num_cases++] = std::get<caseNodeType>(head->un);
+        cases.push_back(std::get<caseNodeType>(head->un));
         head = std::get<caseNodeType>(head->un).prev;
     } while(head != NULL);
+    std::reverse(cases.begin(), cases.end());
 
-    assert(num_cases < MAX_SWITCH_CASES);
-
-    for(int i = num_cases - 1; i >=0 && !sw.break_encountered; i--) {
+    for(int i = 0; i < cases.size() && !sw.break_encountered; i--) {
         int case_value = ex(cases[i].self);
         auto opr = std::get<oprNodeType>(cases[i].self->un);
+
         if(opr.oper == DEFAULT) {
             default_case_index = i;
         } else if (case_value == var_value || (matching_case_index != -1)) {
@@ -69,7 +68,7 @@ int ex(nodeType *p) {
     case typeBreak: {
                         auto br = std::get<breakNodeType>(p->un);
                         auto parent_switch = std::get<switchNodeType>(br.parent_switch->un);
-                        parent_switch.break_encountered = 1;
+                        parent_switch.break_encountered = true;
                     } break;
     case typeOpr: {
         auto opr = std::get<oprNodeType>(p->un);
