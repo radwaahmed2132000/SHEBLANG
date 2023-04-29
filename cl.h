@@ -4,15 +4,23 @@
 #include <unordered_map>
 
 typedef enum { typeCon, typeId, typeOpr, typeSwitch, typeCase, typeBreak } nodeEnum;
+typedef enum { intType, floatType, boolType, charType, stringType } typeEnum;
 
 /* constants */
 typedef struct {
-    int value;                  /* value of constant */
+    int iValue;                 /* integer value of constant */
+    float fValue;               /* float value of constant */
+    // int bValue;                 /* boolean value of constant */
+    bool bValue;                /* boolean value of constant */
+    char cValue;                /* char value of constant */
+    std::string sValue;         /* string value of constant */
+    typeEnum conType;           /* type of constant */
 } conNodeType;
 
 /* identifiers */
 typedef struct {
-    std::string id = "";
+    std::string id = "";        /* key/index to sym array */
+    typeEnum idType;            /* type of variable */
 } idNodeType;
 
 /* operators */
@@ -53,8 +61,8 @@ typedef struct nodeTypeTag {
     // };
 } nodeType;
 
-extern int sym[26];
-extern std::unordered_map<std::string, int> sym2;
+extern float sym[26];
+extern std::unordered_map<std::string, float> sym2;
 
 #define MAX_SWITCH_CASES 16
 
