@@ -40,7 +40,7 @@ std::unordered_map<std::string, float> sym2;
 %token <bValue> BOOLEAN
 %token <cValue> CHARACTER
 %token <sValue> STR
-%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK
+%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM
 %token CONST INT FLOAT BOOL CHAR STRING
 %nonassoc IFX
 %nonassoc ELSE
@@ -101,6 +101,7 @@ stmt:
         | CONST BOOL var_list ';'                 { $$ = $3; }
         | CONST CHAR var_list ';'                 { $$ = $3; }
        /* | CONST STRING var_list ';'               { $$ = $3; }*/
+        | enum_decl                               { printf("Enum parsed successfully"); }
         ;
 
 var_list:
@@ -170,6 +171,15 @@ expr:
         | expr EQ expr                  { $$ = opr(EQ, 2, $1, $3); }
         | '(' expr ')'                  { $$ = $2; }
         ;
+
+enum_decl:
+         ENUM IDENTIFIER '{' identifier_list '}' ';'
+         ;
+
+identifier_list:
+               identifier_list ',' IDENTIFIER
+               | IDENTIFIER
+               ;
 
 %%
 

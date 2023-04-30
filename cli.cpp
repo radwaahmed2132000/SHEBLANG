@@ -60,8 +60,8 @@ struct ex_visitor {
             case intType: return con.iValue;
             case floatType: return con.fValue;
             case boolType: return (float)con.bValue;
-            case stringType:
-            case charType: return 0;
+            default:
+                    return 0;
         }
     }
 
@@ -81,6 +81,7 @@ struct ex_visitor {
     float operator()(breakNodeType& br) {
         auto parent_switch = std::get<switchNodeType>(br.parent_switch->un);
         parent_switch.break_encountered = true;
+        return 0;
     }
 
     float operator()(oprNodeType& opr) {
@@ -161,6 +162,7 @@ struct ex_visitor {
             case EQ:        return ex(opr.op[0]) == ex(opr.op[1]);
         }
 
+        return 0;
     }
 
     // the default case:

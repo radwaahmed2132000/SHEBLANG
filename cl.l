@@ -84,6 +84,7 @@ nodeTypeTag *id(const char* id);
 "case"          return CASE;
 "default"       return DEFAULT;
 "break"         return BREAK;
+"enum"          return ENUM;
 
 [a-zA-Z_][a-zA-Z_0-9]* { 
                 yylval.nPtr = id(yytext);

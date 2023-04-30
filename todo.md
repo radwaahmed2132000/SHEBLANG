@@ -70,6 +70,7 @@ declared at the beginning of blocks):
 6. Enums:
 	* Syntax: enum enumerated-type-name{value1=1, value2, value3};
 	* ex: enum suit{heart, diamond=8, spade=3, club}; ==> 0,8,3,4
+    * Currently implemented as `enum IDENTIFIER { val1, val2, ...};` won't probably allow assigning values to different members for simplicity.
 7. Functions:
 	* Function Declaration (optional)
 	* Return Type

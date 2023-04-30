@@ -1,0 +1,3 @@
+enum test {A, B, C};
+===
+Enum parsed successfully
