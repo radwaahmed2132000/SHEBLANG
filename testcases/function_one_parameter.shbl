@@ -1,0 +1,4 @@
+fn test(mytype param){;}
+===
+Function parsed successfully
+

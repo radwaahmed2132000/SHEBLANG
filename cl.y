@@ -40,7 +40,7 @@ std::unordered_map<std::string, float> sym2;
 %token <bValue> BOOLEAN
 %token <cValue> CHARACTER
 %token <sValue> STR
-%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM
+%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM FN
 %token CONST INT FLOAT BOOL CHAR STRING
 %nonassoc IFX
 %nonassoc ELSE
@@ -81,10 +81,7 @@ stmt:
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
         | FOR '(' expr ';' expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $5, $7, $9); }
-        | SWITCH '(' IDENTIFIER ')' case          { 
-                $$ = sw($3, $5); 
-                set_break_parent($5, $$);
-        }
+        | SWITCH '(' IDENTIFIER ')' case          { $$ = sw($3, $5); set_break_parent($5, $$); }
         | '{' stmt_list '}'                       { $$ = $2; }
         | INT var_list ';'                        { $$ = $2; }
         | FLOAT var_list ';'                      { $$ = $2; }
@@ -102,6 +99,7 @@ stmt:
         | CONST CHAR var_list ';'                 { $$ = $3; }
        /* | CONST STRING var_list ';'               { $$ = $3; }*/
         | enum_decl                               { printf("Enum parsed successfully"); }
+        | function_defn                           { printf("Function parsed successfully"); }
         ;
 
 var_list:
@@ -180,6 +178,24 @@ identifier_list:
                identifier_list ',' IDENTIFIER
                | IDENTIFIER
                ;
+
+function_return_type:
+                    IDENTIFIER
+                    | /* EMPTY */
+                    ;
+
+parameter_defn:
+              IDENTIFIER IDENTIFIER
+              ;
+
+function_parameter_list:
+                       function_parameter_list ',' parameter_defn
+                       | parameter_defn
+                       | /* NULL */
+                       ;
+function_defn:
+             FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}'
+
 
 %%
 
