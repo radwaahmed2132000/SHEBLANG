@@ -124,7 +124,13 @@ struct ex_visitor {
                 } */
                 return 0;
             }
-            case ';':       ex(opr.op[0]); return ex(opr.op[1]);
+            case ';':       
+                // Need to check bounds for cases where the semi
+                if(!opr.op.empty()) ex(opr.op[0]); 
+                if(opr.op.size() > 1)
+                    return ex(opr.op[1]);
+                return 0;
+
             case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
             case PA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] += ex(opr.op[1]);
             case SA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] -= ex(opr.op[1]);

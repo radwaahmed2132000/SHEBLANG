@@ -63,16 +63,13 @@ std::unordered_map<std::string, float> sym2;
 %%
 
 program:
-        function                { exit(0); }
+        stmt_list { ex($1); freeNode($1); exit(0); }
+        //| /* NULL */
         ;
 
-function:
-          function stmt         { ex($2); freeNode($2); }
-        | /* NULL */
-        ;
 
 stmt:
-          ';'                                     { $$ = opr(';', 0, NULL, NULL); }
+          ';'                                     { $$ = opr(';', 0); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
@@ -168,7 +165,17 @@ expr:
         | expr NE expr                  { $$ = opr(NE, 2, $1, $3); }
         | expr EQ expr                  { $$ = opr(EQ, 2, $1, $3); }
         | '(' expr ')'                  { $$ = $2; }
+        | function_call                 {  printf("Function call parsed successfully");}
         ;
+
+function_call:
+             IDENTIFIER '(' expr_list ')';
+
+expr_list:
+         expr_list ',' expr
+       | expr
+       |
+       ;
 
 enum_decl:
          ENUM IDENTIFIER '{' identifier_list '}' ';'
@@ -177,6 +184,7 @@ enum_decl:
 identifier_list:
                identifier_list ',' IDENTIFIER
                | IDENTIFIER
+               |
                ;
 
 function_return_type:
@@ -343,14 +351,10 @@ nodeType *opr(int oper, int nops, ...) {
 
 // De-allocates a node and all of its children (if any).
 void freeNode(nodeType *p) {
-//    int i;
-//
-//    if (!p) return;
-//    if (p->type == typeOpr) {
-//        for (i = 0; i < p->opr.nops; i++)
-//            freeNode(p->opr.op[i]);
-//    }
-//    free (p);
+    int i;
+
+    if (!p) return;
+    free (p);
 }
 
 void yyerror(char *s) {

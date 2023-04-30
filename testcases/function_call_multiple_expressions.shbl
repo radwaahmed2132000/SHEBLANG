@@ -1,0 +1,3 @@
+test((a+b), test2());
+===
+Function call parsed successfullyFunction call parsed successfully
