@@ -67,7 +67,7 @@ int compile_switch(nodeType* p) {
 
     sw.exit_label = lbl++;
 
-    for(int i = 0; i < cases.size() && !break_encountered ; i--) { 
+    for(int i = 0; i < cases.size() && !break_encountered ; i++) { 
         auto opr = std::get<oprNodeType>(cases[i].self->un);
         if(opr.oper == DEFAULT) {
             default_case_index = i;
@@ -88,7 +88,7 @@ int compile_switch(nodeType* p) {
         printf("\tjmp\tL%03d\n", sw.exit_label);
     }
 
-    for(int i = 0; i < cases.size() && !break_encountered ; i--) { 
+    for(int i = 0; i < cases.size() && !break_encountered ; i++) { 
         printf("L%03d:\n", labels[i]);
 
         auto opr = std::get<oprNodeType>(cases[i].self->un);

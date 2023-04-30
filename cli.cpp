@@ -29,7 +29,7 @@ int evaluate_switch(switchNodeType& sw) {
     } while(head != NULL);
     std::reverse(cases.begin(), cases.end());
 
-    for(int i = 0; i < cases.size() && !sw.break_encountered; i--) {
+    for(int i = 0; i < cases.size() && !sw.break_encountered; i++) {
         int case_value = ex(cases[i].self);
         auto opr = std::get<oprNodeType>(cases[i].self->un);
 
