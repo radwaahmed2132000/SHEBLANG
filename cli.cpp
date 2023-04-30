@@ -9,9 +9,7 @@
 
 float ex(nodeType* p);
 
-int evaluate_switch(nodeType* p) {
-    auto sw = std::get<switchNodeType>(p->un);
-
+int evaluate_switch(switchNodeType& sw) {
     int matching_case_index = -1;
     int default_case_index = -1;
     int var_value = ex(sw.var);
@@ -56,41 +54,36 @@ int evaluate_switch(nodeType* p) {
     return 0;
 }
 
-float ex(nodeType *p) {
-    if (!p) return 0;
-    switch(p->type) {
-        case typeCon:
-        {
-            if(std::get<conNodeType>(p->un).conType == intType) {
-                return std::get<conNodeType>(p->un).iValue;
-            // return p->con.iValue;
-            }    else if(std::get<conNodeType>(p->un).conType == floatType) {
-                return std::get<conNodeType>(p->un).fValue;
-                // return p->con.fValue;
-            }    else if(std::get<conNodeType>(p->un).conType == boolType) {
-                return std::get<conNodeType>(p->un).bValue;
-                // return p->con.bValue;
-            }
-            // }    else if(std::get<conNodeType>(p->un).conType == charType) {
-            //     return std::get<conNodeType>(p->un).cValue;
-            //     // return (int)p->con.cValue;
-            // }    else if(std::get<conNodeType>(p->un).conType ==  stringType) {
-            //     return std::get<conNodeType>(p->un).sValue;
-            //     // p->con.sValue = sValue;
-            // }
+struct ex_visitor {
+    float operator()(conNodeType& con) {
+        switch(con.conType) {
+            case intType: return con.iValue;
+            case floatType: return con.fValue;
+            case boolType: return (float)con.bValue;
+            case stringType:
+            case charType: return 0;
         }
-        case typeId:        return sym2[std::get<idNodeType>(p->un).id];
-    case typeCase:
-                        printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
-                        exit(EXIT_FAILURE);
-    case typeSwitch:    evaluate_switch(p); break;
-    case typeBreak: {
-                        auto br = std::get<breakNodeType>(p->un);
-                        auto parent_switch = std::get<switchNodeType>(br.parent_switch->un);
-                        parent_switch.break_encountered = true;
-                    } break;
-    case typeOpr: {
-        auto opr = std::get<oprNodeType>(p->un);
+    }
+
+    float operator()(idNodeType& identifier) {
+        return sym2[identifier.id];
+    }
+
+    float operator()(caseNodeType& identifier) {
+        printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
+        exit(EXIT_FAILURE);
+    }
+
+    float operator()(switchNodeType& sw) {
+        return evaluate_switch(sw);
+    }
+
+    float operator()(breakNodeType& br) {
+        auto parent_switch = std::get<switchNodeType>(br.parent_switch->un);
+        parent_switch.break_encountered = true;
+    }
+
+    float operator()(oprNodeType& opr) {
         switch(opr.oper) {
             case WHILE:     while(ex(opr.op[0])) ex(opr.op[1]); return 0;
             case DO:        do { ex(opr.op[1]); } while(ex(opr.op[0])); return 0;
@@ -167,7 +160,15 @@ float ex(nodeType *p) {
             case NE:        return ex(opr.op[0]) != ex(opr.op[1]);
             case EQ:        return ex(opr.op[0]) == ex(opr.op[1]);
         }
-        }
+
     }
-    return 0;
+
+    // the default case:
+    template<typename T> float operator()(T const &) const { return 0; } 
+
+};
+
+float ex(nodeType *p) {
+    if (p == nullptr) return 0;
+    return std::visit(ex_visitor(), p->un);
 }

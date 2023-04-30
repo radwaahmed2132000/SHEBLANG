@@ -173,22 +173,30 @@ expr:
 
 %%
 
-void set_break_parent(nodeType* node, nodeType* parent_switch) {
-        if(node == NULL) return;
-        
-        if(node->type == typeBreak) {
-               auto b = std::get<breakNodeType>(node->un);
+struct set_break_parent_visitor {
+        nodeType* parent_switch;
+
+        void operator()(breakNodeType& b) {
                b.parent_switch = parent_switch;
-        } else if(node->type == typeOpr) {
-               auto opr = std::get<oprNodeType>(node->un);
+        }
+        void operator()(oprNodeType& opr) {
                 for(int i = 0; i < opr.op.size(); i++) {
                         set_break_parent(opr.op[i], parent_switch);
                 }
-        } else if(node->type == typeCase) {
-               auto c = std::get<caseNodeType>(node->un);
+        }
+        void operator()(caseNodeType& c) {
                set_break_parent(c.self, parent_switch);
                set_break_parent(c.prev, parent_switch);
         }
+
+       // the default case:
+       template<typename T> void operator()(T const &) const { } 
+};
+
+void set_break_parent(nodeType* node, nodeType* parent_switch) {
+        if(node == NULL) return;
+        
+        std::visit(set_break_parent_visitor{parent_switch}, node->un);
 }
 
 nodeType *br() {
