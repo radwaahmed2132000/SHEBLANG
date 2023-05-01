@@ -132,16 +132,6 @@ struct ex_visitor {
                 return 0;
 
             case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
-            case PA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] += ex(opr.op[1]);
-            case SA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] -= ex(opr.op[1]);
-            case MA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] *= ex(opr.op[1]);
-            case DA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] /= ex(opr.op[1]);
-            case RA:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) % ((int)ex(opr.op[1]));
-            case LSA:       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) << ((int)ex(opr.op[1]));
-            case RSA:       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) >> ((int)ex(opr.op[1]));
-            case ANDA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) & ((int)ex(opr.op[1]));
-            case EORA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) ^ ((int)ex(opr.op[1]));
-            case IORA:      return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ((int)sym2[std::get<idNodeType>(opr.op[0]->un).id]) | ((int)ex(opr.op[1]));
             case PP:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[0]) + 1;
             case MM:        return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[0]) - 1;
             case UPLUS:     return ex(opr.op[0]);

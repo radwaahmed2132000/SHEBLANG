@@ -2,4 +2,4 @@ fn test(mytype1 a, mytype2 b) {
 	;
 }
 ===
-Function parsed successfully
+Function (test) parsed successfully

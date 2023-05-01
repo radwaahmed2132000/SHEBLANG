@@ -69,11 +69,6 @@ nodeTypeTag *id(const char* id);
 "^="            return EORA;
 "|="            return IORA;
 "const"         return CONST;
-"int"           return INT;
-"float"         return FLOAT;
-"char"          return CHAR;
-"string"        return STRING;
-"bool"          return BOOL;
 "while"         return WHILE;
 "do"            return DO;
 "if"            return IF;
@@ -86,6 +81,7 @@ nodeTypeTag *id(const char* id);
 "break"         return BREAK;
 "enum"          return ENUM;
 "fn"            return FN;
+"return"        return RETURN;
 
 [a-zA-Z_][a-zA-Z_0-9]* { 
                 yylval.nPtr = id(yytext);

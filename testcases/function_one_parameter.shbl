@@ -1,4 +1,4 @@
 fn test(mytype param){;}
 ===
-Function parsed successfully
+Function (test) parsed successfully
 

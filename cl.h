@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-typedef enum { typeCon, typeId, typeOpr, typeSwitch, typeCase, typeBreak } nodeEnum;
+typedef enum { typeCon, typeId, typeOpr, typeSwitch, typeCase, typeBreak, typeFunction } nodeEnum;
 typedef enum { intType, floatType, boolType, charType, stringType } conTypeEnum;
 
 /* constants */
@@ -44,7 +44,14 @@ typedef struct {
     struct nodeTypeTag* parent_switch;
 } breakNodeType;
 
-#define NODE_TYPES conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, breakNodeType
+typedef struct {
+    struct nodeTypeTag* return_type;
+    struct nodeTypeTag* name;
+    // TODO: some sort of list for parameters
+    struct nodeTypeTag* statemenst;
+} functionNodeType;
+
+#define NODE_TYPES conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, breakNodeType, functionNodeType
 
 typedef struct nodeTypeTag {
     nodeEnum type;              /* type of node. Still need it since std::visit seems to not play well with recursive functions */

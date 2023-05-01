@@ -9,12 +9,19 @@
 /* prototypes */
 nodeType *opr(int oper, int nops, ...);
 nodeType *id(const char* id);
-nodeType *con(conTypeEnum type, int ivalue, float fvalue, bool bValue, char cValue);
+
+nodeType *con(int iValue);
+nodeType *con(float fValue);
+nodeType *con(bool bValue);
+nodeType *con(char cValue);
+
 // nodeType *con(typeEnum type, int ivalue=0, float fvalue=0.0, bool bValue=false, char cValue='', std::string sValue="");
 nodeType *sw(nodeType* var, nodeType* case_list_head);
 nodeType *cs(nodeType* self, nodeType* next);
 nodeType *br();
 void set_break_parent(nodeType* case_list, nodeType* parent_switch);
+
+nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements);
 
 void freeNode(nodeType *p);
 float ex(nodeType *p);
@@ -40,7 +47,7 @@ std::unordered_map<std::string, float> sym2;
 %token <bValue> BOOLEAN
 %token <cValue> CHARACTER
 %token <sValue> STR
-%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM FN
+%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM FN RETURN
 %token CONST INT FLOAT BOOL CHAR STRING
 %nonassoc IFX
 %nonassoc ELSE
@@ -59,55 +66,51 @@ std::unordered_map<std::string, float> sym2;
 %right UPLUS UMINUS '!' '~' PP MM
 /* left a++   a--	Suffix/postfix increment and decrement */
 
-%type <nPtr> stmt expr stmt_list case case_list var_list 
+%type <nPtr> stmt expr stmt_list case case_list function_return_type function_defn var_defn var_decl
 %%
 
 program:
         stmt_list { ex($1); freeNode($1); exit(0); }
-        //| /* NULL */
+        | /* NULL */
         ;
 
+var_decl:
+        // TODO: Use $1 for semantic analysis.
+        IDENTIFIER IDENTIFIER       { $$ = $2; }
+        ;
+
+var_defn:
+        var_decl '=' expr ';'        { $$ = opr('=', 2, $1, $3); }
+        ;
 
 stmt:
           ';'                                     { $$ = opr(';', 0); }
+        | FOR '(' var_defn expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $4, $6, $8); }
+        | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
+        | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
+        | SWITCH '(' IDENTIFIER ')' case          { $$ = sw($3, $5); set_break_parent($5, $$); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
         | WHILE '(' expr ')' stmt                 { $$ = opr(WHILE, 2, $3, $5); }
         | DO stmt WHILE '(' expr ')' ';'          { $$ = opr(DO, 2, $5, $2); }
-        | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
-        | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
-        | FOR '(' expr ';' expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $5, $7, $9); }
-        | SWITCH '(' IDENTIFIER ')' case          { $$ = sw($3, $5); set_break_parent($5, $$); }
         | '{' stmt_list '}'                       { $$ = $2; }
-        | INT var_list ';'                        { $$ = $2; }
-        | FLOAT var_list ';'                      { $$ = $2; }
-        | BOOL var_list ';'                       { $$ = $2; }
-        | CHAR var_list ';'                       { $$ = $2; }
-       /*| STRING var_list ';'                     { $$ = $2; }*/
-        | INT CONST var_list ';'                  { $$ = $3; }
-        | FLOAT CONST var_list ';'                { $$ = $3; }
-        | BOOL CONST var_list ';'                 { $$ = $3; }
-        | CHAR CONST var_list ';'                 { $$ = $3; }
-       /* | STRING CONST var_list ';'               { $$ = $3; }*/
-        | CONST INT var_list ';'                  { $$ = $3; }
-        | CONST FLOAT var_list ';'                { $$ = $3; }
-        | CONST BOOL var_list ';'                 { $$ = $3; }
-        | CONST CHAR var_list ';'                 { $$ = $3; }
-       /* | CONST STRING var_list ';'               { $$ = $3; }*/
-        | enum_decl                               { printf("Enum parsed successfully"); }
-        | function_defn                           { printf("Function parsed successfully"); }
+        | var_decl ';'               { printf("Variable declaration parsed successfully\n"); }
+        | var_defn 
+        | CONST var_defn { 
+                printf("Constant variable definition parsed successfully\n"); 
+        }
+        | enum_decl                               
+        | function_defn
+        | return_statement                        { printf("Return statement\n"); }
         ;
 
-var_list:
-          IDENTIFIER                              { $$ = $1; }
-        | IDENTIFIER '=' expr                     { $$ = opr('=', 2, $1, $3); }
-        | var_list ',' IDENTIFIER '=' expr        { $$ = $1; opr('=', 2, $3, $5); } 
-        | var_list ',' IDENTIFIER                 { $$ = $1; } 
-        ; 
+return_statement:
+                RETURN expr ';'
+                ;
 
 case: 
-     CASE INTEGER ':' stmt      { $$ = opr(CASE, 2, con(intType,$2,0.0,0,' '), $4); }
+     CASE INTEGER ':' stmt      { $$ = opr(CASE, 2, con($2), $4); }
      | DEFAULT ':' stmt         { $$ = opr(DEFAULT, 1, $3); }
      | '{' case_list '}'        { $$ = $2; }
      ;
@@ -123,23 +126,23 @@ stmt_list:
         ;
 
 expr:
-          INTEGER                       { $$ = con(intType,$1,0.0,false,' '); }
-        | REAL                          { $$ = con(floatType,0,$1,false,' '); }
-        | BOOLEAN                       { $$ = con(boolType,0,0.0,$1,' '); }
-        | CHARACTER                     { $$ = con(charType,0,0.0,false,$1); }
+          INTEGER                       { $$ = con($1); }
+        | REAL                          { $$ = con($1); }
+        | BOOLEAN                       { $$ = con($1); }
+        | CHARACTER                     { $$ = con($1); }
  /*       | STR                           { $$ = con(stringType,0,0.0,false,' ',$1); } */
         | IDENTIFIER                    { $$ = $1; }
         | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
-        | IDENTIFIER PA expr            { $$ = opr(PA, 2, $1, $3); }
-        | IDENTIFIER SA expr            { $$ = opr(SA, 2, $1, $3); }
-        | IDENTIFIER MA expr            { $$ = opr(MA, 2, $1, $3); }
-        | IDENTIFIER DA expr            { $$ = opr(DA, 2, $1, $3); }
-        | IDENTIFIER RA expr            { $$ = opr(RA, 2, $1, $3); }
-        | IDENTIFIER LSA expr           { $$ = opr(LSA, 2, $1, $3); }
-        | IDENTIFIER RSA expr           { $$ = opr(RSA, 2, $1, $3); }
-        | IDENTIFIER ANDA expr          { $$ = opr(ANDA, 2, $1, $3); }
-        | IDENTIFIER EORA expr          { $$ = opr(EORA, 2, $1, $3); }
-        | IDENTIFIER IORA expr          { $$ = opr(IORA, 2, $1, $3); }
+        | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }
+        | IDENTIFIER SA expr            { $$ = opr('=', 2, $1, opr('-', 2, $1, $3)); }
+        | IDENTIFIER MA expr            { $$ = opr('=', 2, $1, opr('*', 2, $1, $3)); }
+        | IDENTIFIER DA expr            { $$ = opr('=', 2, $1, opr('/', 2, $1, $3)); }
+        | IDENTIFIER RA expr            { $$ = opr('=', 2, $1, opr('%', 2, $1, $3)); }
+        | IDENTIFIER LSA expr           { $$ = opr('=', 2, $1, opr(LS,  2, $1, $3)); }
+        | IDENTIFIER RSA expr           { $$ = opr('=', 2, $1, opr(RS,  2, $1, $3)); }
+        | IDENTIFIER ANDA expr          { $$ = opr('=', 2, $1, opr('&', 2, $1, $3)); }
+        | IDENTIFIER EORA expr          { $$ = opr('=', 2, $1, opr('^', 2, $1, $3)); }
+        | IDENTIFIER IORA expr          { $$ = opr('=', 2, $1, opr('"', 2, $1, $3)); }
         | PP expr                       { $$ = opr(PP, 1, $2); }
         | MM expr                       { $$ = opr(MM, 1, $2); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
@@ -165,11 +168,14 @@ expr:
         | expr NE expr                  { $$ = opr(NE, 2, $1, $3); }
         | expr EQ expr                  { $$ = opr(EQ, 2, $1, $3); }
         | '(' expr ')'                  { $$ = $2; }
-        | function_call                 {  printf("Function call parsed successfully");}
+        | function_call                 
         ;
 
 function_call:
-             IDENTIFIER '(' expr_list ')';
+             IDENTIFIER '(' expr_list ')' { 
+                     auto fn_name = std::get<idNodeType>($1->un);
+                     printf("Function call (%s) parsed successfully\n", fn_name.id.c_str()); 
+             }
 
 expr_list:
          expr_list ',' expr
@@ -178,7 +184,10 @@ expr_list:
        ;
 
 enum_decl:
-         ENUM IDENTIFIER '{' identifier_list '}' ';'
+         ENUM IDENTIFIER '{' identifier_list '}' ';' { 
+                 auto enum_name = std::get<idNodeType>($2->un);
+                 printf("Enum (%s) parsed successfully\n", enum_name.id.c_str()); 
+         }
          ;
 
 identifier_list:
@@ -188,24 +197,37 @@ identifier_list:
                ;
 
 function_return_type:
-                    IDENTIFIER
-                    | /* EMPTY */
+                    IDENTIFIER          {  $$ = $1; }
+                    | /* EMPTY */       {  $$ = id("void"); }
                     ;
 
-parameter_defn:
-              IDENTIFIER IDENTIFIER
-              ;
-
 function_parameter_list:
-                       function_parameter_list ',' parameter_defn
-                       | parameter_defn
+                       function_parameter_list ',' var_decl
+                       | var_decl
                        | /* NULL */
                        ;
 function_defn:
-             FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}'
+             FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}' { 
+                     $$ = fn($2, $6, $8);
+                     auto fn_name = std::get<idNodeType>($2->un);
+                     printf("Function (%s) parsed successfully\n", fn_name.id.c_str()); 
+             } 
 
 
 %%
+
+nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+    p->type = typeFunction;
+    p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
+
+    return p;
+}
 
 struct set_break_parent_visitor {
         nodeType* parent_switch;
@@ -286,30 +308,29 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
     return p;
 }
 
+// con.valueName = valueName
+// Assumes that the field in the union has the same name as the argument.
+// We have to access specific union members since constructing like this:
+//      conNodeType{fValue}
+// Seems to interpret the given value in context of the first union member.
+// In our case, this is the int member.
+// This is an issue with floats because a float with 0b00...0001 != 1.0f,
+// but a very small value (~0).
+#define CON_INIT(ptr_name, valueName, conInnerType)             \
+        nodeType* ptr_name;                                     \
+        if ((ptr_name = new nodeType()) == NULL)                \
+                yyerror("out of memory");                       \
+        (ptr_name)->type = typeCon;                             \
+        auto con = conNodeType{};                               \
+        con.valueName = valueName;                              \
+        con.conType = conInnerType;                             \
+        (ptr_name)->un = std::variant<NODE_TYPES>(con);         \
+        return ptr_name
 
-nodeType *con(conTypeEnum type, int ivalue, float fvalue, bool bValue, char cValue) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-    /* copy information */
-    p->type = typeCon;
-    p->un = std::variant<NODE_TYPES>(conNodeType{});
-    auto& con = std::get<conNodeType>(p->un);
-    con.conType = type;
-    switch(type) {
-            case intType: con.iValue = ivalue;  break;
-            case floatType: con.fValue = fvalue; break;
-            case boolType: con.bValue = bValue; break;
-            case charType: con.cValue = cValue; break;
-    }
-   // else if(type ==  stringType) {
-   // std::get<conNodeType>(p->un).sValue = sValue;
-   // std::get<conNodeType>(p->un).conType = stringType;
-   return p;
-}
+nodeType *con(int iValue)   { CON_INIT(p, iValue, intType);   return p; }
+nodeType *con(float fValue) { CON_INIT(p, fValue, floatType); return p; }
+nodeType *con(bool bValue)  { CON_INIT(p, bValue, boolType);  return p; }
+nodeType *con(char cValue)  { CON_INIT(p, cValue, charType);  return p; }
 
 // Create an identifier node.
 nodeType *id(const char* id) {

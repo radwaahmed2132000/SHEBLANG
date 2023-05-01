@@ -1,4 +1,4 @@
-int myInt1 = 10, myInt2;
+int myInt1 = 10;
 float myFloat = 20.45;
 bool myBool = true;
 print myInt1;
