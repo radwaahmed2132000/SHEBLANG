@@ -14,6 +14,7 @@ nodeType *con(int iValue);
 nodeType *con(float fValue);
 nodeType *con(bool bValue);
 nodeType *con(char cValue);
+nodeType *con(char* sValue);
 
 // nodeType *con(typeEnum type, int ivalue=0, float fvalue=0.0, bool bValue=false, char cValue='', std::string sValue="");
 nodeType *sw(nodeType* var, nodeType* case_list_head);
@@ -24,12 +25,12 @@ void set_break_parent(nodeType* case_list, nodeType* parent_switch);
 nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements);
 
 void freeNode(nodeType *p);
-float ex(nodeType *p);
+std::string ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
 float sym[26];                    /* symbol table */
-std::unordered_map<std::string, float> sym2;
+std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;
 %}
 
 %union {
@@ -129,8 +130,8 @@ expr:
           INTEGER                       { $$ = con($1); }
         | REAL                          { $$ = con($1); }
         | BOOLEAN                       { $$ = con($1); }
-        | CHARACTER                     { $$ = con($1); printf("Char Value (%c) parsed successfully\n", $1);}
-        | STR                           { printf("String Value (%s) parsed successfully\n", $1);  }
+        | CHARACTER                     { $$ = con($1); }
+        | STR                           { $$ = con($1); printf("String Value (%s) parsed successfully\n", $1);  }
         | IDENTIFIER                    { $$ = $1; }
         | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
         | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }
@@ -316,21 +317,22 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
 // In our case, this is the int member.
 // This is an issue with floats because a float with 0b00...0001 != 1.0f,
 // but a very small value (~0).
-#define CON_INIT(ptr_name, valueName, conInnerType)             \
+#define CON_INIT(ptr_name, valueName, value, conInnerType)      \
         nodeType* ptr_name;                                     \
         if ((ptr_name = new nodeType()) == NULL)                \
                 yyerror("out of memory");                       \
         (ptr_name)->type = typeCon;                             \
         auto con = conNodeType{};                               \
-        con.valueName = valueName;                              \
+        con.valueName = value;                                  \
         con.conType = conInnerType;                             \
         (ptr_name)->un = std::variant<NODE_TYPES>(con);         \
         return ptr_name
 
-nodeType *con(int iValue)   { CON_INIT(p, iValue, intType);   return p; }
-nodeType *con(float fValue) { CON_INIT(p, fValue, floatType); return p; }
-nodeType *con(bool bValue)  { CON_INIT(p, bValue, boolType);  return p; }
-nodeType *con(char cValue)  { CON_INIT(p, cValue, charType);  return p; }
+nodeType *con(int iValue)   { CON_INIT(p, iValue, iValue, intType);   return p; }
+nodeType *con(float fValue) { CON_INIT(p, fValue, fValue, floatType); return p; }
+nodeType *con(bool bValue)  { CON_INIT(p, bValue, bValue, boolType);  return p; }
+nodeType *con(char cValue)  { CON_INIT(p, cValue, cValue, charType);  return p; }
+nodeType *con(char* sValue) { CON_INIT(p, sValue, std::string(sValue), stringType);  return p; }
 
 // Create an identifier node.
 nodeType *id(const char* id) {

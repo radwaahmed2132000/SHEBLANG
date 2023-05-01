@@ -1,5 +1,10 @@
 char x = 'h';
+char y = '!';
+char z = '+';
 print x;
+print y;
+print z;
 ===
-Char Value (h) parsed successfully
-0.000000
+h
+!
++

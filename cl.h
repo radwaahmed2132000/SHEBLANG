@@ -2,6 +2,7 @@
 #include <variant>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 typedef enum { typeCon, typeId, typeOpr, typeSwitch, typeCase, typeBreak, typeFunction } nodeEnum;
 typedef enum { intType, floatType, boolType, charType, stringType } conTypeEnum;
@@ -13,8 +14,8 @@ typedef struct {
         float fValue;               /* float value of constant */
         bool bValue;                /* boolean value of constant */
         char cValue;                /* char value of constant */
-        const char* sValue;         /* string value of constant */
     };
+    std::string sValue;            /* string value of constant */
     conTypeEnum conType;           /* type of constant */
 } conNodeType;
 
@@ -59,4 +60,4 @@ typedef struct nodeTypeTag {
 } nodeType;
 
 extern float sym[26];
-extern std::unordered_map<std::string, float> sym2;
+extern std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;

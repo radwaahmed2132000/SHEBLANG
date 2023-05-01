@@ -2,12 +2,10 @@ int myInt1 = 10;
 float myFloat = 20.45;
 bool myBool = true;
 print myInt1;
-print myInt2;
 print myFloat;
 print myBool;
 ===
 10.000000
-0.000000
 20.450001
 1.000000
 ===

@@ -842,15 +842,12 @@ YY_RULE_SETUP
                 std::string temp = std::string(yytext);
                 temp.substr(1,temp.size()-2);
                 yylval.sValue = temp.c_str();
-                /*yylval.sValue = new char[temp.length()];
-                sprintf(yylval.sValue, "%s", temp.c_str());*/
-                /*strcpy(yylval.sValue, temp.c_str());*/
                 return STR;
             }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 28 "cl.l"
+#line 25 "cl.l"
 {
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
@@ -858,7 +855,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 33 "cl.l"
+#line 30 "cl.l"
 {
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
@@ -866,7 +863,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 38 "cl.l"
+#line 35 "cl.l"
 {
                 yylval.fValue = atof(yytext);
                 return REAL;
@@ -874,7 +871,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 43 "cl.l"
+#line 40 "cl.l"
 {
                 yylval.fValue = atof(yytext);
                 return REAL;
@@ -882,14 +879,14 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 48 "cl.l"
+#line 45 "cl.l"
 {
                 return *yytext;
              }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 52 "cl.l"
+#line 49 "cl.l"
 {
                 yylval.bValue = true;
                 return BOOLEAN;
@@ -897,7 +894,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 57 "cl.l"
+#line 54 "cl.l"
 {
                 yylval.bValue = false;
                 return BOOLEAN;
@@ -905,177 +902,177 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 62 "cl.l"
+#line 59 "cl.l"
 return PP;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 63 "cl.l"
+#line 60 "cl.l"
 return MM;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 64 "cl.l"
+#line 61 "cl.l"
 return AND;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 65 "cl.l"
+#line 62 "cl.l"
 return OR;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 66 "cl.l"
+#line 63 "cl.l"
 return LS;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 67 "cl.l"
+#line 64 "cl.l"
 return RS;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 68 "cl.l"
+#line 65 "cl.l"
 return GE;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 69 "cl.l"
+#line 66 "cl.l"
 return LE;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 70 "cl.l"
+#line 67 "cl.l"
 return EQ;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 71 "cl.l"
+#line 68 "cl.l"
 return NE;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 72 "cl.l"
+#line 69 "cl.l"
 return PA;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 73 "cl.l"
+#line 70 "cl.l"
 return SA;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 74 "cl.l"
+#line 71 "cl.l"
 return MA;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 75 "cl.l"
+#line 72 "cl.l"
 return DA;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 76 "cl.l"
+#line 73 "cl.l"
 return RA;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 77 "cl.l"
+#line 74 "cl.l"
 return LSA;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 78 "cl.l"
+#line 75 "cl.l"
 return RSA;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 79 "cl.l"
+#line 76 "cl.l"
 return ANDA;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 80 "cl.l"
+#line 77 "cl.l"
 return EORA;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 81 "cl.l"
+#line 78 "cl.l"
 return IORA;
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 82 "cl.l"
+#line 79 "cl.l"
 return CONST;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 83 "cl.l"
+#line 80 "cl.l"
 return WHILE;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 84 "cl.l"
+#line 81 "cl.l"
 return DO;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 85 "cl.l"
+#line 82 "cl.l"
 return IF;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 86 "cl.l"
+#line 83 "cl.l"
 return ELSE;
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 87 "cl.l"
+#line 84 "cl.l"
 return PRINT;
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 88 "cl.l"
+#line 85 "cl.l"
 return FOR;
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 89 "cl.l"
+#line 86 "cl.l"
 return SWITCH;
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 90 "cl.l"
+#line 87 "cl.l"
 return CASE;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 91 "cl.l"
+#line 88 "cl.l"
 return DEFAULT;
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 92 "cl.l"
+#line 89 "cl.l"
 return BREAK;
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 93 "cl.l"
+#line 90 "cl.l"
 return ENUM;
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 94 "cl.l"
+#line 91 "cl.l"
 return FN;
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 95 "cl.l"
+#line 92 "cl.l"
 return RETURN;
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 97 "cl.l"
+#line 94 "cl.l"
 { 
                 yylval.nPtr = id(yytext);
                 return IDENTIFIER;
@@ -1084,20 +1081,20 @@ YY_RULE_SETUP
 case 45:
 /* rule 45 can match eol */
 YY_RULE_SETUP
-#line 102 "cl.l"
+#line 99 "cl.l"
 ;       /* ignore whitespace */
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 104 "cl.l"
+#line 101 "cl.l"
 yyerror("Unknown character");
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 105 "cl.l"
+#line 102 "cl.l"
 ECHO;
 	YY_BREAK
-#line 1101 "lex.yy.c"
+#line 1098 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2102,7 +2099,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 105 "cl.l"
+#line 102 "cl.l"
 
 int yywrap(void) {
     return 1;
