@@ -1,5 +1,7 @@
 %{
 #include <stdlib.h>
+#include <cstring>
+#include <string>
 #include "cl.h"
 #include "y.tab.h"
 void yyerror(char *);
@@ -9,9 +11,15 @@ nodeTypeTag *id(const char* id);
 %%
 
 [']([^']?|[\\][nt'])['] {
-                // printf();
-                yylval.cValue = *yytext;
+                yylval.cValue = std::string(yytext)[1];
                 return CHARACTER;
+            }
+
+["]([^"]|[\\][nt"])*["] {
+                std::string temp = std::string(yytext);
+                temp.substr(1,temp.size()-2);
+                yylval.sValue = temp.c_str();
+                return STR;
             }
 
 0           {
@@ -34,7 +42,7 @@ nodeTypeTag *id(const char* id);
                 return REAL;
             }
 
-[-()<>=+*/%!~&|^;{}.,:] {
+[-()<>=+*/%!~&|^;{}.,:!] {
                 return *yytext;
              }
 

@@ -37,7 +37,7 @@ std::unordered_map<std::string, float> sym2;
     float fValue;               /* double value */
     bool bValue;                /* boolean value */
     char cValue;                /* char value */
-    /* std::string sValue;         /* string value */
+    const char* sValue;         /* string value */
     nodeType *nPtr;             /* node pointer */
 };
 
@@ -129,8 +129,8 @@ expr:
           INTEGER                       { $$ = con($1); }
         | REAL                          { $$ = con($1); }
         | BOOLEAN                       { $$ = con($1); }
-        | CHARACTER                     { $$ = con($1); }
- /*       | STR                           { $$ = con(stringType,0,0.0,false,' ',$1); } */
+        | CHARACTER                     { $$ = con($1); printf("Char Value (%c) parsed successfully\n", $1);}
+        | STR                           { printf("String Value (%s) parsed successfully\n", $1);  }
         | IDENTIFIER                    { $$ = $1; }
         | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
         | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }

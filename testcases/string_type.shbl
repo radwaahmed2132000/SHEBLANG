@@ -1,0 +1,5 @@
+string s = "Hello World";
+print s;
+===
+String Value ("Hello World") parsed successfully
+0.000000

@@ -1,0 +1,5 @@
+char x = 'h';
+print x;
+===
+Char Value (h) parsed successfully
+0.000000
