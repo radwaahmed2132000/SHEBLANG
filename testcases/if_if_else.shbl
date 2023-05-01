@@ -1,0 +1,8 @@
+int x = 10;
+if(x>4)
+  if(x<6)
+    print "Smaller than 6 and bigger than 4";
+else
+  print "Greater than both 4 and 6";
+===
+Greater than both 4 and 6

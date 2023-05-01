@@ -1,0 +1,12 @@
+int x = 10;
+int y = 4;
+int z = -1;
+z += y++;
+x *= y--;
+print z;
+print y;
+print x;
+===
+3.000000
+4.000000
+50.000000

@@ -131,8 +131,18 @@ struct ex_visitor {
                 return std::to_string(0);
 
             case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id].second = ex(opr.op[1]);
-            case PP:        return sym2[std::get<idNodeType>(opr.op[0]->un).id].second = std::to_string(std::stof(ex(opr.op[0])) + 1);
-            case MM:        return sym2[std::get<idNodeType>(opr.op[0]->un).id].second = std::to_string(std::stof(ex(opr.op[0])) - 1);
+            case PP:       
+            {
+                std::string temp = sym2[std::get<idNodeType>(opr.op[0]->un).id].second;
+                sym2[std::get<idNodeType>(opr.op[0]->un).id].second = std::to_string(std::stof(ex(opr.op[0])) + 1);
+                return temp;
+            } 
+            case MM:
+            {
+                std::string temp = sym2[std::get<idNodeType>(opr.op[0]->un).id].second;
+                sym2[std::get<idNodeType>(opr.op[0]->un).id].second = std::to_string(std::stof(ex(opr.op[0])) - 1);
+                return temp;
+            }
             case UPLUS:     return ex(opr.op[0]);
             case UMINUS:    return std::to_string(-std::stof(ex(opr.op[0])));
             case '!':       return std::to_string(!std::stof(ex(opr.op[0])));

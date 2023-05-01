@@ -1,0 +1,12 @@
+float x = 17.5;
+if(x > 9.4)
+  if(x < 16.3)
+    print "9.4 < x < 16.3";
+  else
+    print "x > 9.4";
+else
+  print "x < 9.4";
+print x * 10;
+===
+x > 9.4
+175.000000

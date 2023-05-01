@@ -142,8 +142,8 @@ expr:
         | IDENTIFIER ANDA expr          { $$ = opr('=', 2, $1, opr('&', 2, $1, $3)); }
         | IDENTIFIER EORA expr          { $$ = opr('=', 2, $1, opr('^', 2, $1, $3)); }
         | IDENTIFIER IORA expr          { $$ = opr('=', 2, $1, opr('"', 2, $1, $3)); }
-        | PP expr                       { $$ = opr(PP, 1, $2); }
-        | MM expr                       { $$ = opr(MM, 1, $2); }
+        | expr PP                       { $$ = opr(PP, 1, $1); }
+        | expr MM                       { $$ = opr(MM, 1, $1); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
         | '-' expr %prec UMINUS         { $$ = opr(UMINUS, 1, $2); }
         | '!' expr                      { $$ = opr('!', 1, $2); }
