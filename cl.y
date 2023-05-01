@@ -66,7 +66,7 @@ std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;
 %right UPLUS UMINUS '!' '~' PP MM
 /* left a++   a--	Suffix/postfix increment and decrement */
 
-%type <nPtr> stmt expr stmt_list case case_list function_call function_return_type function_defn var_defn var_decl
+%type <nPtr> stmt expr stmt_list case case_list function_call function_return_type function_defn function_decl var_defn var_decl
 %%
 
 program:
@@ -95,11 +95,12 @@ stmt:
         | WHILE '(' expr ')' stmt                 { $$ = opr(WHILE, 2, $3, $5); }
         | DO stmt WHILE '(' expr ')' ';'          { $$ = opr(DO, 2, $5, $2); }
         | '{' stmt_list '}'                       { $$ = $2; }
-        | var_decl ';'               { printf("Variable declaration parsed successfully\n"); }
+        | var_decl ';'                            { printf("Variable declaration parsed successfully\n"); }
         | var_defn                                { $$ = $1; }
         | CONST var_defn                          { $$ = $2; }
         | enum_decl                               
         | function_defn
+        | function_decl ';'
         | return_statement                        { printf("Return statement\n"); }
         ;
 
@@ -212,6 +213,12 @@ function_defn:
                      printf("Function (%s) parsed successfully\n", fn_name.id.c_str()); 
              } 
 
+function_decl:
+             FN IDENTIFIER '(' function_parameter_list ')' function_return_type { 
+                     $$ = fn_call($2); // TODO: Create another function for the declaration.
+                     auto fn_name = std::get<idNodeType>($2->un);
+                     printf("Function Declaration (%s) parsed successfully\n", fn_name.id.c_str()); 
+             } 
 
 %%
 

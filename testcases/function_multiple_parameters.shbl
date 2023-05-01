@@ -1,4 +1,4 @@
-fn test(mytype1 a, mytype2 b) {
+fn test(int a, int b) int {
 	;
 }
 ===
