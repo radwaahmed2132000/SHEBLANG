@@ -49,6 +49,5 @@ fn main() {
 Return statement
 Function (compute_area) parsed successfully
 Enum (EnumTest) parsed successfully
-Constant variable definition parsed successfully
 Function call (compute_area) parsed successfully
 Function (main) parsed successfully

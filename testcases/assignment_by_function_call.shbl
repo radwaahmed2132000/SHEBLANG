@@ -1,4 +1,3 @@
 int x = 10 + test();
 ===
 Function call (test) parsed successfully
-

@@ -1,5 +1,5 @@
 int myInt1 = 10;
-float myFloat = 20.45;
+const float myFloat = 20.45;
 bool myBool = true;
 char myChar = '?';
 string myString = "Hello World!";
@@ -9,9 +9,11 @@ print myBool;
 print myChar;
 print myString;
 ===
-10.000000
+10
 20.450001
-1.000000
+true
+?
+Hello World!
 ===
 push    10
 pop     myInt1

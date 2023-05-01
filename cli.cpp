@@ -54,6 +54,11 @@ int evaluate_switch(switchNodeType& sw) {
     return 0;
 }
 
+// TODO: Implement function logic.
+std::string evaluate_function(functionNodeType& fn) {
+    return std::to_string(0);
+}
+
 struct ex_visitor {
     std::string operator()(conNodeType& con) {
         switch(con.conType) {
@@ -91,6 +96,10 @@ struct ex_visitor {
         return std::to_string(0);
     }
 
+    std::string operator()(functionNodeType& fn) {
+        return evaluate_function(fn);
+    }
+
     std::string operator()(oprNodeType& opr) {
         switch(opr.oper) {
             case WHILE:     while(std::stof(ex(opr.op[0]))) ex(opr.op[1]); return std::to_string(0);
@@ -111,25 +120,7 @@ struct ex_visitor {
 
             case PRINT:  
             {
-
-                // auto val = std::get<conNodeType>(opr.op[0]->un);
                 printf("%s\n", ex(opr.op[0]).c_str());
-                // if(val.conType == intType) {
-                //     printf("%d\n", ((int)ex(opr.op[0])));
-                // }    else if(val.conType == floatType)    {
-                //     printf("%f\n", ex(opr.op[0]));
-                // }    else if(val.conType == boolType) {
-                //         if(ex(opr.op[0]) == 0)
-                //             printf("false\n");
-                //         else if(ex(opr.op[0]) == 1)
-                //             printf("true\n");
-                // }    
-                /* else if(p->con.conType == charType) {
-                        printf("%c\n", itoa(ex(p->opr.op[0])));
-                }    
-                 else if(type ==  stringType) {
-                    p->con.sValue = sValue;
-                } */
                 return std::to_string(0);
             }
             case ';':       

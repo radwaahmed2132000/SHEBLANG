@@ -14,15 +14,15 @@ typedef struct {
         float fValue;               /* float value of constant */
         bool bValue;                /* boolean value of constant */
         char cValue;                /* char value of constant */
-        char* sValue;         /* string value of constant */
+        char* sValue;               /* string value of constant */
     };
-    conTypeEnum conType;           /* type of constant */
+    conTypeEnum conType;            /* type of constant */
 } conNodeType;
 
 /* identifiers */
 typedef struct {
-    std::string id;             /* key/index to sym array */
-    conTypeEnum idType;            /* type of variable */
+    std::string id;                 /* key/index to sym array */
+    conTypeEnum idType;             /* type of variable */
 } idNodeType;
 
 /* operators */

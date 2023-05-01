@@ -15,14 +15,13 @@ nodeType *con(float fValue);
 nodeType *con(bool bValue);
 nodeType *con(char cValue);
 nodeType *con(char* sValue);
-
-// nodeType *con(typeEnum type, int ivalue=0, float fvalue=0.0, bool bValue=false, char cValue='', std::string sValue="");
 nodeType *sw(nodeType* var, nodeType* case_list_head);
 nodeType *cs(nodeType* self, nodeType* next);
 nodeType *br();
 void set_break_parent(nodeType* case_list, nodeType* parent_switch);
 
 nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements);
+nodeType* fn_call(nodeTypeTag* name);
 
 void freeNode(nodeType *p);
 std::string ex(nodeType *p);
@@ -67,7 +66,7 @@ std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;
 %right UPLUS UMINUS '!' '~' PP MM
 /* left a++   a--	Suffix/postfix increment and decrement */
 
-%type <nPtr> stmt expr stmt_list case case_list function_return_type function_defn var_defn var_decl
+%type <nPtr> stmt expr stmt_list case case_list function_call function_return_type function_defn var_defn var_decl
 %%
 
 program:
@@ -97,10 +96,8 @@ stmt:
         | DO stmt WHILE '(' expr ')' ';'          { $$ = opr(DO, 2, $5, $2); }
         | '{' stmt_list '}'                       { $$ = $2; }
         | var_decl ';'               { printf("Variable declaration parsed successfully\n"); }
-        | var_defn 
-        | CONST var_defn { 
-                printf("Constant variable definition parsed successfully\n"); 
-        }
+        | var_defn                                { $$ = $1; }
+        | CONST var_defn                          { $$ = $2; }
         | enum_decl                               
         | function_defn
         | return_statement                        { printf("Return statement\n"); }
@@ -131,7 +128,7 @@ expr:
         | REAL                          { $$ = con($1); }
         | BOOLEAN                       { $$ = con($1); }
         | CHARACTER                     { $$ = con($1); }
-        | STR                           { $$ = con($1); printf("String Value (%s) parsed successfully\n", $1);  }
+        | STR                           { $$ = con($1);  }
         | IDENTIFIER                    { $$ = $1; }
         | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
         | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }
@@ -169,13 +166,14 @@ expr:
         | expr NE expr                  { $$ = opr(NE, 2, $1, $3); }
         | expr EQ expr                  { $$ = opr(EQ, 2, $1, $3); }
         | '(' expr ')'                  { $$ = $2; }
-        | function_call                 
+        | function_call                 { $$ = $1; }
         ;
 
 function_call:
              IDENTIFIER '(' expr_list ')' { 
                      auto fn_name = std::get<idNodeType>($1->un);
                      printf("Function call (%s) parsed successfully\n", fn_name.id.c_str()); 
+                     $$ = fn_call($1);
              }
 
 expr_list:
@@ -226,6 +224,19 @@ nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) 
 
     p->type = typeFunction;
     p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
+
+    return p;
+}
+
+nodeType* fn_call(nodeTypeTag* name) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+    p->type = typeFunction;
+    p->un = std::variant<NODE_TYPES>(functionNodeType{nullptr, name});
 
     return p;
 }
