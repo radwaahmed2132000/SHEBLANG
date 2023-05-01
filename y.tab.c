@@ -261,7 +261,7 @@ union YYSTYPE
     float fValue;               /* double value */
     bool bValue;                /* boolean value */
     char cValue;                /* char value */
-    const char* sValue;         /* string value */
+    char* sValue;               /* string value */
     nodeType *nPtr;             /* node pointer */
 
 #line 268 "y.tab.c"
@@ -2444,7 +2444,7 @@ nodeType *con(int iValue)   { CON_INIT(p, iValue, iValue, intType);   return p; 
 nodeType *con(float fValue) { CON_INIT(p, fValue, fValue, floatType); return p; }
 nodeType *con(bool bValue)  { CON_INIT(p, bValue, bValue, boolType);  return p; }
 nodeType *con(char cValue)  { CON_INIT(p, cValue, cValue, charType);  return p; }
-nodeType *con(char* sValue) { CON_INIT(p, sValue, std::string(sValue), stringType);  return p; }
+nodeType *con(char* sValue) { CON_INIT(p, sValue, sValue, stringType);  return p; }
 
 // Create an identifier node.
 nodeType *id(const char* id) {

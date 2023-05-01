@@ -161,7 +161,7 @@ union YYSTYPE
     float fValue;               /* double value */
     bool bValue;                /* boolean value */
     char cValue;                /* char value */
-    const char* sValue;         /* string value */
+    char* sValue;               /* string value */
     nodeType *nPtr;             /* node pointer */
 
 #line 168 "y.tab.h"

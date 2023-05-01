@@ -17,8 +17,9 @@ nodeTypeTag *id(const char* id);
 
 ["]([^"]|[\\][nt"])*["] {
                 std::string temp = std::string(yytext);
-                temp.substr(1,temp.size()-2);
-                yylval.sValue = temp.c_str();
+                temp = temp.substr(1,temp.size()-2);
+                yylval.sValue = new char[temp.length()];
+                strcpy(yylval.sValue, temp.c_str());
                 return STR;
             }
 
@@ -42,7 +43,7 @@ nodeTypeTag *id(const char* id);
                 return REAL;
             }
 
-[-()<>=+*/%!~&|^;{}.,:!] {
+[-()<>=+*/%!~&|^;{}.,:] {
                 return *yytext;
              }
 

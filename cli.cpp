@@ -66,7 +66,7 @@ struct ex_visitor {
                 return "false";
             }
             case charType: return std::string() + con.cValue;
-            case stringType: return con.sValue;
+            case stringType: return std::string(con.sValue);
             default:
                     return std::to_string(0);
         }
