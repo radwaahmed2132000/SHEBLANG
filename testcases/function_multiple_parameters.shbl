@@ -1,5 +1,6 @@
 fn test(int a, int b) int {
-	;
+	return a + b;
 }
 ===
+Return statement
 Function (test) parsed successfully

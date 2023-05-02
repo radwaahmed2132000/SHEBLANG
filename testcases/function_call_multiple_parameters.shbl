@@ -1,3 +1,3 @@
-test(a, b, c, d);
+x = test(a, b);
 ===
 Function call (test) parsed successfully
