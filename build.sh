@@ -15,7 +15,7 @@ generate_code() {
 }
 
 build() {
-	g++ -g lex.yy.c y.tab.c $1 -o $2 -std=c++17 -Wwrite-strings 		# compile/link
+	g++ -g value_operators.cpp lex.yy.c y.tab.c $1 -o $2 -std=c++17 -Wwrite-strings 		# compile/link
 }
 
 interpreter() {

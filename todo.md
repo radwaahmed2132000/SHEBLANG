@@ -81,3 +81,11 @@ declared at the beginning of blocks):
 ### Helpful Sources/References:
 * https://www.tutorialspoint.com/cplusplus/cpp_operators.htm
 * https://en.cppreference.com/w/cpp/language/operator_precedence
+
+BUGS:
+    - Having a break statement does not guarantee the following lines will not
+     be executed (see `do_while_with_break.shbl`). This is due to the
+     execution of statement lists being recursive (i.e. not much control over
+     the control flow), so we probably have to do something similar to
+     `caseNodeType` where we later on collect this list of statements, then
+     iterate over it, stopping when encountering a break;

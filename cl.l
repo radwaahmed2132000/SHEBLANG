@@ -15,7 +15,7 @@ nodeTypeTag *id(const char* id);
                 return CHARACTER;
             }
 
-["]([^"]|[\\][nt"])*["] {
+["]([^"]|[,\\][nt"])*["] {
                 std::string temp = std::string(yytext);
                 temp = temp.substr(1,temp.size()-2);
                 yylval.sValue = new char[temp.length()];
@@ -28,7 +28,7 @@ nodeTypeTag *id(const char* id);
                 return INTEGER;
             }
 
-[1-9][0-9]* {
+[+-]?[1-9][0-9]* {
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
             }

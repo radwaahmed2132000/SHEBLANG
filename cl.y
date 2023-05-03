@@ -18,18 +18,23 @@ nodeType *con(char* sValue);
 nodeType *sw(nodeType* var, nodeType* case_list_head);
 nodeType *cs(nodeType* self, nodeType* next);
 nodeType *br();
+
+nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body);
+nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
+nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
+
 void set_break_parent(nodeType* case_list, nodeType* parent_switch);
 
 nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements);
 nodeType* fn_call(nodeTypeTag* name);
 
 void freeNode(nodeType *p);
-std::string ex(nodeType *p);
+Value ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
 float sym[26];                    /* symbol table */
-std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;
+std::unordered_map<std::string, Value> sym2;
 %}
 
 %union {
@@ -85,15 +90,24 @@ var_defn:
 
 stmt:
           ';'                                     { $$ = opr(';', 0); }
-        | FOR '(' var_defn expr ';' expr ')' stmt { $$ = opr(FOR, 4, $3, $4, $6, $8); }
+        | FOR '(' var_defn expr ';' expr ')' stmt { 
+                $$ = for_loop($3, $4, $6, $8); 
+                set_break_parent($8, $$);
+        }
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
         | SWITCH '(' IDENTIFIER ')' case          { $$ = sw($3, $5); set_break_parent($5, $$); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
-        | WHILE '(' expr ')' stmt                 { $$ = opr(WHILE, 2, $3, $5); }
-        | DO stmt WHILE '(' expr ')' ';'          { $$ = opr(DO, 2, $5, $2); }
+        | WHILE '(' expr ')' stmt                 { 
+                $$ = while_loop($3, $5); 
+                set_break_parent($5, $$);
+        }
+        | DO stmt WHILE '(' expr ')' ';'          { 
+                $$ = do_while_loop($5, $2); 
+                set_break_parent($2, $$);
+        }
         | '{' stmt_list '}'                       { $$ = $2; }
         | var_decl ';'                            { printf("Variable declaration parsed successfully\n"); }
         | var_defn                                { $$ = $1; }
@@ -121,6 +135,7 @@ case_list:
 
 stmt_list:
           stmt                  { $$ = $1; }
+        // TODO: Somehow detect 
         | stmt_list stmt        { $$ = opr(';', 2, $1, $2); }
         ;
 
@@ -229,8 +244,7 @@ nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) 
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeFunction;
-    p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
+        p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
 
     return p;
 }
@@ -242,8 +256,7 @@ nodeType* fn_call(nodeTypeTag* name) {
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeFunction;
-    p->un = std::variant<NODE_TYPES>(functionNodeType{nullptr, name});
+        p->un = std::variant<NODE_TYPES>(functionNodeType{nullptr, name});
 
     return p;
 }
@@ -273,6 +286,41 @@ void set_break_parent(nodeType* node, nodeType* parent_switch) {
         
         std::visit(set_break_parent_visitor{parent_switch}, node->un);
 }
+nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+        p->un = std::variant<NODE_TYPES>(doWhileNodeType{false, loop_condition, loop_body});
+
+    return p;
+}
+
+nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+        p->un = std::variant<NODE_TYPES>(whileNodeType{false, loop_condition, loop_body});
+
+    return p;
+}
+
+nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+        p->un = std::variant<NODE_TYPES>(forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body});
+
+    return p;
+}
 
 nodeType *br() {
     nodeType *p;
@@ -281,8 +329,7 @@ nodeType *br() {
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeBreak;
-    p->un = std::variant<NODE_TYPES>(breakNodeType{NULL});
+        p->un = std::variant<NODE_TYPES>(breakNodeType{NULL});
 
     return p;
 }
@@ -294,8 +341,7 @@ nodeType *cs(nodeType* self, nodeType* prev) {
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeCase;
-    p->un = std::variant<NODE_TYPES>(caseNodeType{});
+        p->un = std::variant<NODE_TYPES>(caseNodeType{});
 
     auto& cs = std::get<caseNodeType>(p->un);
 
@@ -318,8 +364,7 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
         yyerror("out of memory");
 
     /* copy information */
-    p->type = typeSwitch;
-
+    
     p->un = std::variant<NODE_TYPES>(switchNodeType{
             0, 0, var, case_list_head
     });
@@ -327,30 +372,19 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
     return p;
 }
 
-// con.valueName = valueName
-// Assumes that the field in the union has the same name as the argument.
-// We have to access specific union members since constructing like this:
-//      conNodeType{fValue}
-// Seems to interpret the given value in context of the first union member.
-// In our case, this is the int member.
-// This is an issue with floats because a float with 0b00...0001 != 1.0f,
-// but a very small value (~0).
-#define CON_INIT(ptr_name, valueName, value, conInnerType)      \
+#define CON_INIT(ptr_name, value)      \
         nodeType* ptr_name;                                     \
         if ((ptr_name = new nodeType()) == NULL)                \
                 yyerror("out of memory");                       \
-        (ptr_name)->type = typeCon;                             \
-        auto con = conNodeType{};                               \
-        con.valueName = value;                                  \
-        con.conType = conInnerType;                             \
+        auto con = conNodeType{value};                               \
         (ptr_name)->un = std::variant<NODE_TYPES>(con);         \
         return ptr_name
 
-nodeType *con(int iValue)   { CON_INIT(p, iValue, iValue, intType);   return p; }
-nodeType *con(float fValue) { CON_INIT(p, fValue, fValue, floatType); return p; }
-nodeType *con(bool bValue)  { CON_INIT(p, bValue, bValue, boolType);  return p; }
-nodeType *con(char cValue)  { CON_INIT(p, cValue, cValue, charType);  return p; }
-nodeType *con(char* sValue) { CON_INIT(p, sValue, sValue, stringType);  return p; }
+nodeType *con(int iValue)   { CON_INIT(p, iValue);   return p; }
+nodeType *con(float fValue) { CON_INIT(p, fValue); return p; }
+nodeType *con(bool bValue)  { CON_INIT(p, bValue);  return p; }
+nodeType *con(char cValue)  { CON_INIT(p, cValue);  return p; }
+nodeType *con(char* sValue) { CON_INIT(p, std::string(sValue));  return p; }
 
 // Create an identifier node.
 nodeType *id(const char* id) {
@@ -361,8 +395,7 @@ nodeType *id(const char* id) {
         yyerror("out of memory");
 
     /* copy information */
-    p->type = typeId;
-    p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
+        p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
 
     return p;
 }
@@ -379,7 +412,6 @@ nodeType *opr(int oper, int nops, ...) {
         yyerror("out of memory");
 
     /* copy information */
-    p->type = typeOpr;
     p->un = std::variant<NODE_TYPES>(oprNodeType{});
     auto& opr = std::get<oprNodeType>(p->un);
     opr.oper = oper;

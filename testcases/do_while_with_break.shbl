@@ -1,0 +1,18 @@
+int x = 5;
+do {
+    print x;
+    x--;
+    if(x<0) {
+        print "About to break!";
+        break;
+        print "You shouldn't see this!";
+        print "nor this!";
+    }
+} while(1);
+===
+5
+4
+3
+2
+1
+0

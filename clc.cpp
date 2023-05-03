@@ -105,27 +105,29 @@ int compile_switch(nodeType* p) {
     return 0;
 }
 
+// TODO: convert this to use `Value`
+// TODO: convert this to use quadruples (registers) instead of a stack.
 float ex(nodeType *p) {
     int lbl1, lbl2;
 
     if (!p) return 0;
     switch(p->type) {
         case typeCon:{
-            auto con = std::get<conNodeType>(p->un);
-            switch(con.conType) {
-                case intType:   printf("\tpush\t%d\n", con.iValue);       return con.iValue;
-                case floatType: printf("\tpush\t%f\n", con.fValue);       return con.fValue;
-                case boolType:  printf("\tpush\t%d\n", (int)con.bValue);  return con.bValue;
-                case charType:  printf("\tpush\t%c\n", con.cValue);       return con.cValue;
-                default:
-                case stringType:
-                    break;
-            }
+
+            auto con = p->un;
+            std::visit(
+                Visitor {
+                    [](float fValue)       { printf("\tpush\t%f\n", fValue);       return fValue;},
+                    [](auto arg) {}
+                },
+                con
+            );
+            return 0;
         } break;
         case typeId: {
              auto identifierNode = std::get<idNodeType>(p->un);
              printf("\tpush\t%s\n", identifierNode.id.c_str()); 
-             return sym2[identifierNode.id];
+             return /* sym2[identifierNode.id]; */ 0;
         } break;
     case typeCase: {
         printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");

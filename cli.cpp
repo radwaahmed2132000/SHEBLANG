@@ -7,14 +7,33 @@
 #include "cl.h"
 #include "y.tab.h"
 
-std::string ex(nodeType* p);
+#define BOP_CASE(case_value, oper) \
+            case case_value: return ex(opr.op[0]) oper ex(opr.op[1]);
+                             
+#define UOP_CASE(case_value, oper) \
+            case case_value: return oper(ex(opr.op[0]));
 
-int evaluate_switch(switchNodeType& sw) {
+#define BOOL_BOP_CASE(case_value, oper) \
+            case case_value: return Value(ex(opr.op[0]) oper ex(opr.op[1]));
+                             
+#define BOOL_UOP_CASE(case_value, oper) \
+            case case_value: return Value(oper (ex(opr.op[0])));
+
+#define POST_OP(oper) {                                                \
+        auto& varRef = sym2[std::get<idNodeType>(opr.op[0]->un).id];   \
+        Value temp = varRef;                                           \
+        varRef =  varRef oper Value(1);                                \
+        return temp;                                                   \
+    }
+
+Value ex(nodeType* p);
+
+Value evaluate_switch(switchNodeType& sw) {
     int matching_case_index = -1;
     int default_case_index = -1;
-    int var_value = std::stoi(ex(sw.var));
+    Value var_value = ex(sw.var);
 
-    assert(sw.case_list_head->type == typeCase);
+    assert(std::holds_alternative<caseNodeType>(sw.case_list_head->un));
     std::vector<caseNodeType> cases;
 
     nodeType* head = sw.case_list_head;
@@ -30,7 +49,7 @@ int evaluate_switch(switchNodeType& sw) {
     std::reverse(cases.begin(), cases.end());
 
     for(int i = 0; i < cases.size() && !sw.break_encountered; i++) {
-        int case_value = std::stoi(ex(cases[i].self));
+        Value case_value = ex(cases[i].self);
         auto opr = std::get<oprNodeType>(cases[i].self->un);
 
         if(opr.oper == DEFAULT) {
@@ -51,131 +70,192 @@ int evaluate_switch(switchNodeType& sw) {
         ex(opr.op[0]);
     }
 
-    return 0;
+    return Value(0);
 }
 
 // TODO: Implement function logic.
-std::string evaluate_function(functionNodeType& fn) {
-    return std::to_string(0);
+Value evaluate_function(functionNodeType& fn) {
+    return Value(0);
 }
 
 struct ex_visitor {
-    std::string operator()(conNodeType& con) {
-        switch(con.conType) {
-            case intType: return std::to_string(con.iValue);
-            case floatType: return std::to_string(con.fValue);
-            case boolType: 
-            {
-                if(con.bValue)
-                    return "true";
-                return "false";
-            }
-            case charType: return std::string() + con.cValue;
-            case stringType: return std::string(con.sValue);
-            default:
-                    return std::to_string(0);
-        }
+    Value operator()(conNodeType& con) {
+        return std::visit(
+                Visitor {
+                    [](int iValue)         { return Value(iValue); },
+                    [](bool bValue)        { return Value(bValue); },
+                    [](char cValue)        { return Value(cValue); },
+                    [](float fValue)       { return Value(fValue); },
+                    [](std::string sValue) { return Value(sValue); },
+                },
+                con
+        );
     }
 
-    std::string operator()(idNodeType& identifier) {
-        return sym2[identifier.id].second;
+    Value operator()(idNodeType& identifier) {
+        return sym2[identifier.id];
     }
 
-    std::string operator()(caseNodeType& identifier) {
+    Value operator()(caseNodeType& identifier) {
         printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
         exit(EXIT_FAILURE);
     }
 
-    std::string operator()(switchNodeType& sw) {
-        return std::to_string(evaluate_switch(sw));
+    Value operator()(switchNodeType& sw) {
+        return evaluate_switch(sw);
     }
 
-    std::string operator()(breakNodeType& br) {
-        auto parent_switch = std::get<switchNodeType>(br.parent_switch->un);
-        parent_switch.break_encountered = true;
-        return std::to_string(0);
+    Value operator()(breakNodeType& br) {
+        std::visit(
+                Visitor {
+                    [](switchNodeType& sw) { sw.break_encountered = true; },
+                    [](whileNodeType& w) { w.break_encountered = true; },
+                    [](forNodeType& f) { f.break_encountered = true; },
+                    [](doWhileNodeType& dw) { dw.break_encountered = true; },
+                    [](auto def) {}
+                },
+                br.parent_switch->un
+        );
+        return Value(0);
     }
 
-    std::string operator()(functionNodeType& fn) {
+    Value operator()(functionNodeType& fn) {
         return evaluate_function(fn);
     }
 
-    std::string operator()(oprNodeType& opr) {
+    Value operator()(doWhileNodeType& dw) {
+        do {
+            ex(dw.loop_body); 
+        } while(ex(dw.condition) && !dw.break_encountered); 
+
+        return Value(0);
+    }
+
+    Value operator()(whileNodeType& w) {
+        while(ex(w.condition) && !w.break_encountered) 
+            ex(w.loop_body); 
+
+        return Value(0);
+    }
+
+    Value operator()(forNodeType& f) {
+        for(ex(f.init_statement); ex(f.loop_condition) && !f.break_encountered; ex(f.post_loop_statement)) {
+            ex(f.loop_body);
+        }
+        return Value(0);
+    }
+
+    Value operator()(oprNodeType& opr) {
         switch(opr.oper) {
-            case WHILE:     while(std::stof(ex(opr.op[0]))) ex(opr.op[1]); return std::to_string(0);
-            case DO:        do { ex(opr.op[1]); } while(std::stof(ex(opr.op[0]))); return std::to_string(0);
-            case IF:        if (std::stof(ex(opr.op[0])))
-                                ex(opr.op[1]);
-                            else if (opr.op.size() > 2)
-                                ex(opr.op[2]);
-                            return std::to_string(0);
-            case FOR:       
-                            for(std::stof(ex(opr.op[0])); std::stof(ex(opr.op[1])); std::stof(ex(opr.op[2]))) {
-                                ex(opr.op[3]);
-                            }
-                            return std::to_string(0);
+            case IF: {
+                 if (ex(opr.op[0]))
+                     ex(opr.op[1]);
+                 else if (opr.op.size() > 2)
+                     ex(opr.op[2]);
+                 return Value(0);
+            }
 
             case DEFAULT:   break;
             case CASE:      return ex(opr.op[0]);
 
             case PRINT:  
             {
-                printf("%s\n", ex(opr.op[0]).c_str());
-                return std::to_string(0);
+                Value exprValue = ex(opr.op[0]);
+                std::visit(
+                    Visitor {
+                        [](int iValue)         { printf("%d\n", iValue); },
+                        [](bool bValue)        { printf("%s\n", bValue? "true": "false"); },
+                        [](char cValue)        { printf("%c\n", cValue); },
+                        [](float fValue)       { printf("%f\n", fValue); },
+                        [](std::string sValue) { printf("%s\n", sValue.c_str()); },
+                    },
+                    exprValue
+                );
+                return Value(0);
             }
-            case ';':       
-                // Need to check bounds for cases where the semi
-                if(!opr.op.empty()) ex(opr.op[0]); 
-                if(opr.op.size() > 1)
-                    return ex(opr.op[1]);
-                return std::to_string(0);
 
-            case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id].second = ex(opr.op[1]);
-            case PP:       
-            {
-                std::string temp = sym2[std::get<idNodeType>(opr.op[0]->un).id].second;
-                sym2[std::get<idNodeType>(opr.op[0]->un).id].second = std::to_string(std::stof(ex(opr.op[0])) + 1);
-                return temp;
-            } 
-            case MM:
-            {
-                std::string temp = sym2[std::get<idNodeType>(opr.op[0]->un).id].second;
-                sym2[std::get<idNodeType>(opr.op[0]->un).id].second = std::to_string(std::stof(ex(opr.op[0])) - 1);
+            case ';':  {
+                if(!opr.op.empty()) {
+
+                     ex(opr.op[0]);
+
+                     // Check if the current statement is `break`
+                     // If so, just execute it (so it can notify its parent
+                     // switch, while, for, do-while, etc...), but not the
+                     // remaining statements, and exit early.
+                     bool should_break = std::visit(
+                             Visitor {
+                                 [](oprNodeType& oprNode) {
+                                    if(oprNode.oper == ';') {
+                                    return std::holds_alternative<breakNodeType>(oprNode.op[0]->un) 
+                                    ||  std::holds_alternative<breakNodeType>(oprNode.op[1]->un) ;
+                                    }
+                                    return false;
+                                 },
+                                 [](auto def) { return false; }
+                                 },
+                                 opr.op[0]->un
+                             );
+
+                     if (should_break)
+                       return Value(0);
+                }
+
+                if(opr.op.size() > 1) 
+                    return ex(opr.op[1]);
+
+                return Value(0);
+
+           }
+            case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
+
+            BOP_CASE('+',+)
+            BOP_CASE('-',-)
+            BOP_CASE('*',*) 
+            BOP_CASE('/',/) 
+
+            BOP_CASE('&',&) 
+            BOP_CASE('|',|) 
+            BOP_CASE('^',^)
+            UOP_CASE('~',~) 
+
+            BOP_CASE(LS,<<)
+            BOP_CASE(RS,>>)
+            BOP_CASE('%',%) 
+
+            BOOL_BOP_CASE('<',<) 
+            BOOL_BOP_CASE('>',>) 
+            BOOL_BOP_CASE(AND, &&)
+            BOOL_BOP_CASE(OR, ||)
+            BOOL_BOP_CASE(GE,>=)        
+            BOOL_BOP_CASE(LE,<=)        
+            BOOL_BOP_CASE(NE,!=)        
+            BOOL_BOP_CASE(EQ,==)        
+            BOOL_UOP_CASE('!',!) 
+
+            UOP_CASE(UPLUS,+)     
+            UOP_CASE(UMINUS,-)
+
+            case PP: {
+                auto &varRef = sym2[std ::get<idNodeType>(opr.op[0]->un).id];
+                Value temp = varRef;
+                varRef = varRef + Value(1);
                 return temp;
             }
-            case UPLUS:     return ex(opr.op[0]);
-            case UMINUS:    return std::to_string(-std::stof(ex(opr.op[0])));
-            case '!':       return std::to_string(!std::stof(ex(opr.op[0])));
-            case '~':       return std::to_string(~std::stoi(ex(opr.op[0])));
-            case '&':       return std::to_string(std::stoi(ex(opr.op[0])) & std::stoi(ex(opr.op[1])));
-            case '|':       return std::to_string(std::stoi(ex(opr.op[0])) | std::stoi(ex(opr.op[1])));
-            case '^':       return std::to_string(std::stoi(ex(opr.op[0])) ^ std::stoi(ex(opr.op[1])));
-            case LS:        return std::to_string(std::stoi(ex(opr.op[0])) << std::stoi(ex(opr.op[1])));
-            case RS:        return std::to_string(std::stoi(ex(opr.op[0])) >> std::stoi(ex(opr.op[1])));
-            case '+':       return std::to_string(std::stof(ex(opr.op[0])) + std::stof(ex(opr.op[1])));
-            case '-':       return std::to_string(std::stof(ex(opr.op[0])) - std::stof(ex(opr.op[1])));
-            case '*':       return std::to_string(std::stof(ex(opr.op[0])) * std::stof(ex(opr.op[1])));
-            case '/':       return std::to_string(std::stof(ex(opr.op[0])) / std::stof(ex(opr.op[1])));
-            case '%':       return std::to_string(std::stoi(ex(opr.op[0])) % std::stoi(ex(opr.op[1])));
-            case AND:       return std::to_string(std::stoi(ex(opr.op[0])) && std::stoi(ex(opr.op[1])));
-            case OR:        return std::to_string(std::stoi(ex(opr.op[0])) || std::stoi(ex(opr.op[1])));
-            case '<':       return std::to_string(std::stof(ex(opr.op[0])) < std::stof(ex(opr.op[1])));
-            case '>':       return std::to_string(std::stof(ex(opr.op[0])) > std::stof(ex(opr.op[1])));
-            case GE:        return std::to_string(std::stof(ex(opr.op[0])) >= std::stof(ex(opr.op[1])));
-            case LE:        return std::to_string(std::stof(ex(opr.op[0])) <= std::stof(ex(opr.op[1])));
-            case NE:        return std::to_string(std::stof(ex(opr.op[0])) != std::stof(ex(opr.op[1])));
-            case EQ:        return std::to_string(std::stof(ex(opr.op[0])) == std::stof(ex(opr.op[1])));
+            case MM:   POST_OP(-)
+            default: return Value(0);
         }
 
-        return std::to_string(0);
+        return Value(0);
     }
 
     // the default case:
-    template<typename T> std::string operator()(T const &) const { return std::to_string(0); } 
-
+    template<typename T> 
+    Value operator()(T const & /*UNUSED*/ ) const { return Value(0);} 
 };
 
-std::string ex(nodeType *p) {
-    if (p == nullptr) return std::to_string(0);
+Value ex(nodeType *p) {
+    if (p == nullptr) return Value(0);
     return std::visit(ex_visitor(), p->un);
 }
+

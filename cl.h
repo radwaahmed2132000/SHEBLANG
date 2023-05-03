@@ -1,28 +1,23 @@
+#pragma once
+#include <cstdio>
+#include <new>
+#include <system_error>
 #include <vector>
 #include <variant>
 #include <string>
+#include <iostream>
 #include <unordered_map>
 #include <utility>
 
-typedef enum { typeCon, typeId, typeOpr, typeSwitch, typeCase, typeBreak, typeFunction } nodeEnum;
-typedef enum { intType, floatType, boolType, charType, stringType } conTypeEnum;
+#include "value.h"
 
 /* constants */
-typedef struct {
-    union {
-        int iValue;                 /* integer value of constant */
-        float fValue;               /* float value of constant */
-        bool bValue;                /* boolean value of constant */
-        char cValue;                /* char value of constant */
-        char* sValue;               /* string value of constant */
-    };
-    conTypeEnum conType;            /* type of constant */
-} conNodeType;
+// Operators needed: +, -, *, /, %, &, |, ^, &&, ||, !
+using conNodeType = Value;
 
 /* identifiers */
 typedef struct {
     std::string id;                 /* key/index to sym array */
-    conTypeEnum idType;             /* type of variable */
 } idNodeType;
 
 /* operators */
@@ -52,12 +47,33 @@ typedef struct {
     struct nodeTypeTag* statemenst;
 } functionNodeType;
 
-#define NODE_TYPES conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, breakNodeType, functionNodeType
+typedef struct {
+    bool break_encountered;
+    struct nodeTypeTag *condition, *loop_body;
+} whileNodeType;
+
+// Exactly the same as whileNodeType,
+// the main difference is in the behaviour itself.
+// But, we can't have two elements of the same type in std::variant, so I had to
+// split them.
+typedef struct {
+    bool break_encountered;
+    struct nodeTypeTag *condition, *loop_body;
+} doWhileNodeType;
+
+
+typedef struct {
+    bool break_encountered;
+    struct nodeTypeTag *init_statement, *loop_condition, *post_loop_statement, *loop_body;
+} forNodeType;
+
+#define NODE_TYPES conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, breakNodeType, functionNodeType, whileNodeType, forNodeType, doWhileNodeType
 
 typedef struct nodeTypeTag {
-    nodeEnum type;              /* type of node. Still need it since std::visit seems to not play well with recursive functions */
     std::variant<NODE_TYPES> un;
 } nodeType;
 
 extern float sym[26];
-extern std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;
+extern std::unordered_map<std::string, Value> sym2;
+
+
