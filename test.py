@@ -61,6 +61,10 @@ args = arg_parser.parse_args()
 
 binary = f"./shbl_{args.shbl_binary_type}"
 
+if not os.path.exists(binary):
+    print(f"Binary {binary} does not exist")
+    exit(1)
+
 test_case_dir = "./testcases/"
 test_cases = [file for file in os.listdir(test_case_dir) if file.endswith(".shbl")]
 test_cases = [Testcase(test_case_dir, test_case) for test_case in test_cases]

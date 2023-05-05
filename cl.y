@@ -135,7 +135,6 @@ case_list:
 
 stmt_list:
           stmt                  { $$ = $1; }
-        // TODO: Somehow detect 
         | stmt_list stmt        { $$ = opr(';', 2, $1, $2); }
         ;
 
@@ -343,16 +342,18 @@ nodeType *cs(nodeType* self, nodeType* prev) {
 
         p->un = std::variant<NODE_TYPES>(caseNodeType{});
 
-    auto& cs = std::get<caseNodeType>(p->un);
+    auto cs = caseNodeType{};
 
-    if(self->type == typeOpr) {
-        cs.self = self;
-        cs.prev = NULL;
-    } else if (self->type == typeCase) {
-        cs.prev = self;
-        cs.self = prev;
-    }
+    std::visit(
+        Visitor {
+                [&cs, self](oprNodeType&)  { cs.self = self; cs.prev = NULL; },
+                [&cs, self, prev](caseNodeType&) { cs.prev = self; cs.self = prev; },
+                [](auto) {}
+        },
+        self->un
+    );
 
+    p->un = cs;
     return p;
 }
 
