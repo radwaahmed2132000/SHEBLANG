@@ -20,7 +20,7 @@
             case case_value: return Value(oper (ex(opr.op[0])));
 
 #define POST_OP(oper) {                                                \
-        auto& varRef = sym2[std::get<idNodeType>(opr.op[0]->un).id];   \
+        auto& varRef = sym2[std::get<idNodeType>(opr.op[0]->un).id].getRef();   \
         Value temp = varRef;                                           \
         varRef =  varRef oper Value(1);                                \
         return temp;                                                   \
@@ -93,12 +93,18 @@ struct ex_visitor {
     }
 
     Value operator()(idNodeType& identifier) {
-        return sym2[identifier.id];
+        return sym2[identifier.id].getValue();
     }
 
-    Value operator()(caseNodeType& identifier) {
-        printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");
-        exit(EXIT_FAILURE);
+    Value operator()(VarDecl& vd) {
+        auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
+        auto& entry = sym2[nameStr];
+
+        if(entry.isConstant) {
+            entry.setValue(ex(entry.initExpr));
+        }
+
+        return Value(0);
     }
 
     Value operator()(switchNodeType& sw) {
@@ -207,7 +213,10 @@ struct ex_visitor {
                 return Value(0);
 
            }
-            case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
+            case '=': {
+                auto assignVar = std::get<idNodeType>(opr.op[0]->un).id;
+                return sym2[assignVar].setValue(ex(opr.op[1])).getValue();
+            }
 
             BOP_CASE('+',+)
             BOP_CASE('-',-)
@@ -237,7 +246,7 @@ struct ex_visitor {
             UOP_CASE(UMINUS,-)
 
             case PP: {
-                auto &varRef = sym2[std ::get<idNodeType>(opr.op[0]->un).id];
+                auto &varRef = sym2[std ::get<idNodeType>(opr.op[0]->un).id].getRef();
                 Value temp = varRef;
                 varRef = varRef + Value(1);
                 return temp;

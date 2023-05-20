@@ -5,7 +5,7 @@
 #include "cl.h"
 #include "y.tab.h"
 void yyerror(char *);
-nodeTypeTag *id(const char* id);
+nodeType *id(const char* id);
 %}
 
 %%
