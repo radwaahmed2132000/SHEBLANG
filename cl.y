@@ -75,7 +75,7 @@ std::unordered_map<std::string, Value> sym2;
 %%
 
 program:
-        stmt_list { ex($1); freeNode($1); exit(0); }
+        stmt_list { semantic_analysis($1); ex($1); freeNode($1); exit(0); }
         | /* NULL */
         ;
 
@@ -243,7 +243,7 @@ nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) 
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-        p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
+    p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
 
     return p;
 }

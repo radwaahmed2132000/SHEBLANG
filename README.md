@@ -2,28 +2,17 @@
 
 ## Prerequisites:
 - Have Flex/Lex and Yacc/Bison installed.
-- Have GCC installed.
+- Have Clang installed with support for C++20 (tested with clang 16).
+  -   If you don't have clang installed, you can run `install_clang.sh`
 
 ### How to run:
-1. Syntax Analysis (Parsing): Run in the command prompt in the project directory the following command. It will compile the yacc file to generate the y.tab.c and y.tab.c files.
-```
-bison -y -d cl.y
-```
-2. Lexical Analysis (Scanning): Next, run the following command to compile the lex file to generate the lex.yy.c file.
-```
-flex cl.l
-```
-3. Last but not least, compile all using gcc to generate the .exe file. We have 3 modes of operation:
-* Interpreter mode: treats the code as an interpreted language and prints its results inline.
-```
-gcc cli.c y.tab.c lex.yy.c
-```
-* Compiler mode: compiles the code into assembly-like language.
-```
-gcc clc.c y.tab.c lex.yy.c
-```
-* Graph mode: draws a graph of the parse tree of the expressions.
-```
-gcc clg.c y.tab.c lex.yy.c
-```
-4. Run the a.exe file and try the input you like. Note that you may need to turn off your antivirus to be able to run the .exe file.
+- Run `./build.sh` with the arguments `interpreter` or `compiler` (or `i`/`c`) for short.
+- You should get a binary called `shbl_interpreter` or `shbl_compiler` if everything goes well.
+
+- You can then run `test.py` with with the arguments `interpreter` or `compiler` to test either.
+- You can also run `shb_interpreter < path/to/testcase.shbl` to run a specific testcase.
+
+## How to debug with VSCode
+- Download the [CodeLLDB extension](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
+- Build the interpreter or compiler using the instructions from the previous 
+- Modify `launch.json` to fit your use case. You'll mostly change `stdio`, which controls the files stdin, stdout, and stderr write to respectively. null means that the program will write to the default file/stream (usually the terminal).

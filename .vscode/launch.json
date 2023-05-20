@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Interpreter",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/shbl_interpreter",
+            "cwd": "${workspaceFolder}",
+            "stdio": ["testcases/assign_print.shbl", null, null]
+        },
+        {
+            "name": "Launch Compiler",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/shbl_compiler",
+            "cwd": "${workspaceFolder}",
+            "stdio": ["testcases/assign_print.shbl", null, null]
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "compiler"
+            ]
+        }
+    ]
+}

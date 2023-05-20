@@ -15,7 +15,7 @@ generate_code() {
 }
 
 build() {
-	clang++-16 -g -stdlib=libc++ -std=c++17 value_operators.cpp lex.yy.c y.tab.c $1 -o $2 -Wno-write-strings 		# compile/link
+	clang++-16 -ggdb -stdlib=libc++ -std=c++17 value_operators.cpp cls.cpp lex.yy.c y.tab.c $1 -o $2 -Wno-write-strings 		# compile/link
 }
 
 interpreter() {
@@ -35,9 +35,9 @@ compiler() {
 
 case $1 in 
 	# pattern) command ;;
-	interpreter) interpreter ;;
+	interpreter|i) interpreter ;;
+	compiler|c) compiler ;;
 	graph) graph ;;
-	compiler) compiler ;;
 	generate_code) generate_code ;;
 	clean) clean;;
 	*) help ;;

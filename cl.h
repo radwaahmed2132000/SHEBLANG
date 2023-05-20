@@ -61,7 +61,6 @@ typedef struct {
     struct nodeTypeTag *condition, *loop_body;
 } doWhileNodeType;
 
-
 typedef struct {
     bool break_encountered;
     struct nodeTypeTag *init_statement, *loop_condition, *post_loop_statement, *loop_body;
@@ -76,4 +75,5 @@ typedef struct nodeTypeTag {
 extern float sym[26];
 extern std::unordered_map<std::string, Value> sym2;
 
-
+// Forward declare `semantic_analysis` for use in cl.y
+Value semantic_analysis(nodeType* p);
