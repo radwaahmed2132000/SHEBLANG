@@ -2,3 +2,6 @@ string s = "Hello World!";
 print s;
 ===
 Hello World
+===
+mov s,"Hello World!"
+print s

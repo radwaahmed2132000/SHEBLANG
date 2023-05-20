@@ -1,6 +1,6 @@
 a = 1;
 ===
 ===
-push	1
-pop	a
+mov	a,1
+
 

@@ -15,23 +15,25 @@ true
 ?
 Hello World!
 ===
-push    10
-pop     myInt1
+mov myInt1,10
+mov myFloat,20.45
+mov myBool , 1
+mov myChar, '?'
+mov myString ,"Hello World!"
+mov ah,9
+mov dx,myInt1
+int 21h
+mov ah,9
+mov dx,myFloat
+int 21h
+mov ah,9
+mov dx,myBool
+int 21h
+mov ah,9
+mov dx,myChar
+int 21h
+mov ah,9
+mov dx,myString
+int 21h
 
-push    20.450001
-pop     myFloat
 
-push    1
-pop     myBool
-
-push    myInt1
-print
-
-push    myInt2
-print
-
-push    myFloat
-print
-
-push    myBool
-print

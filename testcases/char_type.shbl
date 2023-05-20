@@ -8,3 +8,10 @@ print z;
 h
 !
 +
+===
+mov x,'h'
+mov y,'!'
+mov z,'+'
+print x
+print y
+print z

@@ -4,3 +4,9 @@ x %= 7;
 print x;
 ===
 3
+===
+mov x,0
+add x,10
+mod x, 7
+
+print x
