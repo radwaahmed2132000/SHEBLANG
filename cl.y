@@ -9,11 +9,14 @@
 /* prototypes */
 void freeNode(nodeType *p);
 Value ex(nodeType *p);
-int yylex(void);
 
+
+int yylex(void);
 void yyerror(char *s);
-std::unordered_map<std::string, Value> sym2;
+extern int yylineno;            /* from lexer */
+
 std::unordered_map<std::string, functionNodeType> functions;
+std::unordered_map<std::string, SymbolTableEntry> sym2;
 %}
 
 %union {
@@ -54,17 +57,33 @@ std::unordered_map<std::string, functionNodeType> functions;
 %%
 
 program:
-        stmt_list { semantic_analysis($1); ex($1); freeNode($1); exit(0); }
+        stmt_list { 
+                auto result = semantic_analysis($1);
+                if (result.isSuccess()) {
+                    //printf("Semantic analysis successful\n");
+                } else {
+                    // printf("Semantic analysis failed\n");
+                    // for (auto& error : std::get<ErrorType>(result)) {
+                    //     printf("%s\n", error.c_str());
+                    // }
+                    exit(1);
+                }
+                ex($1);
+                freeNode($1);
+                exit(0);
+            }
         | /* NULL */
         ;
 
 var_decl:
-        // TODO: Use $1 for semantic analysis.
         IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); }
         ;
 
 var_defn:
-        var_decl '=' expr ';'        { $$ = opr('=', 2, $1, $3); }
+        var_decl '=' expr ';'        { 
+            VarDecl vd = std::get<VarDecl>($1->un);
+            $$ = opr('=', 2, vd.var_name, $3); 
+        }
         ;
 
 stmt:
@@ -88,9 +107,12 @@ stmt:
                 set_break_parent($2, $$);
         }
         | '{' stmt_list '}'                       { $$ = $2; }
+        | var_decl ';'                            
         | var_defn                                { $$ = $1; }
-        | var_decl ';'                            { $$ = $1; }
-        | CONST var_defn                          { $$ = $2; }
+        | CONST IDENTIFIER IDENTIFIER '=' expr ';' { 
+            $$ = constVarDefn($2, $3, $5);
+        }
+        
         | enum_decl                               
         | function_defn
         | return_statement                        
