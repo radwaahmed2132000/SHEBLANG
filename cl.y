@@ -30,11 +30,11 @@ nodeType* fn_call(nodeTypeTag* name);
 
 void freeNode(nodeType *p);
 Value ex(nodeType *p);
-void declare_id(const char* id);
+void declare_id(const char* id, DATA_TYPES type, bool isConst);
 int yylex(void);
 
 void yyerror(char *s);                 
-std::unordered_map<std::string, Value> sym; /* symbol table */
+std::unordered_map<std::string, entry> sym; /* symbol table */
 %}
 
 %union {
@@ -43,10 +43,11 @@ std::unordered_map<std::string, Value> sym; /* symbol table */
     bool bValue;                /* boolean value */
     char cValue;                /* char value */
     char* sValue;               /* string value */
+    char* id;                   /* identifier name */
     nodeType *nPtr;             /* node pointer */
 };
 
-%token <nPtr> IDENTIFIER
+%token <id> IDENTIFIER
 %token <iValue> INTEGER
 %token <fValue> REAL
 %token <bValue> BOOLEAN
@@ -81,7 +82,7 @@ program:
 
 var_decl:
         // TODO: Use $1 for semantic analysis.
-        IDENTIFIER IDENTIFIER       { $$ = $2; }
+        IDENTIFIER IDENTIFIER       { $$ = id($2); }
         ;
 
 var_defn:
@@ -96,7 +97,7 @@ stmt:
         }
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
-        | SWITCH '(' IDENTIFIER ')' case          { $$ = sw($3, $5); set_break_parent($5, $$); }
+        | SWITCH '(' IDENTIFIER ')' case          { $$ = sw(id($3), $5); set_break_parent($5, $$); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
@@ -112,10 +113,15 @@ stmt:
         | var_decl ';'                            { 
             /* Handle declaration logic here */
             auto id_name = std::get<idNodeType>($1->un);
-            declare_id(id_name.id.c_str());
+            declare_id(id_name.id.c_str(),INT_TYPE,false);
             /*printf("Variable declaration parsed successfully\n"); */
             }
-        | var_defn                                { $$ = $1; }
+        | var_defn                                { 
+            auto opr_1 = std::get<oprNodeType>($1->un).op[0];
+            auto id_name = std::get<idNodeType>(opr_1->un);
+            declare_id(id_name.id.c_str(),INT_TYPE,false);
+            $$ = $1;
+         }
         | CONST var_defn                          { $$ = $2; }
         | enum_decl                               
         | function_defn
@@ -149,18 +155,18 @@ expr:
         | BOOLEAN                       { $$ = con($1); }
         | CHARACTER                     { $$ = con($1); }
         | STR                           { $$ = con($1);  }
-        | IDENTIFIER                    { $$ = $1; }
-        | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
-        | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }
-        | IDENTIFIER SA expr            { $$ = opr('=', 2, $1, opr('-', 2, $1, $3)); }
-        | IDENTIFIER MA expr            { $$ = opr('=', 2, $1, opr('*', 2, $1, $3)); }
-        | IDENTIFIER DA expr            { $$ = opr('=', 2, $1, opr('/', 2, $1, $3)); }
-        | IDENTIFIER RA expr            { $$ = opr('=', 2, $1, opr('%', 2, $1, $3)); }
-        | IDENTIFIER LSA expr           { $$ = opr('=', 2, $1, opr(LS,  2, $1, $3)); }
-        | IDENTIFIER RSA expr           { $$ = opr('=', 2, $1, opr(RS,  2, $1, $3)); }
-        | IDENTIFIER ANDA expr          { $$ = opr('=', 2, $1, opr('&', 2, $1, $3)); }
-        | IDENTIFIER EORA expr          { $$ = opr('=', 2, $1, opr('^', 2, $1, $3)); }
-        | IDENTIFIER IORA expr          { $$ = opr('=', 2, $1, opr('"', 2, $1, $3)); }
+        | IDENTIFIER                    { $$ = id($1); }
+        | IDENTIFIER '=' expr           { $$ = opr('=', 2, id($1), $3); }
+        | IDENTIFIER PA expr            { $$ = opr('=', 2, id($1), opr('+', 2, $1, $3)); }
+        | IDENTIFIER SA expr            { $$ = opr('=', 2, id($1), opr('-', 2, $1, $3)); }
+        | IDENTIFIER MA expr            { $$ = opr('=', 2, id($1), opr('*', 2, $1, $3)); }
+        | IDENTIFIER DA expr            { $$ = opr('=', 2, id($1), opr('/', 2, $1, $3)); }
+        | IDENTIFIER RA expr            { $$ = opr('=', 2, id($1), opr('%', 2, $1, $3)); }
+        | IDENTIFIER LSA expr           { $$ = opr('=', 2, id($1), opr(LS,  2, $1, $3)); }
+        | IDENTIFIER RSA expr           { $$ = opr('=', 2, id($1), opr(RS,  2, $1, $3)); }
+        | IDENTIFIER ANDA expr          { $$ = opr('=', 2, id($1), opr('&', 2, $1, $3)); }
+        | IDENTIFIER EORA expr          { $$ = opr('=', 2, id($1), opr('^', 2, $1, $3)); }
+        | IDENTIFIER IORA expr          { $$ = opr('=', 2, id($1), opr('"', 2, $1, $3)); }
         | expr PP                       { $$ = opr(PP, 1, $1); }
         | expr MM                       { $$ = opr(MM, 1, $1); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
@@ -191,9 +197,9 @@ expr:
 
 function_call:
              IDENTIFIER '(' expr_list ')' { 
-                     auto fn_name = std::get<idNodeType>($1->un);
+                     auto fn_name = std::get<idNodeType>(id($1)->un);
                      printf("Function call (%s) parsed successfully\n", fn_name.id.c_str()); 
-                     $$ = fn_call($1);
+                     $$ = fn_call(id($1));
              }
 
 expr_list:
@@ -204,7 +210,7 @@ expr_list:
 
 enum_decl:
          ENUM IDENTIFIER '{' identifier_list '}' ';' { 
-                 auto enum_name = std::get<idNodeType>($2->un);
+                 auto enum_name = std::get<idNodeType>(id($2)->un);
                  printf("Enum (%s) parsed successfully\n", enum_name.id.c_str()); 
          }
          ;
@@ -216,7 +222,7 @@ identifier_list:
                ;
 
 function_return_type:
-                    IDENTIFIER          {  $$ = $1; }
+                    IDENTIFIER          {  $$ = id($1); }
                     | /* EMPTY */       {  $$ = id("void"); }
                     ;
 
@@ -227,16 +233,16 @@ function_parameter_list:
                        ;
 function_defn:
              FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}' { 
-                     $$ = fn($2, $6, $8);
-                     auto fn_name = std::get<idNodeType>($2->un);
+                     $$ = fn(id($2), $6, $8);
+                     auto fn_name = std::get<idNodeType>(id($2)->un);
                      printf("Function (%s) parsed successfully\n", fn_name.id.c_str()); 
                      /* Start a function scope here. */
              } 
 
 function_decl:
              FN IDENTIFIER '(' function_parameter_list ')' function_return_type { 
-                     $$ = fn_call($2); // TODO: Create another function for the declaration.
-                     auto fn_name = std::get<idNodeType>($2->un);
+                     $$ = fn_call(id($2)); // TODO: Create another function for the declaration.
+                     auto fn_name = std::get<idNodeType>(id($2)->un);
                      printf("Function Declaration (%s) parsed successfully\n", fn_name.id.c_str()); 
              } 
 
@@ -402,7 +408,7 @@ nodeType *id(const char* id) {
         yyerror("out of memory");
 
     /* copy information */
-        p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
+    p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
 
     return p;
 }
@@ -437,13 +443,15 @@ void freeNode(nodeType *p) {
     free (p);
 }
 
-void declare_id(const char* id){
+void declare_id(const char* id, DATA_TYPES type, bool isConst){
     std::string key = id;
     if(sym.find(key) == sym.end())
     {
         std::string temp = "Declaring a new variable "+key+" !!!\n";
         printf("%s",temp.c_str());
-        sym[id] = Value(0);
+        sym[id].value = Value(0);
+        sym[id].type = type;
+        sym[id].isConst = isConst;
         /*if (std::holds_alternative<int>(v))*/
     }
 }

@@ -11,13 +11,18 @@
 
 #include "value.h"
 
+enum DATA_TYPES { INT_TYPE, FLOAT_TYPE, BOOL_TYPE, CHAR_TYPE, STR_TYPE };
+
 /* constants */
 // Operators needed: +, -, *, /, %, &, |, ^, &&, ||, !
 using conNodeType = Value;
 
 /* identifiers */
 typedef struct {
-    std::string id;                 /* key/index to sym array */
+    std::string id;             /* key/index to sym array */
+    bool isDeclared;            /* Indicates whether it's being declared */
+    bool isConst;               /* Whether it's a constant or not */
+    DATA_TYPES type;            /* Type of Data */
 } idNodeType;
 
 /* operators */
@@ -72,7 +77,14 @@ typedef struct nodeTypeTag {
     std::variant<NODE_TYPES> un;
 } nodeType;
 
-extern std::unordered_map<std::string, Value> sym;
+
+typedef struct {
+    Value value;
+    DATA_TYPES type;
+    bool isConst;
+} entry;
+
+extern std::unordered_map<std::string, entry> sym;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Value semantic_analysis(nodeType* p);

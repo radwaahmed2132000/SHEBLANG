@@ -20,7 +20,7 @@
             case case_value: return Value(oper (ex(opr.op[0])));
 
 #define POST_OP(oper) {                                                \
-        auto& varRef = sym[std::get<idNodeType>(opr.op[0]->un).id];   \
+        auto& varRef = sym[std::get<idNodeType>(opr.op[0]->un).id].value;   \
         Value temp = varRef;                                           \
         varRef =  varRef oper Value(1);                                \
         return temp;                                                   \
@@ -100,7 +100,7 @@ struct ex_visitor {
             printf("%s",temp.c_str());
             return Value(0);
         }
-        return sym[identifier.id];
+        return sym[identifier.id].value;
     }
 
     Value operator()(caseNodeType& identifier) {
@@ -218,13 +218,15 @@ struct ex_visitor {
             {
                 std::string key = std::get<idNodeType>(opr.op[0]->un).id;
                 Value val = ex(opr.op[1]);
-                if(sym.find(key) == sym.end())
+                if(sym.find(key) != sym.end())
                 {
-                    
                     std::string temp = "Assigning new variable "+key+" with new value !!!\n";
                     printf("%s",temp.c_str());
+                    return sym[key].value = val;
                 }
-                return sym[key] = val;
+                std::string temp = "Trying to assign to an undeclared variable "+key+" !!!\n";
+                printf("%s",temp.c_str());
+                return Value(0);
             }
 
             BOP_CASE('+',+)
@@ -255,7 +257,7 @@ struct ex_visitor {
             UOP_CASE(UMINUS,-)
 
             case PP: {
-                auto &varRef = sym[std ::get<idNodeType>(opr.op[0]->un).id];
+                auto &varRef = sym[std ::get<idNodeType>(opr.op[0]->un).id].value;
                 Value temp = varRef;
                 varRef = varRef + Value(1);
                 return temp;

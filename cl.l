@@ -93,7 +93,12 @@ nodeTypeTag *id(const char* id);
 "return"        return RETURN;
 
 [a-zA-Z_][a-zA-Z_0-9]* { 
-                yylval.nPtr = id(yytext);
+                /*yylval.nPtr = id(yytext);*/
+
+                std::string temp = std::string(yytext);
+                yylval.id = new char[temp.length()];
+                strcpy(yylval.id, temp.c_str());
+
                 return IDENTIFIER;
             }
 

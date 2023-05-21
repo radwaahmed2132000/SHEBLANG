@@ -1079,27 +1079,32 @@ case 44:
 YY_RULE_SETUP
 #line 95 "cl.l"
 { 
-                yylval.nPtr = id(yytext);
+                /*yylval.nPtr = id(yytext);*/
+
+                std::string temp = std::string(yytext);
+                yylval.id = new char[temp.length()];
+                strcpy(yylval.id, temp.c_str());
+
                 return IDENTIFIER;
             }
 	YY_BREAK
 case 45:
 /* rule 45 can match eol */
 YY_RULE_SETUP
-#line 100 "cl.l"
+#line 105 "cl.l"
 ;       /* ignore whitespace */
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 102 "cl.l"
+#line 107 "cl.l"
 yyerror("Unknown character");
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 103 "cl.l"
+#line 108 "cl.l"
 ECHO;
 	YY_BREAK
-#line 1103 "lex.yy.c"
+#line 1108 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2104,7 +2109,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 103 "cl.l"
+#line 108 "cl.l"
 
 int yywrap(void) {
     return 1;

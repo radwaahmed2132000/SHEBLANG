@@ -162,9 +162,10 @@ union YYSTYPE
     bool bValue;                /* boolean value */
     char cValue;                /* char value */
     char* sValue;               /* string value */
+    char* id;                   /* identifier name */
     nodeType *nPtr;             /* node pointer */
 
-#line 168 "y.tab.h"
+#line 169 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
