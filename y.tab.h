@@ -163,8 +163,9 @@ union YYSTYPE
     char cValue;                /* char value */
     char* sValue;               /* string value */
     nodeType *nPtr;             /* node pointer */
+    int lineNo;                 /* Line Number of Code Line */
 
-#line 168 "y.tab.h"
+#line 169 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

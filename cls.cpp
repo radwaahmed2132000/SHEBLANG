@@ -24,20 +24,23 @@
         return right; \
     } \
 
-#define NOT_CONST(oper) \
+#define NOT_CONST(oper, lineNo) \ 
     auto lhsName = std::get<idNodeType>(oper->un).id; \
     auto& lEntry = sym2[lhsName]; \
     if(lEntry.isConstant) { \
-        return Result::Error("Error: The left identifier is a constant\n"); \
+        return Result::Error("Error in line number: " \
+        + std::to_string(lineNo) + \ 
+         + " .The left identifier is a constant\n"); \
     } \
 
-#define LEFT_SAME_TYPE_AS_RIGHT(left, right) \
+#define LEFT_SAME_TYPE_AS_RIGHT(left, right, lineNo) \
     auto leftType = std::get<SuccessType>(left); \
     auto rightType = std::get<SuccessType>(right); \
     if (leftType != rightType) { \
-        return Result::Error("Error: The LHS identifier type: " + \
-                 std::get<SuccessType>(left) + " doesn't match the RHS Expression type: " \
-                 + std::get<SuccessType>(right) + "\n"); \
+        return Result::Error("Error in line number: " + \
+                std::to_string(lineNo) + " .The LHS identifier type: " + \
+                std::get<SuccessType>(left) + " doesn't match the RHS Expression type: " \
+                + std::get<SuccessType>(right) + "\n"); \
     } \
 
 #define LEFT_TYPE(left) \
@@ -47,10 +50,11 @@
 #define RIGHT_TYPE(right) \
     auto rightType = std::get<SuccessType>(right); \
 
-#define EXISTING_TYPE(type) \
+#define EXISTING_TYPE(type, lineNo) \
      static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool"}; \
      if (builtinTypes.find(type) == builtinTypes.end()) { \
-            return Result::Error("Error: The type of the variable " \
+            return Result::Error("Error in line number: " + \
+             std::to_string(lineNo) +" .The type of the variable " \
              + type + " is not valid\n"); \
       } \
 
@@ -79,18 +83,19 @@ struct semantic_analysis_visitor {
        
         /* Check that the type of the variable is valid */
         auto type = std::get<idNodeType>(vd.type->un).id;
-        EXISTING_TYPE(type);
+        EXISTING_TYPE(type, vd.type->lineNo);
         
         /* Check if the variable is already declared */
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
-        auto& entry = sym2[nameStr];
 
-        if (entry.type != "") {
-            return Result::Error("Error: The variable " +
+        if (sym2.find(nameStr) != sym2.end()) {
+            return Result::Error("Error in line number: " +
+             std::to_string(vd.type->lineNo) + " .The variable " +
              nameStr + " is already declared\n");
         }
 
         /* Add the variable name & type as a new entry in the symbol table */
+        SymbolTableEntry entry = SymbolTableEntry();
         entry.type = type;
         entry.isConstant = false;
         entry.initExpr = nullptr;
@@ -102,7 +107,7 @@ struct semantic_analysis_visitor {
     Result operator()(VarDefn& vd) {
 
       /* Check if the variable is declared */
-      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name));
+      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
       Result decl = semantic_analysis(nt); 
       if (!decl.isSuccess()) {
           return decl;
@@ -117,19 +122,21 @@ struct semantic_analysis_visitor {
           }
           /* Check that the left & right types are matching */
           if (declType != std::get<SuccessType>(init)) {
-              return Result::Error("Error: The LHS identifier type: " + declType
+              return Result::Error("Error in line number: " +
+               std::to_string(vd.initExpr->lineNo) + " .The LHS identifier type: " + declType
                + " doesn't match the RHS Expression type: "
-                + std::get<SuccessType>(init) + "\n");
+              + std::get<SuccessType>(init) + "\n");
           }
         } else {
             /* The initialization expression doesn't exist*/
             if (vd.isConstant) {
-                return Result::Error("Error: The constant variable " +
+                return Result::Error("Error in line number: " +
+                 std::to_string(vd.decl->var_name->lineNo) + " .The constant variable " +
                  std::get<idNodeType>(vd.decl->var_name->un).id + " has no value assigned to it\n");
             }
         }
 
-      return Result::Success("success");
+      return Result::Success(declType);
     }
 
     Result operator()(idNodeType& identifier)
@@ -141,12 +148,14 @@ struct semantic_analysis_visitor {
         /* Check that the identifier is declared */
         if (sym2.find(identifier.id) != sym2.end()) {
             /* Check that the identifier type is valid */
-            EXISTING_TYPE(sym2[identifier.id].type);
+            EXISTING_TYPE(sym2[identifier.id].type, identifier.lineNo);
 
             return Result::Success(sym2[identifier.id].type);
         }
         else {
-            return Result::Error("Error: Identifier " + identifier.id + " is not declared\n");
+            return Result::Error("Error in line number: " + 
+            std::to_string(identifier.lineNo) + " .Identifier "
+            + identifier.id + " is not declared\n");
         }
     }
 
@@ -159,7 +168,6 @@ struct semantic_analysis_visitor {
     Result operator()(functionNodeType& fn) { return Result::Success("success"); }
 
     Result operator()(doWhileNodeType& dw) {
-  
 
       auto condition= semantic_analysis(dw.condition) ;
       auto loop= semantic_analysis( dw.loop_body);  
@@ -169,7 +177,9 @@ struct semantic_analysis_visitor {
         if(conditionType=="bool")
           return Result::Success(conditionType); 
         else
-          return Result::Error("The condition in do while loop is not a boolean");
+          return Result::Error("Error in line number: " +
+            std::to_string(dw.condition->lineNo) +
+            " .The condition in do while loop is not a boolean");
       }
       else {
         if (!condition.isSuccess())
@@ -188,7 +198,9 @@ struct semantic_analysis_visitor {
         if(conditionType=="bool")
           return Result::Success(conditionType); 
         else
-          return Result::Error("The condition in a while loop is not a boolean");
+          return Result::Error("Error in line number: " +
+            std::to_string(w.condition->lineNo) +
+            " .The condition in do while loop is not a boolean");
       }
       else {
         if (!condition.isSuccess())
@@ -233,11 +245,11 @@ struct semantic_analysis_visitor {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           /* Check that the left identifier is not a constant */
-          NOT_CONST(opr.op[0]); 
+          NOT_CONST(opr.op[0], opr.op[0]->lineNo); 
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
-          LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+          LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
           return Result::Success(leftType);
         }
         break;
@@ -249,12 +261,14 @@ struct semantic_analysis_visitor {
 
         case PP: case MM: {
           /* Check that the left identifier is not a constant */
-          NOT_CONST(opr.op[0]); 
+          NOT_CONST(opr.op[0], opr.op[0]->lineNo); 
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           LEFT_TYPE(left);
           if (leftType != "int" && leftType != "float") {
-                return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
+                return Result::Error("Error in line number: " +
+                std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " +
+                leftType + " is not a valid type for a mathematical operation\n");
           }
         }
       break;
@@ -264,13 +278,17 @@ struct semantic_analysis_visitor {
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
-        LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
         /* Check that the left and right are bool */
         if (leftType != "bool" ) {
-          return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a logical operation\n");
+          return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " 
+          + leftType + " is not a valid type for a logical operation\n");
         }
         if (rightType != "bool" ) {
-          return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a logical operation\n");
+          return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The RHS identifier type: " 
+          + rightType + " is not a valid type for a logical operation\n");
         }
         return Result::Success(leftType);
         }
@@ -282,19 +300,24 @@ struct semantic_analysis_visitor {
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
-        LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
         /* Check that the left and right are either both integers or both float */
         if (leftType != "int" && leftType != "float") {
-          return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
+          return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " 
+          + leftType + " is not a valid type for a mathematical operation\n");
         }
         if (rightType != "int" && rightType != "float") {
-          return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
+          return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The RHS identifier type: " 
+          + rightType + " is not a valid type for a mathematical operation\n");
         }
         if (opr.oper== '%')
         {
           if (leftType != "int" || rightType != "int") {
-            return Result::Error("Error: The LHS and RHS must be integers in module operation \n");
-                
+            return Result::Error("Error in line number: " + 
+            std::to_string(opr.op[0]->lineNo) +
+            " .The LHS and RHS must be integers in module operation \n");
           }
         }
         return Result::Success(leftType);
@@ -307,13 +330,17 @@ struct semantic_analysis_visitor {
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
-          LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+          LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
           /* Check that the left and right are either both integers or both float */
           if (leftType != "int" && leftType != "float") {
-            return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
+            return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " 
+          + leftType + " is not a valid type for a mathematical operation\n");
           }
           if (rightType != "int" && rightType != "float") {
-            return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
+            return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The RHS identifier type: " 
+          + rightType + " is not a valid type for a mathematical operation\n");
           }
             return Result::Success("bool");
         }
@@ -324,7 +351,7 @@ struct semantic_analysis_visitor {
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
-        LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType 
+        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType 
         return Result::Success("bool");
       }
       break;
@@ -336,10 +363,14 @@ struct semantic_analysis_visitor {
         LEFT_TYPE(left);
         RIGHT_TYPE(right);
         if (leftType != "int" ) {
-          return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a bitwise operation\n");
+          return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " 
+          + leftType + " is not a valid type for a bitwise operation\n");
         }
         if (rightType != "int" ) {
-          return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a bitwise operation\n");
+          return Result::Error("Error in line number: " +
+          std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " 
+          + rightType + " is not a valid type for a bitwise operation\n");
         }
 
         return Result::Success(leftType);
@@ -361,7 +392,9 @@ struct semantic_analysis_visitor {
               if(conditionType=="bool")
                 return Result::Success(conditionType);
               else
-              return Result::Error("Condition in an if statement is not boolean");
+              return Result::Error("Error in line number: " +
+              std::to_string(opr.op[0]->lineNo) +
+              " .Condition in an if statement is not boolean");
             } else{
                 return condition;
               }

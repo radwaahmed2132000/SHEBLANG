@@ -19,6 +19,7 @@ using conNodeType = Value;
 /* identifiers */
 typedef struct {
     std::string id;                 /* key/index to sym array */
+    int lineNo;
 } idNodeType;
 
 /* operators */

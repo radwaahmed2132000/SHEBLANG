@@ -347,7 +347,7 @@ nodeType *con(char* sValue) { return CON_INIT(p, std::string(sValue)); }
 
 // Create an identifier node.
 nodeType *id(const char* id) {
-    return new nodeType(idNodeType{std::string(id)}, yylineno);
+    return new nodeType(idNodeType{std::string(id), yylineno}, yylineno);
 }
 
 // Create an operator node with a variable number of inputs (usually 2)

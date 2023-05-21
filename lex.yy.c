@@ -162,8 +162,27 @@ extern FILE *yyin, *yyout;
 #define EOB_ACT_END_OF_FILE 1
 #define EOB_ACT_LAST_MATCH 2
     
-    #define YY_LESS_LINENO(n)
-    #define YY_LINENO_REWIND_TO(ptr)
+    /* Note: We specifically omit the test for yy_rule_can_match_eol because it requires
+     *       access to the local variable yy_act. Since yyless() is a macro, it would break
+     *       existing scanners that call yyless() from OUTSIDE yylex.
+     *       One obvious solution it to make yy_act a global. I tried that, and saw
+     *       a 5% performance hit in a non-yylineno scanner, because yy_act is
+     *       normally declared as a register variable-- so it is not worth it.
+     */
+    #define  YY_LESS_LINENO(n) \
+            do { \
+                int yyl;\
+                for ( yyl = n; yyl < yyleng; ++yyl )\
+                    if ( yytext[yyl] == '\n' )\
+                        --yylineno;\
+            }while(0)
+    #define YY_LINENO_REWIND_TO(dst) \
+            do {\
+                const char *p;\
+                for ( p = yy_cp-1; p >= (dst); --p)\
+                    if ( *p == '\n' )\
+                        --yylineno;\
+            }while(0)
     
 /* Return all but the first "n" matched characters back to the input stream. */
 #define yyless(n) \
@@ -535,6 +554,13 @@ static const flex_int16_t yy_chk[297] =
 
     } ;
 
+/* Table of booleans, true if rule could match eol. */
+static const flex_int32_t yy_rule_can_match_eol[49] =
+    {   0,
+1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 1, 0, 0,     };
+
 static yy_state_type yy_last_accepting_state;
 static char *yy_last_accepting_cpos;
 
@@ -558,8 +584,8 @@ char *yytext;
 #include "y.tab.h"
 void yyerror(char *);
 nodeType *id(const char* id);
-#line 562 "lex.yy.c"
-#line 563 "lex.yy.c"
+#line 588 "lex.yy.c"
+#line 589 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -779,7 +805,7 @@ YY_DECL
 #line 11 "cl.l"
 
 
-#line 783 "lex.yy.c"
+#line 809 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -825,6 +851,16 @@ yy_find_action:
 
 		YY_DO_BEFORE_ACTION;
 
+		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
+			{
+			int yyl;
+			for ( yyl = 0; yyl < yyleng; ++yyl )
+				if ( yytext[yyl] == '\n' )
+					
+    yylineno++;
+;
+			}
+
 do_action:	/* This label is used only to access EOF actions. */
 
 		switch ( yy_act )
@@ -841,6 +877,7 @@ case 1:
 YY_RULE_SETUP
 #line 13 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.cValue = std::string(yytext)[1];
                 return CHARACTER;
             }
@@ -848,7 +885,7 @@ YY_RULE_SETUP
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 18 "cl.l"
+#line 19 "cl.l"
 {
                 yyerror("Cannot use single quotes for strings. Instead use \"\"");
             }
@@ -856,8 +893,9 @@ YY_RULE_SETUP
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 22 "cl.l"
+#line 23 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 std::string temp = std::string(yytext);
                 temp = temp.substr(1,temp.size()-2);
                 yylval.sValue = new char[temp.length()];
@@ -867,233 +905,241 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 30 "cl.l"
+#line 32 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
             }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 35 "cl.l"
+#line 38 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
             }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 40 "cl.l"
+#line 44 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.fValue = atof(yytext);
                 return REAL;
             }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 45 "cl.l"
+#line 50 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.fValue = atof(yytext);
                 return REAL;
             }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 50 "cl.l"
+#line 56 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 return *yytext;
              }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 54 "cl.l"
+#line 61 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.bValue = true;
                 return BOOLEAN;
             }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 59 "cl.l"
+#line 67 "cl.l"
 {
+                yylval.lineNo = yylineno;
                 yylval.bValue = false;
                 return BOOLEAN;
             }        
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 64 "cl.l"
+#line 73 "cl.l"
 return PP;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 65 "cl.l"
+#line 74 "cl.l"
 return MM;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 66 "cl.l"
+#line 75 "cl.l"
 return AND;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 67 "cl.l"
+#line 76 "cl.l"
 return OR;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 68 "cl.l"
+#line 77 "cl.l"
 return LS;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 69 "cl.l"
+#line 78 "cl.l"
 return RS;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 70 "cl.l"
+#line 79 "cl.l"
 return GE;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 71 "cl.l"
+#line 80 "cl.l"
 return LE;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 72 "cl.l"
+#line 81 "cl.l"
 return EQ;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 73 "cl.l"
+#line 82 "cl.l"
 return NE;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 74 "cl.l"
+#line 83 "cl.l"
 return PA;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 75 "cl.l"
+#line 84 "cl.l"
 return SA;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 76 "cl.l"
+#line 85 "cl.l"
 return MA;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 77 "cl.l"
+#line 86 "cl.l"
 return DA;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 78 "cl.l"
+#line 87 "cl.l"
 return RA;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 79 "cl.l"
+#line 88 "cl.l"
 return LSA;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 80 "cl.l"
+#line 89 "cl.l"
 return RSA;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 81 "cl.l"
+#line 90 "cl.l"
 return ANDA;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 82 "cl.l"
+#line 91 "cl.l"
 return EORA;
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 83 "cl.l"
+#line 92 "cl.l"
 return IORA;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 84 "cl.l"
+#line 93 "cl.l"
 return CONST;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 85 "cl.l"
+#line 94 "cl.l"
 return WHILE;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 86 "cl.l"
+#line 95 "cl.l"
 return DO;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 87 "cl.l"
+#line 96 "cl.l"
 return IF;
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 88 "cl.l"
+#line 97 "cl.l"
 return ELSE;
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 89 "cl.l"
+#line 98 "cl.l"
 return PRINT;
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 90 "cl.l"
+#line 99 "cl.l"
 return FOR;
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 91 "cl.l"
+#line 100 "cl.l"
 return SWITCH;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 92 "cl.l"
+#line 101 "cl.l"
 return CASE;
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 93 "cl.l"
+#line 102 "cl.l"
 return DEFAULT;
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 94 "cl.l"
+#line 103 "cl.l"
 return BREAK;
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 95 "cl.l"
+#line 104 "cl.l"
 return ENUM;
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 96 "cl.l"
+#line 105 "cl.l"
 return FN;
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 97 "cl.l"
+#line 106 "cl.l"
 return RETURN;
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 99 "cl.l"
+#line 108 "cl.l"
 { 
+                yylval.lineNo = yylineno;
                 yylval.nPtr = id(yytext);
                 return IDENTIFIER;
             }
@@ -1101,20 +1147,20 @@ YY_RULE_SETUP
 case 46:
 /* rule 46 can match eol */
 YY_RULE_SETUP
-#line 104 "cl.l"
+#line 114 "cl.l"
 ;       /* ignore whitespace */
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 106 "cl.l"
+#line 116 "cl.l"
 yyerror("Unknown character");
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 107 "cl.l"
+#line 117 "cl.l"
 ECHO;
 	YY_BREAK
-#line 1118 "lex.yy.c"
+#line 1164 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1482,6 +1528,10 @@ static int yy_get_next_buffer (void)
 
 	*--yy_cp = (char) c;
 
+    if ( c == '\n' ){
+        --yylineno;
+    }
+
 	(yytext_ptr) = yy_bp;
 	(yy_hold_char) = *yy_cp;
 	(yy_c_buf_p) = yy_cp;
@@ -1558,6 +1608,11 @@ static int yy_get_next_buffer (void)
 	c = *(unsigned char *) (yy_c_buf_p);	/* cast for 8-bit char's */
 	*(yy_c_buf_p) = '\0';	/* preserve yytext */
 	(yy_hold_char) = *++(yy_c_buf_p);
+
+	if ( c == '\n' )
+		
+    yylineno++;
+;
 
 	return c;
 }
@@ -2025,6 +2080,9 @@ static int yy_init_globals (void)
      * This function is called from yylex_destroy(), so don't allocate here.
      */
 
+    /* We do not touch yylineno unless the option is enabled. */
+    yylineno =  1;
+    
     (yy_buffer_stack) = NULL;
     (yy_buffer_stack_top) = 0;
     (yy_buffer_stack_max) = 0;
@@ -2119,7 +2177,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 107 "cl.l"
+#line 117 "cl.l"
 
 int yywrap(void) {
     return 1;
