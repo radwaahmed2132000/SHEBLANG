@@ -121,8 +121,7 @@ var_defn:
         var_decl '=' expr ';'        { 
             VarDecl vd = std::get<VarDecl>($1->un);
             $$ = opr('=', 2, vd.var_name, $3); 
-        }
-        ;
+        };
 
 stmt:
           ';'                                     { $$ = opr(';', 0); }

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <optional>
+#include <unordered_set>
 
 #include "cl.h"
 #include "y.tab.h"
@@ -60,13 +61,35 @@ struct semantic_analysis_visitor {
             TODO: Disallow redeclaration of variables within the same scope 
             
             TODO: Don't allow the declaration of a variable with the same name as a function
-
-            ! Ask Tarek about this when he wakes up.
-
-            TODO: Check that the variable even has a type
-
-            TODO: Check that the type of the variable is valid
         */
+       
+        /* Check that the type of the variable is valid */
+        auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
+        auto& entry = sym2[nameStr];
+
+        static std::unordered_set<std::string> builtinTypes = {"float", "int"};
+        if (builtinTypes.find(entry.type) == builtinTypes.end()) {
+            return Result::Error("Error: The type of the variable " + nameStr + " is not valid\n");
+        }
+
+        /* Check that the initial expression is valid if it exits */
+        if (entry.initExpr != nullptr) {
+            Result init = std::visit(semantic_analysis_visitor(), entry.initExpr->un);
+            if (!init.isSuccess()) {
+                return init;
+            }
+            /* Check that the left & right types are matching */
+            if (entry.type != std::get<SuccessType>(init)) {
+                return Result::Error("Error: The LHS identifier type: " + entry.type + " doesn't match the RHS Expression type" + entry.initExpr->type + "\n");
+            }
+        } else {
+            /* The initialization expression doesn't exist*/
+            if (entry.isConstant) {
+                return Result::Error("Error: The constant variable " + nameStr + " has no value assigned to it\n");
+            }
+        }
+
+       return Result::Success(entry.type);
     }
 
     Result operator()(idNodeType& identifier)
@@ -139,26 +162,24 @@ struct semantic_analysis_visitor {
             /*  Check that the two expressions on the left & on the right are of the same type */
             LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
             /* Check that the left and right are either both integers or both float */
-          
+            
             if (leftType != "int" && leftType != "float") {
                 return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
             }
             if (rightType != "int" && rightType != "float") {
                 return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
             }
-            if (opr.oper== RA)
-            {
+            if (opr.oper== RA) {
               if (leftType != "int" || rightType != "int") {
                 return Result::Error("Error: The LHS and RHS must be integers in mod  operation \n");
-            }
+                }  
             }
 
             return Result::Success(leftType);
         }
         break;
 
-        case PP: case MM:
-        {
+        case PP: case MM: {
           /* Check that the left identifier is not a constant */
           NOT_CONST(opr.op[0]); 
           /* Check that the left expression is valid (identifier is declared) */
@@ -169,8 +190,8 @@ struct semantic_analysis_visitor {
                 return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
             }
         }
-       break;
-      case AND : case OR :   {
+        break;
+        case AND : case OR :   {
             /* Check that the left expression is valid (identifier is declared) */
             LEFT_VALID(opr.op[0]); // * gives left
             /* Check that the right expression is semantically valid */
@@ -186,9 +207,9 @@ struct semantic_analysis_visitor {
             }
             return Result::Success(leftType);
         }
-      break;
+        break;
         
-      case '+': case '-': case '*': case '/': case '%':  {
+        case '+': case '-': case '*': case '/': case '%':  {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           /* Check that the right expression is semantically valid */
@@ -210,8 +231,8 @@ struct semantic_analysis_visitor {
           }
           return Result::Success(leftType);
       }
-      break;
-      case GE: case LE:  {
+        break;
+        case GE: case LE:  {
             /* Check that the left expression is valid (identifier is declared) */
             LEFT_VALID(opr.op[0]); // * gives left
           
@@ -228,8 +249,8 @@ struct semantic_analysis_visitor {
             }
             return Result::Success(leftType);
         }
-      break;
-      case EQ: case NE:  {
+        break;
+        case EQ: case NE:  {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           /* Check that the right expression is semantically valid */
@@ -238,8 +259,8 @@ struct semantic_analysis_visitor {
           LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType 
           return Result::Success(leftType);
       }
-      break;  
-      default:
+        break;  
+        default:
             return Result::Success("success"); 
             break;
       }

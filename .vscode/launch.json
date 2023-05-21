@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/function_call_multiple_parameters.shbl", null, null]
+            "stdio": ["testcases/invalid_oper_const.shbl", null, null]
         },
         {
             "name": "Launch Compiler",
@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_compiler",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/assign_basic.shbl", null, null]
+            "stdio": ["testcases/invalid_oper_const.shbl", null, null]
         },
         {
             "name": "Python: Current File",
