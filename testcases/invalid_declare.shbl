@@ -1,2 +1,4 @@
 float x=5.5;
 int x=10;
+===
+Error: The variable x is already declared

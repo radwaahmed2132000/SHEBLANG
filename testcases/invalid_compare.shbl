@@ -2,5 +2,7 @@ int x=5;
 char z='5';
 if(x==z)
 {
-    print "equals"
+    print "equals";
 }
+===
+Error: The LHS identifier type: int doesn't match the RHS Expression type: char

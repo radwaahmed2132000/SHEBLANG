@@ -78,29 +78,58 @@ struct semantic_analysis_visitor {
         */
        
         /* Check that the type of the variable is valid */
+        auto type = std::get<idNodeType>(vd.type->un).id;
+        EXISTING_TYPE(type);
+        
+        /* Check if the variable is already declared */
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
         auto& entry = sym2[nameStr];
 
-        EXISTING_TYPE(entry.type);
+        if (entry.type != "") {
+            return Result::Error("Error: The variable " +
+             nameStr + " is already declared\n");
+        }
 
-        /* Check that the initial expression is valid if it exits */
-        if (entry.initExpr != nullptr) {
-          Result init = semantic_analysis(entry.initExpr);
+        /* Add the variable name & type as a new entry in the symbol table */
+        entry.type = type;
+        entry.isConstant = false;
+        entry.initExpr = nullptr;
+        sym2[nameStr] = entry;
+
+       return Result::Success(entry.type);
+    }
+
+    Result operator()(VarDefn& vd) {
+
+      /* Check if the variable is declared */
+      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name));
+      Result decl = semantic_analysis(nt); 
+      if (!decl.isSuccess()) {
+          return decl;
+      }
+      std::string declType = std::get<SuccessType>(decl);
+
+      /* Check that the initial expression is valid if it exits */
+        if (vd.initExpr != nullptr) {
+          Result init = semantic_analysis(vd.initExpr);
           if (!init.isSuccess()) {
               return init;
           }
           /* Check that the left & right types are matching */
-          if (entry.type != std::get<SuccessType>(init)) {
-              return Result::Error("Error: The LHS identifier type: " + entry.type + " doesn't match the RHS Expression type: " + std::get<SuccessType>(init) + "\n");
+          if (declType != std::get<SuccessType>(init)) {
+              return Result::Error("Error: The LHS identifier type: " + declType
+               + " doesn't match the RHS Expression type: "
+                + std::get<SuccessType>(init) + "\n");
           }
         } else {
             /* The initialization expression doesn't exist*/
-            if (entry.isConstant) {
-                return Result::Error("Error: The constant variable " + nameStr + " has no value assigned to it\n");
+            if (vd.isConstant) {
+                return Result::Error("Error: The constant variable " +
+                 std::get<idNodeType>(vd.decl->var_name->un).id + " has no value assigned to it\n");
             }
         }
 
-       return Result::Success(entry.type);
+      return Result::Success("success");
     }
 
     Result operator()(idNodeType& identifier)
@@ -119,8 +148,6 @@ struct semantic_analysis_visitor {
         else {
             return Result::Error("Error: Identifier " + identifier.id + " is not declared\n");
         }
-
-        
     }
 
     Result operator()(caseNodeType& identifier) { return Result::Success("success"); }
@@ -131,7 +158,7 @@ struct semantic_analysis_visitor {
 
     Result operator()(functionNodeType& fn) { return Result::Success("success"); }
 
-    Result operator()(doWhileNodeType& dw) { 
+    Result operator()(doWhileNodeType& dw) {
   
 
       auto condition= semantic_analysis(dw.condition) ;

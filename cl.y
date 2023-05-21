@@ -35,23 +35,19 @@ Value ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
-float sym[26];                    /* symbol table */
+float sym[26];                     /* symbol table */
 std::unordered_map<std::string, SymbolTableEntry> sym2;
 
 nodeType* varDecl(nodeType* type, nodeType* name) {
     auto nameStr = std::get<idNodeType>(name->un).id;
     auto typeStr = std::get<idNodeType>(type->un).id;
-    sym2[nameStr] = SymbolTableEntry(false, typeStr);
 
     return new nodeType(VarDecl(type, name));
 }
 
-nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr) {
-    auto nameStr = std::get<idNodeType>(name->un).id;
-    auto typeStr = std::get<idNodeType>(type->un).id;
-    sym2[nameStr] = SymbolTableEntry(initExpr, true, typeStr);
-
-    return new nodeType(VarDecl(type, name));
+nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
+    auto* declPtr = std::get_if<VarDecl>(&decl->un);
+    return new nodeType(VarDefn(declPtr, initExpr, isConstant));
 }
 
 %}
@@ -113,16 +109,12 @@ program:
         ;
 
 var_decl:
-        // TODO: Use $1 for semantic analysis.
-        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); 
-        /*std::cout << yylineno << std::endl;*/
-         }
+        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); }
         ;
 
 var_defn:
         var_decl '=' expr ';'        { 
-            VarDecl vd = std::get<VarDecl>($1->un);
-            $$ = opr('=', 2, vd.var_name, $3); 
+            $$ = varDefn($1, $3, false); 
         };
 
 stmt:
@@ -148,8 +140,8 @@ stmt:
         | '{' stmt_list '}'                       { $$ = $2; }
         | var_decl ';'                            
         | var_defn                                { $$ = $1; }
-        | CONST IDENTIFIER IDENTIFIER '=' expr ';' { 
-            $$ = constVarDefn($2, $3, $5);
+        | CONST var_decl '=' expr ';' { 
+            $$ = varDefn($2, $4, true);
         }
         
         | enum_decl                               

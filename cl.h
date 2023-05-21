@@ -72,10 +72,18 @@ typedef struct VarDecl {
 	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
 } VarDecl;
 
+typedef struct VarDefn {
+	VarDecl* decl;
+    bool isConstant;
+    struct nodeType* initExpr = nullptr;
+
+	VarDefn(VarDecl* decl, nodeType* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
+} VarDefn;
+
 #define NODE_TYPES \
     conNodeType, idNodeType, oprNodeType, switchNodeType, \
     caseNodeType, breakNodeType, functionNodeType, whileNodeType, \
-    forNodeType, doWhileNodeType, VarDecl
+    forNodeType, doWhileNodeType, VarDecl, VarDefn
 
 typedef struct nodeType {
     std::variant<NODE_TYPES> un;
@@ -86,7 +94,7 @@ typedef struct nodeType {
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
-    std::string type;  
+    std::string type = "";  
     nodeType* initExpr = nullptr;
 
     SymbolTableEntry() = default;
