@@ -155,14 +155,14 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 40 "cl.y"
+#line 39 "cl.y"
 
     int iValue;                 /* integer value */
     float fValue;               /* double value */
     bool bValue;                /* boolean value */
     char cValue;                /* char value */
     char* sValue;               /* string value */
-    char* id;                   /* identifier name */
+    char* idName;               /* identifier name */
     nodeType *nPtr;             /* node pointer */
 
 #line 169 "y.tab.h"

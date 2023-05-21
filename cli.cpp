@@ -94,11 +94,30 @@ struct ex_visitor {
 
     Value operator()(idNodeType& identifier) {
         // if(m.find(key) == m.end())
-        if(sym.find(identifier.id) == sym.end())
+        std::string key = identifier.id;
+        if(sym.find(key) == sym.end())
         {
-            std::string temp = "Undeclared variable "+identifier.id+" !!!\n";
-            printf("%s",temp.c_str());
-            return Value(0);
+            if(identifier.isDeclared)
+            {
+                std::string temp = "Declaring a new variable "+key+" !!!\n";
+                // printf("%s",temp.c_str());
+                sym[key] = entry();
+                sym[key].type = identifier.type;
+
+                /* All unitialized variables to the following: */
+                sym[key].value = Value(0);
+                if(sym[key].type == INT_TYPE)
+                    sym[key].value = Value(0);
+                // else if(sym[key].type == FLOAT_TYPE)
+                //     sym[key].value = Value(0.0);
+                else if(sym[key].type == BOOL_TYPE)
+                    sym[key].value = Value(false);
+                else if(sym[key].type == CHAR_TYPE)
+                    sym[key].value = Value(' ');
+                else if(sym[key].type == STR_TYPE)
+                    sym[key].value = Value(" ");
+                sym[key].isConst = identifier.isConst;
+            }
         }
         return sym[identifier.id].value;
     }
@@ -217,16 +236,32 @@ struct ex_visitor {
             case '=':       
             {
                 std::string key = std::get<idNodeType>(opr.op[0]->un).id;
+                bool isBeingDeclared = std::get<idNodeType>(opr.op[0]->un).isDeclared;
+                DATA_TYPES type = std::get<idNodeType>(opr.op[0]->un).type;
+                bool isConst = std::get<idNodeType>(opr.op[0]->un).isConst;
                 Value val = ex(opr.op[1]);
-                if(sym.find(key) != sym.end())
+                
+                if(sym.find(key) == sym.end() && isBeingDeclared)
                 {
-                    std::string temp = "Assigning new variable "+key+" with new value !!!\n";
-                    printf("%s",temp.c_str());
-                    return sym[key].value = val;
+                    std::string temp = "Declaring a new variable "+key+" with intialization !!!\n";
+                    // printf("%s",temp.c_str());
+                    sym[key] = entry();
+                    sym[key].type = type;
+                    sym[key].value = val;
+                    sym[key].isConst = isConst;
+
+                    return sym[key].value;
+                }
+                else if(sym.find(key) != sym.end())
+                {
+                    std::string temp = "Assigning a new value to "+key+" !!!\n";
+                    // printf("%s",temp.c_str());
+                    sym[key].value = val;
+                    return sym[key].value;
                 }
                 std::string temp = "Trying to assign to an undeclared variable "+key+" !!!\n";
-                printf("%s",temp.c_str());
-                return Value(0);
+                // printf("%s",temp.c_str());
+                return Value(0); /* Change this value as you see fit to use it in case of undeclared identifier */
             }
 
             BOP_CASE('+',+)

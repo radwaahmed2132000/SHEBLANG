@@ -96,8 +96,8 @@ nodeTypeTag *id(const char* id);
                 /*yylval.nPtr = id(yytext);*/
 
                 std::string temp = std::string(yytext);
-                yylval.id = new char[temp.length()];
-                strcpy(yylval.id, temp.c_str());
+                yylval.idName = new char[temp.length()];
+                strcpy(yylval.idName, temp.c_str());
 
                 return IDENTIFIER;
             }

@@ -11,7 +11,7 @@
 
 #include "value.h"
 
-enum DATA_TYPES { INT_TYPE, FLOAT_TYPE, BOOL_TYPE, CHAR_TYPE, STR_TYPE };
+enum DATA_TYPES { NONE_TYPE, INT_TYPE, FLOAT_TYPE, BOOL_TYPE, CHAR_TYPE, STR_TYPE };
 
 /* constants */
 // Operators needed: +, -, *, /, %, &, |, ^, &&, ||, !
@@ -20,8 +20,8 @@ using conNodeType = Value;
 /* identifiers */
 typedef struct {
     std::string id;             /* key/index to sym array */
-    bool isDeclared;            /* Indicates whether it's being declared */
     bool isConst;               /* Whether it's a constant or not */
+    bool isDeclared;            /* Indicates whether it's being declared */
     DATA_TYPES type;            /* Type of Data */
 } idNodeType;
 
