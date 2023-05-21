@@ -1,0 +1,5 @@
+int x=5;
+int y=3;
+print x+y+z;
+===
+Error: Identifier z is not declared

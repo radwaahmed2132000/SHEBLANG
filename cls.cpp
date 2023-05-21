@@ -282,6 +282,13 @@ struct semantic_analysis_visitor {
         return Result::Success(leftType);
       }
       break;  
+      
+      case PRINT: {
+        /* Check that the right expression is valid */
+        RIGHT_VALID(opr.op[0]); // * gives right
+        return right;
+      }
+
       default:
           return Result::Success("success"); 
           break;
