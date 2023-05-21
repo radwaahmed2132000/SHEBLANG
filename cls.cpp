@@ -7,6 +7,34 @@
 #include "y.tab.h"
 #include "result.h"
 
+#define LEFT_VALID(oper) \
+    Result left = std::visit(semantic_analysis_visitor(), oper->un); \
+    if (!left.isSuccess()) { \
+        return left; \
+    } \
+
+#define RIGHT_VALID(oper) \
+    Result right = std::visit(semantic_analysis_visitor(), oper->un); \
+    if (!right.isSuccess()) { \
+        return right; \
+    } \
+
+#define NOT_CONST(oper) \
+    auto lhsName = std::get<idNodeType>(oper->un).id; \
+    auto& lEntry = sym2[lhsName]; \
+    if(lEntry.isConstant) { \
+        return Result::Error("Error: The left identifier is a constant\n"); \
+    } \
+
+#define LEFT_SAME_TYPE_AS_RIGHT(left, right) \
+    auto leftType = std::get<SuccessType>(left); \
+    auto rightType = std::get<SuccessType>(right); \
+    if (leftType != rightType) { \
+        return Result::Error("Error: The LHS identifier type: " + \
+                 std::get<SuccessType>(left) + " doesn't match the RHS Expression type" \
+                 + std::get<SuccessType>(right) + "\n"); \
+    } \
+
 struct semantic_analysis_visitor {
     
     Result operator()(conNodeType& con) { 
@@ -26,6 +54,14 @@ struct semantic_analysis_visitor {
     Result operator()(VarDecl& vd) { 
         /*
             TODO: Disallow redeclaration of variables within the same scope 
+            
+            TODO: Don't allow the declaration of a variable with the same name as a function
+
+            ! Ask Tarek about this when he wakes up.
+
+            TODO: Check that the variable even has a type
+
+            TODO: Check that the type of the variable is valid
         */
     }
 
@@ -71,37 +107,44 @@ struct semantic_analysis_visitor {
         switch (opr.oper) {
 
         case '=': {
-            /* Check that the left identifier is declared */
-            Result left = std::visit(semantic_analysis_visitor(), opr.op[0]->un);
-            
-            if (!left.isSuccess()) {
-                return left;
-            }
-
+            /* Check that the left expression is valid (identifier is declared) */
+            LEFT_VALID(opr.op[0]); // * gives left
             /* Check that the left identifier is not a constant */
-            auto lhsName = std::get<idNodeType>(opr.op[0]->un).id;
-            auto& lEntry = sym2[lhsName];
-            if(lEntry.isConstant) {
-                return Result::Error("Error: The left identifier is a constant\n");
-            }
-
+            NOT_CONST(opr.op[0]); 
             /* Check that the right expression is semantically valid */
-            Result right = std::visit(semantic_analysis_visitor(), opr.op[1]->un);
-
-            if (!right.isSuccess()) {
-                return right;
-            }
-
+            RIGHT_VALID(opr.op[1]); // * gives right
             /*  Check that the two expressions on the left & on the right are of the same type */
-            if (std::get<SuccessType>(left) == std::get<SuccessType>(right)) {
-                return left;
-            }
-            else {
-                return Result::Error("Error: The LHS identifier type: " +
-                 std::get<SuccessType>(left) + " doesn't match the RHS Expression type"
-                 + std::get<SuccessType>(right) + "\n");
-            }  
+            LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+
+            return Result::Success(leftType);
         }
+        break;
+
+        /* Mathematical Operators */
+        /*
+            TODO: Alow float & int interoperability  
+        */
+
+        case PA: case SA: case MA: case DA: {
+            /* Check that the left expression is valid (identifier is declared) */
+            LEFT_VALID(opr.op[0]); // * gives left
+            /* Check that the left identifier is not a constant */
+            NOT_CONST(opr.op[0]); 
+            /* Check that the right expression is semantically valid */
+            RIGHT_VALID(opr.op[1]); // * gives right
+            /*  Check that the two expressions on the left & on the right are of the same type */
+            LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+            /* Check that the left and right are either both integers or both float */
+            if (leftType != "int" && leftType != "float") {
+                return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
+            }
+            if (rightType != "int" && rightType != "float") {
+                return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
+            }
+
+            return Result::Success(leftType);
+        }
+
         break;
         
         default:
