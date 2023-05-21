@@ -313,14 +313,31 @@ struct semantic_analysis_visitor {
       }
       break;
 
-      break;  
       
       case PRINT: {
         /* Check that the right expression is valid */
         RIGHT_VALID(opr.op[0]); // * gives right
         return right;
       }
+      break;  
+      case IF :
+          {
 
+           Result first = semantic_analysis(opr.op[0]);
+           
+            if (first.isSuccess() ) {
+              auto firstType =std::get<SuccessType>(first);
+              if(firstType=="bool")
+                return Result::Success("success");
+              else
+              return Result::Error("Failed If condition ");
+            }
+              else{
+                return Result::Error("Failed If condition ");
+              }
+
+          }
+      break;
       default:
           return Result::Success("success"); 
           break;
