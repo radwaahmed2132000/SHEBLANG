@@ -85,14 +85,14 @@ struct semantic_analysis_visitor {
 
         /* Check that the initial expression is valid if it exits */
         if (entry.initExpr != nullptr) {
-            Result init = semantic_analysis(entry.initExpr);
-            if (!init.isSuccess()) {
-                return init;
-            }
-            /* Check that the left & right types are matching */
-            if (entry.type != std::get<SuccessType>(init)) {
-                return Result::Error("Error: The LHS identifier type: " + entry.type + " doesn't match the RHS Expression type: " + std::get<SuccessType>(init) + "\n");
-            }
+          Result init = semantic_analysis(entry.initExpr);
+          if (!init.isSuccess()) {
+              return init;
+          }
+          /* Check that the left & right types are matching */
+          if (entry.type != std::get<SuccessType>(init)) {
+              return Result::Error("Error: The LHS identifier type: " + entry.type + " doesn't match the RHS Expression type: " + std::get<SuccessType>(init) + "\n");
+          }
         } else {
             /* The initialization expression doesn't exist*/
             if (entry.isConstant) {
@@ -252,7 +252,7 @@ struct semantic_analysis_visitor {
           if (rightType != "int" && rightType != "float") {
             return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
           }
-            return Result::Success(leftType);
+            return Result::Success("bool");
         }
       break;
       case EQ: case NE:  {

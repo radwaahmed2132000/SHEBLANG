@@ -1,0 +1,5 @@
+int x;
+x = 3;
+print x > 3 || 4;
+===
+Error: The LHS identifier type: bool doesn't match the RHS Expression type: int

@@ -87,7 +87,7 @@ typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
     std::string type;  
-    nodeType* initExpr;
+    nodeType* initExpr = nullptr;
 
     SymbolTableEntry() = default;
 
