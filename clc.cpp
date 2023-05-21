@@ -127,7 +127,7 @@ float ex(nodeType *p) {
         case typeId: {
              auto identifierNode = std::get<idNodeType>(p->un);
              printf("\tpush\t%s\n", identifierNode.id.c_str()); 
-             return /* sym2[identifierNode.id]; */ 0;
+             return /* sym[identifierNode.id]; */ 0;
         } break;
     case typeCase: {
         printf("Case list nodes should never be evaluated alone. Please evaluate self and next.");

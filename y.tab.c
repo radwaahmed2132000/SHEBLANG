@@ -87,20 +87,25 @@ nodeType *con(char* sValue);
 nodeType *sw(nodeType* var, nodeType* case_list_head);
 nodeType *cs(nodeType* self, nodeType* next);
 nodeType *br();
+
+nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body);
+nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
+nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
+
 void set_break_parent(nodeType* case_list, nodeType* parent_switch);
 
 nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements);
 nodeType* fn_call(nodeTypeTag* name);
 
 void freeNode(nodeType *p);
-std::string ex(nodeType *p);
+Value ex(nodeType *p);
+void declare_id(const char* id);
 int yylex(void);
 
-void yyerror(char *s);
-float sym[26];                    /* symbol table */
-std::unordered_map<std::string, std::pair<conTypeEnum,std::string>> sym2;
+void yyerror(char *s);                 
+std::unordered_map<std::string, Value> sym; /* symbol table */
 
-#line 104 "y.tab.c"
+#line 109 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -254,7 +259,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 35 "cl.y"
+#line 40 "cl.y"
 
     int iValue;                 /* integer value */
     float fValue;               /* double value */
@@ -263,7 +268,7 @@ union YYSTYPE
     char* sValue;               /* string value */
     nodeType *nPtr;             /* node pointer */
 
-#line 267 "y.tab.c"
+#line 272 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -643,15 +648,15 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    73,    73,    74,    79,    83,    87,    88,    89,    90,
-      91,    92,    93,    94,    95,    96,    97,    98,    99,   100,
-     101,   102,   103,   104,   108,   112,   113,   114,   118,   119,
-     123,   124,   128,   129,   130,   131,   132,   133,   134,   135,
-     136,   137,   138,   139,   140,   141,   142,   143,   144,   145,
-     146,   147,   148,   149,   150,   151,   152,   153,   154,   155,
-     156,   157,   158,   159,   160,   161,   162,   163,   164,   165,
-     166,   167,   168,   169,   170,   174,   181,   182,   183,   187,
-     194,   195,   196,   200,   201,   205,   206,   207,   210,   217
+       0,    78,    78,    79,    84,    88,    92,    93,    97,    98,
+      99,   100,   101,   102,   103,   107,   111,   112,   118,   119,
+     120,   121,   122,   123,   127,   131,   132,   133,   137,   138,
+     142,   143,   147,   148,   149,   150,   151,   152,   153,   154,
+     155,   156,   157,   158,   159,   160,   161,   162,   163,   164,
+     165,   166,   167,   168,   169,   170,   171,   172,   173,   174,
+     175,   176,   177,   178,   179,   180,   181,   182,   183,   184,
+     185,   186,   187,   188,   189,   193,   200,   201,   202,   206,
+     213,   214,   215,   219,   220,   224,   225,   226,   229,   237
 };
 #endif
 
@@ -1664,466 +1669,481 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 73 "cl.y"
-                  { ex((yyvsp[0].nPtr)); freeNode((yyvsp[0].nPtr)); exit(0); }
-#line 1670 "y.tab.c"
+#line 78 "cl.y"
+                  { semantic_analysis((yyvsp[0].nPtr)); ex((yyvsp[0].nPtr)); freeNode((yyvsp[0].nPtr)); exit(0); }
+#line 1675 "y.tab.c"
     break;
 
   case 4:
-#line 79 "cl.y"
+#line 84 "cl.y"
                                     { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 1676 "y.tab.c"
+#line 1681 "y.tab.c"
     break;
 
   case 5:
-#line 83 "cl.y"
+#line 88 "cl.y"
                                      { (yyval.nPtr) = opr('=', 2, (yyvsp[-3].nPtr), (yyvsp[-1].nPtr)); }
-#line 1682 "y.tab.c"
+#line 1687 "y.tab.c"
     break;
 
   case 6:
-#line 87 "cl.y"
+#line 92 "cl.y"
                                                   { (yyval.nPtr) = opr(';', 0); }
-#line 1688 "y.tab.c"
+#line 1693 "y.tab.c"
     break;
 
   case 7:
-#line 88 "cl.y"
-                                                  { (yyval.nPtr) = opr(FOR, 4, (yyvsp[-5].nPtr), (yyvsp[-4].nPtr), (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1694 "y.tab.c"
+#line 93 "cl.y"
+                                                  { 
+                (yyval.nPtr) = for_loop((yyvsp[-5].nPtr), (yyvsp[-4].nPtr), (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); 
+                set_break_parent((yyvsp[0].nPtr), (yyval.nPtr));
+        }
+#line 1702 "y.tab.c"
     break;
 
   case 8:
-#line 89 "cl.y"
+#line 97 "cl.y"
                                                   { (yyval.nPtr) = opr(IF, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1700 "y.tab.c"
+#line 1708 "y.tab.c"
     break;
 
   case 9:
-#line 90 "cl.y"
+#line 98 "cl.y"
                                                   { (yyval.nPtr) = opr(IF, 3, (yyvsp[-4].nPtr), (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1706 "y.tab.c"
+#line 1714 "y.tab.c"
     break;
 
   case 10:
-#line 91 "cl.y"
+#line 99 "cl.y"
                                                   { (yyval.nPtr) = sw((yyvsp[-2].nPtr), (yyvsp[0].nPtr)); set_break_parent((yyvsp[0].nPtr), (yyval.nPtr)); }
-#line 1712 "y.tab.c"
+#line 1720 "y.tab.c"
     break;
 
   case 11:
-#line 92 "cl.y"
+#line 100 "cl.y"
                                                   { (yyval.nPtr) = (yyvsp[-1].nPtr); }
-#line 1718 "y.tab.c"
+#line 1726 "y.tab.c"
     break;
 
   case 12:
-#line 93 "cl.y"
+#line 101 "cl.y"
                                                   { (yyval.nPtr) = br(); }
-#line 1724 "y.tab.c"
+#line 1732 "y.tab.c"
     break;
 
   case 13:
-#line 94 "cl.y"
+#line 102 "cl.y"
                                                   { (yyval.nPtr) = opr(PRINT, 1, (yyvsp[-1].nPtr)); }
-#line 1730 "y.tab.c"
+#line 1738 "y.tab.c"
     break;
 
   case 14:
-#line 95 "cl.y"
-                                                  { (yyval.nPtr) = opr(WHILE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1736 "y.tab.c"
+#line 103 "cl.y"
+                                                  { 
+                (yyval.nPtr) = while_loop((yyvsp[-2].nPtr), (yyvsp[0].nPtr)); 
+                set_break_parent((yyvsp[0].nPtr), (yyval.nPtr));
+        }
+#line 1747 "y.tab.c"
     break;
 
   case 15:
-#line 96 "cl.y"
-                                                  { (yyval.nPtr) = opr(DO, 2, (yyvsp[-2].nPtr), (yyvsp[-5].nPtr)); }
-#line 1742 "y.tab.c"
+#line 107 "cl.y"
+                                                  { 
+                (yyval.nPtr) = do_while_loop((yyvsp[-2].nPtr), (yyvsp[-5].nPtr)); 
+                set_break_parent((yyvsp[-5].nPtr), (yyval.nPtr));
+        }
+#line 1756 "y.tab.c"
     break;
 
   case 16:
-#line 97 "cl.y"
-                                                  { (yyval.nPtr) = (yyvsp[-1].nPtr); }
-#line 1748 "y.tab.c"
+#line 111 "cl.y"
+                                                  { (yyval.nPtr) = (yyvsp[-1].nPtr); /* Start a new scope here */ }
+#line 1762 "y.tab.c"
     break;
 
   case 17:
-#line 98 "cl.y"
-                                                  { printf("Variable declaration parsed successfully\n"); }
-#line 1754 "y.tab.c"
+#line 112 "cl.y"
+                                                  { 
+            /* Handle declaration logic here */
+            auto id_name = std::get<idNodeType>((yyvsp[-1].nPtr)->un);
+            declare_id(id_name.id.c_str());
+            /*printf("Variable declaration parsed successfully\n"); */
+            }
+#line 1773 "y.tab.c"
     break;
 
   case 18:
-#line 99 "cl.y"
+#line 118 "cl.y"
                                                   { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 1760 "y.tab.c"
+#line 1779 "y.tab.c"
     break;
 
   case 19:
-#line 100 "cl.y"
+#line 119 "cl.y"
                                                   { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 1766 "y.tab.c"
+#line 1785 "y.tab.c"
     break;
 
   case 23:
-#line 104 "cl.y"
+#line 123 "cl.y"
                                                   { printf("Return statement\n"); }
-#line 1772 "y.tab.c"
+#line 1791 "y.tab.c"
     break;
 
   case 25:
-#line 112 "cl.y"
+#line 131 "cl.y"
                                 { (yyval.nPtr) = opr(CASE, 2, con((yyvsp[-2].iValue)), (yyvsp[0].nPtr)); }
-#line 1778 "y.tab.c"
+#line 1797 "y.tab.c"
     break;
 
   case 26:
-#line 113 "cl.y"
+#line 132 "cl.y"
                                 { (yyval.nPtr) = opr(DEFAULT, 1, (yyvsp[0].nPtr)); }
-#line 1784 "y.tab.c"
+#line 1803 "y.tab.c"
     break;
 
   case 27:
-#line 114 "cl.y"
+#line 133 "cl.y"
                                 { (yyval.nPtr) = (yyvsp[-1].nPtr); }
-#line 1790 "y.tab.c"
+#line 1809 "y.tab.c"
     break;
 
   case 28:
-#line 118 "cl.y"
+#line 137 "cl.y"
                                   { (yyval.nPtr) = cs((yyvsp[0].nPtr), NULL); }
-#line 1796 "y.tab.c"
+#line 1815 "y.tab.c"
     break;
 
   case 29:
-#line 119 "cl.y"
+#line 138 "cl.y"
                                   { (yyval.nPtr) = cs((yyvsp[-1].nPtr), (yyvsp[0].nPtr)); }
-#line 1802 "y.tab.c"
+#line 1821 "y.tab.c"
     break;
 
   case 30:
-#line 123 "cl.y"
+#line 142 "cl.y"
                                 { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 1808 "y.tab.c"
+#line 1827 "y.tab.c"
     break;
 
   case 31:
-#line 124 "cl.y"
+#line 143 "cl.y"
                                 { (yyval.nPtr) = opr(';', 2, (yyvsp[-1].nPtr), (yyvsp[0].nPtr)); }
-#line 1814 "y.tab.c"
+#line 1833 "y.tab.c"
     break;
 
   case 32:
-#line 128 "cl.y"
+#line 147 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].iValue)); }
-#line 1820 "y.tab.c"
+#line 1839 "y.tab.c"
     break;
 
   case 33:
-#line 129 "cl.y"
+#line 148 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].fValue)); }
-#line 1826 "y.tab.c"
+#line 1845 "y.tab.c"
     break;
 
   case 34:
-#line 130 "cl.y"
+#line 149 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].bValue)); }
-#line 1832 "y.tab.c"
+#line 1851 "y.tab.c"
     break;
 
   case 35:
-#line 131 "cl.y"
+#line 150 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].cValue)); }
-#line 1838 "y.tab.c"
+#line 1857 "y.tab.c"
     break;
 
   case 36:
-#line 132 "cl.y"
+#line 151 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].sValue));  }
-#line 1844 "y.tab.c"
+#line 1863 "y.tab.c"
     break;
 
   case 37:
-#line 133 "cl.y"
+#line 152 "cl.y"
                                         { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 1850 "y.tab.c"
+#line 1869 "y.tab.c"
     break;
 
   case 38:
-#line 134 "cl.y"
+#line 153 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1856 "y.tab.c"
+#line 1875 "y.tab.c"
     break;
 
   case 39:
-#line 135 "cl.y"
+#line 154 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('+', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1862 "y.tab.c"
+#line 1881 "y.tab.c"
     break;
 
   case 40:
-#line 136 "cl.y"
+#line 155 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('-', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1868 "y.tab.c"
+#line 1887 "y.tab.c"
     break;
 
   case 41:
-#line 137 "cl.y"
+#line 156 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('*', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1874 "y.tab.c"
+#line 1893 "y.tab.c"
     break;
 
   case 42:
-#line 138 "cl.y"
+#line 157 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('/', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1880 "y.tab.c"
+#line 1899 "y.tab.c"
     break;
 
   case 43:
-#line 139 "cl.y"
+#line 158 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('%', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1886 "y.tab.c"
+#line 1905 "y.tab.c"
     break;
 
   case 44:
-#line 140 "cl.y"
+#line 159 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr(LS,  2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1892 "y.tab.c"
+#line 1911 "y.tab.c"
     break;
 
   case 45:
-#line 141 "cl.y"
+#line 160 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr(RS,  2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1898 "y.tab.c"
+#line 1917 "y.tab.c"
     break;
 
   case 46:
-#line 142 "cl.y"
+#line 161 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('&', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1904 "y.tab.c"
+#line 1923 "y.tab.c"
     break;
 
   case 47:
-#line 143 "cl.y"
+#line 162 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('^', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1910 "y.tab.c"
+#line 1929 "y.tab.c"
     break;
 
   case 48:
-#line 144 "cl.y"
+#line 163 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('"', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1916 "y.tab.c"
+#line 1935 "y.tab.c"
     break;
 
   case 49:
-#line 145 "cl.y"
+#line 164 "cl.y"
                                         { (yyval.nPtr) = opr(PP, 1, (yyvsp[-1].nPtr)); }
-#line 1922 "y.tab.c"
+#line 1941 "y.tab.c"
     break;
 
   case 50:
-#line 146 "cl.y"
+#line 165 "cl.y"
                                         { (yyval.nPtr) = opr(MM, 1, (yyvsp[-1].nPtr)); }
-#line 1928 "y.tab.c"
+#line 1947 "y.tab.c"
     break;
 
   case 51:
-#line 147 "cl.y"
+#line 166 "cl.y"
                                         { (yyval.nPtr) = opr(UPLUS, 1, (yyvsp[0].nPtr)); }
-#line 1934 "y.tab.c"
+#line 1953 "y.tab.c"
     break;
 
   case 52:
-#line 148 "cl.y"
+#line 167 "cl.y"
                                         { (yyval.nPtr) = opr(UMINUS, 1, (yyvsp[0].nPtr)); }
-#line 1940 "y.tab.c"
+#line 1959 "y.tab.c"
     break;
 
   case 53:
-#line 149 "cl.y"
+#line 168 "cl.y"
                                         { (yyval.nPtr) = opr('!', 1, (yyvsp[0].nPtr)); }
-#line 1946 "y.tab.c"
+#line 1965 "y.tab.c"
     break;
 
   case 54:
-#line 150 "cl.y"
+#line 169 "cl.y"
                                         { (yyval.nPtr) = opr('~', 1, (yyvsp[0].nPtr)); }
-#line 1952 "y.tab.c"
+#line 1971 "y.tab.c"
     break;
 
   case 55:
-#line 151 "cl.y"
+#line 170 "cl.y"
                                         { (yyval.nPtr) = opr('&', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1958 "y.tab.c"
+#line 1977 "y.tab.c"
     break;
 
   case 56:
-#line 152 "cl.y"
+#line 171 "cl.y"
                                         { (yyval.nPtr) = opr('|', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1964 "y.tab.c"
+#line 1983 "y.tab.c"
     break;
 
   case 57:
-#line 153 "cl.y"
+#line 172 "cl.y"
                                         { (yyval.nPtr) = opr('^', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1970 "y.tab.c"
+#line 1989 "y.tab.c"
     break;
 
   case 58:
-#line 154 "cl.y"
+#line 173 "cl.y"
                                         { (yyval.nPtr) = opr(LS, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1976 "y.tab.c"
+#line 1995 "y.tab.c"
     break;
 
   case 59:
-#line 155 "cl.y"
+#line 174 "cl.y"
                                         { (yyval.nPtr) = opr(RS, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1982 "y.tab.c"
+#line 2001 "y.tab.c"
     break;
 
   case 60:
-#line 156 "cl.y"
+#line 175 "cl.y"
                                         { (yyval.nPtr) = opr('+', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1988 "y.tab.c"
+#line 2007 "y.tab.c"
     break;
 
   case 61:
-#line 157 "cl.y"
+#line 176 "cl.y"
                                         { (yyval.nPtr) = opr('-', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1994 "y.tab.c"
+#line 2013 "y.tab.c"
     break;
 
   case 62:
-#line 158 "cl.y"
+#line 177 "cl.y"
                                         { (yyval.nPtr) = opr('*', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2000 "y.tab.c"
+#line 2019 "y.tab.c"
     break;
 
   case 63:
-#line 159 "cl.y"
+#line 178 "cl.y"
                                         { (yyval.nPtr) = opr('/', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2006 "y.tab.c"
+#line 2025 "y.tab.c"
     break;
 
   case 64:
-#line 160 "cl.y"
+#line 179 "cl.y"
                                         { (yyval.nPtr) = opr('%', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2012 "y.tab.c"
+#line 2031 "y.tab.c"
     break;
 
   case 65:
-#line 161 "cl.y"
+#line 180 "cl.y"
                                         { (yyval.nPtr) = opr('<', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2018 "y.tab.c"
+#line 2037 "y.tab.c"
     break;
 
   case 66:
-#line 162 "cl.y"
+#line 181 "cl.y"
                                         { (yyval.nPtr) = opr('>', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2024 "y.tab.c"
+#line 2043 "y.tab.c"
     break;
 
   case 67:
-#line 163 "cl.y"
+#line 182 "cl.y"
                                         { (yyval.nPtr) = opr(AND, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2030 "y.tab.c"
+#line 2049 "y.tab.c"
     break;
 
   case 68:
-#line 164 "cl.y"
+#line 183 "cl.y"
                                         { (yyval.nPtr) = opr(OR, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2036 "y.tab.c"
+#line 2055 "y.tab.c"
     break;
 
   case 69:
-#line 165 "cl.y"
+#line 184 "cl.y"
                                         { (yyval.nPtr) = opr(GE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2042 "y.tab.c"
+#line 2061 "y.tab.c"
     break;
 
   case 70:
-#line 166 "cl.y"
+#line 185 "cl.y"
                                         { (yyval.nPtr) = opr(LE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2048 "y.tab.c"
+#line 2067 "y.tab.c"
     break;
 
   case 71:
-#line 167 "cl.y"
+#line 186 "cl.y"
                                         { (yyval.nPtr) = opr(NE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2054 "y.tab.c"
+#line 2073 "y.tab.c"
     break;
 
   case 72:
-#line 168 "cl.y"
+#line 187 "cl.y"
                                         { (yyval.nPtr) = opr(EQ, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2060 "y.tab.c"
+#line 2079 "y.tab.c"
     break;
 
   case 73:
-#line 169 "cl.y"
+#line 188 "cl.y"
                                         { (yyval.nPtr) = (yyvsp[-1].nPtr); }
-#line 2066 "y.tab.c"
+#line 2085 "y.tab.c"
     break;
 
   case 74:
-#line 170 "cl.y"
+#line 189 "cl.y"
                                         { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 2072 "y.tab.c"
+#line 2091 "y.tab.c"
     break;
 
   case 75:
-#line 174 "cl.y"
+#line 193 "cl.y"
                                           { 
                      auto fn_name = std::get<idNodeType>((yyvsp[-3].nPtr)->un);
                      printf("Function call (%s) parsed successfully\n", fn_name.id.c_str()); 
                      (yyval.nPtr) = fn_call((yyvsp[-3].nPtr));
              }
-#line 2082 "y.tab.c"
+#line 2101 "y.tab.c"
     break;
 
   case 79:
-#line 187 "cl.y"
+#line 206 "cl.y"
                                                      { 
                  auto enum_name = std::get<idNodeType>((yyvsp[-4].nPtr)->un);
                  printf("Enum (%s) parsed successfully\n", enum_name.id.c_str()); 
          }
-#line 2091 "y.tab.c"
+#line 2110 "y.tab.c"
     break;
 
   case 83:
-#line 200 "cl.y"
+#line 219 "cl.y"
                                         {  (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 2097 "y.tab.c"
+#line 2116 "y.tab.c"
     break;
 
   case 84:
-#line 201 "cl.y"
+#line 220 "cl.y"
                                         {  (yyval.nPtr) = id("void"); }
-#line 2103 "y.tab.c"
+#line 2122 "y.tab.c"
     break;
 
   case 88:
-#line 210 "cl.y"
+#line 229 "cl.y"
                                                                                                   { 
                      (yyval.nPtr) = fn((yyvsp[-7].nPtr), (yyvsp[-3].nPtr), (yyvsp[-1].nPtr));
                      auto fn_name = std::get<idNodeType>((yyvsp[-7].nPtr)->un);
                      printf("Function (%s) parsed successfully\n", fn_name.id.c_str()); 
+                     /* Start a function scope here. */
              }
-#line 2113 "y.tab.c"
+#line 2133 "y.tab.c"
     break;
 
   case 89:
-#line 217 "cl.y"
+#line 237 "cl.y"
                                                                                 { 
                      (yyval.nPtr) = fn_call((yyvsp[-4].nPtr)); // TODO: Create another function for the declaration.
                      auto fn_name = std::get<idNodeType>((yyvsp[-4].nPtr)->un);
                      printf("Function Declaration (%s) parsed successfully\n", fn_name.id.c_str()); 
              }
-#line 2123 "y.tab.c"
+#line 2143 "y.tab.c"
     break;
 
 
-#line 2127 "y.tab.c"
+#line 2147 "y.tab.c"
 
       default: break;
     }
@@ -2355,7 +2375,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 223 "cl.y"
+#line 243 "cl.y"
 
 
 nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) {
@@ -2365,7 +2385,6 @@ nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) 
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeFunction;
     p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
 
     return p;
@@ -2378,8 +2397,7 @@ nodeType* fn_call(nodeTypeTag* name) {
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeFunction;
-    p->un = std::variant<NODE_TYPES>(functionNodeType{nullptr, name});
+        p->un = std::variant<NODE_TYPES>(functionNodeType{nullptr, name});
 
     return p;
 }
@@ -2409,6 +2427,41 @@ void set_break_parent(nodeType* node, nodeType* parent_switch) {
         
         std::visit(set_break_parent_visitor{parent_switch}, node->un);
 }
+nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+        p->un = std::variant<NODE_TYPES>(doWhileNodeType{false, loop_condition, loop_body});
+
+    return p;
+}
+
+nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+        p->un = std::variant<NODE_TYPES>(whileNodeType{false, loop_condition, loop_body});
+
+    return p;
+}
+
+nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body) {
+    nodeType *p;
+
+    /* allocate node */
+    if ((p = new nodeType()) == NULL)
+        yyerror("out of memory");
+
+        p->un = std::variant<NODE_TYPES>(forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body});
+
+    return p;
+}
 
 nodeType *br() {
     nodeType *p;
@@ -2417,8 +2470,7 @@ nodeType *br() {
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeBreak;
-    p->un = std::variant<NODE_TYPES>(breakNodeType{NULL});
+        p->un = std::variant<NODE_TYPES>(breakNodeType{NULL});
 
     return p;
 }
@@ -2430,19 +2482,20 @@ nodeType *cs(nodeType* self, nodeType* prev) {
     if ((p = new nodeType()) == NULL)
         yyerror("out of memory");
 
-    p->type = typeCase;
-    p->un = std::variant<NODE_TYPES>(caseNodeType{});
+        p->un = std::variant<NODE_TYPES>(caseNodeType{});
 
-    auto& cs = std::get<caseNodeType>(p->un);
+    auto cs = caseNodeType{};
 
-    if(self->type == typeOpr) {
-        cs.self = self;
-        cs.prev = NULL;
-    } else if (self->type == typeCase) {
-        cs.prev = self;
-        cs.self = prev;
-    }
+    std::visit(
+        Visitor {
+                [&cs, self](oprNodeType&)  { cs.self = self; cs.prev = NULL; },
+                [&cs, self, prev](caseNodeType&) { cs.prev = self; cs.self = prev; },
+                [](auto) {}
+        },
+        self->un
+    );
 
+    p->un = cs;
     return p;
 }
 
@@ -2454,8 +2507,7 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
         yyerror("out of memory");
 
     /* copy information */
-    p->type = typeSwitch;
-
+    
     p->un = std::variant<NODE_TYPES>(switchNodeType{
             0, 0, var, case_list_head
     });
@@ -2463,30 +2515,19 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
     return p;
 }
 
-// con.valueName = valueName
-// Assumes that the field in the union has the same name as the argument.
-// We have to access specific union members since constructing like this:
-//      conNodeType{fValue}
-// Seems to interpret the given value in context of the first union member.
-// In our case, this is the int member.
-// This is an issue with floats because a float with 0b00...0001 != 1.0f,
-// but a very small value (~0).
-#define CON_INIT(ptr_name, valueName, value, conInnerType)      \
+#define CON_INIT(ptr_name, value)      \
         nodeType* ptr_name;                                     \
         if ((ptr_name = new nodeType()) == NULL)                \
                 yyerror("out of memory");                       \
-        (ptr_name)->type = typeCon;                             \
-        auto con = conNodeType{};                               \
-        con.valueName = value;                                  \
-        con.conType = conInnerType;                             \
+        auto con = conNodeType{value};                               \
         (ptr_name)->un = std::variant<NODE_TYPES>(con);         \
         return ptr_name
 
-nodeType *con(int iValue)   { CON_INIT(p, iValue, iValue, intType);   return p; }
-nodeType *con(float fValue) { CON_INIT(p, fValue, fValue, floatType); return p; }
-nodeType *con(bool bValue)  { CON_INIT(p, bValue, bValue, boolType);  return p; }
-nodeType *con(char cValue)  { CON_INIT(p, cValue, cValue, charType);  return p; }
-nodeType *con(char* sValue) { CON_INIT(p, sValue, sValue, stringType);  return p; }
+nodeType *con(int iValue)   { CON_INIT(p, iValue);   return p; }
+nodeType *con(float fValue) { CON_INIT(p, fValue); return p; }
+nodeType *con(bool bValue)  { CON_INIT(p, bValue);  return p; }
+nodeType *con(char cValue)  { CON_INIT(p, cValue);  return p; }
+nodeType *con(char* sValue) { CON_INIT(p, std::string(sValue));  return p; }
 
 // Create an identifier node.
 nodeType *id(const char* id) {
@@ -2497,8 +2538,7 @@ nodeType *id(const char* id) {
         yyerror("out of memory");
 
     /* copy information */
-    p->type = typeId;
-    p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
+        p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
 
     return p;
 }
@@ -2515,7 +2555,6 @@ nodeType *opr(int oper, int nops, ...) {
         yyerror("out of memory");
 
     /* copy information */
-    p->type = typeOpr;
     p->un = std::variant<NODE_TYPES>(oprNodeType{});
     auto& opr = std::get<oprNodeType>(p->un);
     opr.oper = oper;
@@ -2532,6 +2571,17 @@ void freeNode(nodeType *p) {
 
     if (!p) return;
     free (p);
+}
+
+void declare_id(const char* id){
+    std::string key = id;
+    if(sym.find(key) == sym.end())
+    {
+        std::string temp = "Declaring a new variable "+key+" !!!\n";
+        printf("%s",temp.c_str());
+        sym[id] = Value(0);
+        /*if (std::holds_alternative<int>(v))*/
+    }
 }
 
 void yyerror(char *s) {

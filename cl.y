@@ -30,11 +30,11 @@ nodeType* fn_call(nodeTypeTag* name);
 
 void freeNode(nodeType *p);
 Value ex(nodeType *p);
+void declare_id(const char* id);
 int yylex(void);
 
-void yyerror(char *s);
-float sym[26];                    /* symbol table */
-std::unordered_map<std::string, Value> sym2;
+void yyerror(char *s);                 
+std::unordered_map<std::string, Value> sym; /* symbol table */
 %}
 
 %union {
@@ -108,8 +108,13 @@ stmt:
                 $$ = do_while_loop($5, $2); 
                 set_break_parent($2, $$);
         }
-        | '{' stmt_list '}'                       { $$ = $2; }
-        | var_decl ';'                            { printf("Variable declaration parsed successfully\n"); }
+        | '{' stmt_list '}'                       { $$ = $2; /* Start a new scope here */ }
+        | var_decl ';'                            { 
+            /* Handle declaration logic here */
+            auto id_name = std::get<idNodeType>($1->un);
+            declare_id(id_name.id.c_str());
+            /*printf("Variable declaration parsed successfully\n"); */
+            }
         | var_defn                                { $$ = $1; }
         | CONST var_defn                          { $$ = $2; }
         | enum_decl                               
@@ -225,6 +230,7 @@ function_defn:
                      $$ = fn($2, $6, $8);
                      auto fn_name = std::get<idNodeType>($2->un);
                      printf("Function (%s) parsed successfully\n", fn_name.id.c_str()); 
+                     /* Start a function scope here. */
              } 
 
 function_decl:
@@ -429,6 +435,17 @@ void freeNode(nodeType *p) {
 
     if (!p) return;
     free (p);
+}
+
+void declare_id(const char* id){
+    std::string key = id;
+    if(sym.find(key) == sym.end())
+    {
+        std::string temp = "Declaring a new variable "+key+" !!!\n";
+        printf("%s",temp.c_str());
+        sym[id] = Value(0);
+        /*if (std::holds_alternative<int>(v))*/
+    }
 }
 
 void yyerror(char *s) {

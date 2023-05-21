@@ -20,7 +20,7 @@
             case case_value: return Value(oper (ex(opr.op[0])));
 
 #define POST_OP(oper) {                                                \
-        auto& varRef = sym2[std::get<idNodeType>(opr.op[0]->un).id];   \
+        auto& varRef = sym[std::get<idNodeType>(opr.op[0]->un).id];   \
         Value temp = varRef;                                           \
         varRef =  varRef oper Value(1);                                \
         return temp;                                                   \
@@ -93,7 +93,14 @@ struct ex_visitor {
     }
 
     Value operator()(idNodeType& identifier) {
-        return sym2[identifier.id];
+        // if(m.find(key) == m.end())
+        if(sym.find(identifier.id) == sym.end())
+        {
+            std::string temp = "Undeclared variable "+identifier.id+" !!!\n";
+            printf("%s",temp.c_str());
+            return Value(0);
+        }
+        return sym[identifier.id];
     }
 
     Value operator()(caseNodeType& identifier) {
@@ -207,7 +214,18 @@ struct ex_visitor {
                 return Value(0);
 
            }
-            case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
+            case '=':       
+            {
+                std::string key = std::get<idNodeType>(opr.op[0]->un).id;
+                Value val = ex(opr.op[1]);
+                if(sym.find(key) == sym.end())
+                {
+                    
+                    std::string temp = "Assigning new variable "+key+" with new value !!!\n";
+                    printf("%s",temp.c_str());
+                }
+                return sym[key] = val;
+            }
 
             BOP_CASE('+',+)
             BOP_CASE('-',-)
@@ -237,7 +255,7 @@ struct ex_visitor {
             UOP_CASE(UMINUS,-)
 
             case PP: {
-                auto &varRef = sym2[std ::get<idNodeType>(opr.op[0]->un).id];
+                auto &varRef = sym[std ::get<idNodeType>(opr.op[0]->un).id];
                 Value temp = varRef;
                 varRef = varRef + Value(1);
                 return temp;

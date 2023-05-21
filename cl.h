@@ -72,8 +72,7 @@ typedef struct nodeTypeTag {
     std::variant<NODE_TYPES> un;
 } nodeType;
 
-extern float sym[26];
-extern std::unordered_map<std::string, Value> sym2;
+extern std::unordered_map<std::string, Value> sym;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Value semantic_analysis(nodeType* p);
