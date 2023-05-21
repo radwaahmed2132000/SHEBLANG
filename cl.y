@@ -114,7 +114,9 @@ program:
 
 var_decl:
         // TODO: Use $1 for semantic analysis.
-        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); /* std::cout << yylineno << std::endl; */ }
+        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); 
+        /*std::cout << yylineno << std::endl;*/
+         }
         ;
 
 var_defn:

@@ -1,0 +1,20 @@
+int x;
+
+z = 10;
+
+{
+    float y = 20.0;
+    print x;
+    x = 10;
+    print y;
+}
+
+print x;
+print y;
+print z;
+===
+0
+20.000000
+10
+20.000000
+0
