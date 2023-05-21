@@ -15,6 +15,10 @@ nodeType *id(const char* id);
                 return CHARACTER;
             }
 
+[']([^']?|[\\][nt'])*['] {
+                yyerror("Cannot use single quotes for strings. Instead use \"\"");
+            }
+
 ["]([^"]|[,\\][nt"])*["] {
                 std::string temp = std::string(yytext);
                 temp = temp.substr(1,temp.size()-2);
