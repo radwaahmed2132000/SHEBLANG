@@ -131,9 +131,39 @@ struct semantic_analysis_visitor {
 
     Result operator()(functionNodeType& fn) { return Result::Success("success"); }
 
-    Result operator()(doWhileNodeType& dw) { return Result::Success("success"); }
+    Result operator()(doWhileNodeType& dw) { 
+  
 
-    Result operator()(whileNodeType& w) { return Result::Success("success"); }
+      auto condition= semantic_analysis(dw.condition) ;
+      auto loop= semantic_analysis( dw.loop_body);  
+      if (condition.isSuccess() && loop.isSuccess())
+      {
+        auto conditionType =std::get<SuccessType>(condition); 
+        if(conditionType=="bool" || conditionType=="int"  || conditionType=="float")
+          return Result::Success("success"); 
+        else
+          return Result::Error("Failed in do While loop ");
+      }
+       
+
+      else 
+        return Result::Error("Failed in do While loop ");
+    }
+
+    Result operator()(whileNodeType& w) { 
+      auto loop= semantic_analysis( w.loop_body); 
+      auto condition= semantic_analysis( w.condition);   
+      if (condition.isSuccess() && loop.isSuccess())
+      {
+        auto conditionType =std::get<SuccessType>(condition); 
+        if(conditionType=="bool" || conditionType=="int"  || conditionType=="float")
+          return Result::Success("success"); 
+        else
+          return Result::Error("Failed in While loop ");
+      }
+      else 
+        return Result::Error("Failed in  While loop ");
+     }
 
     Result operator()(forNodeType& f) { return Result::Success("success"); }
 
@@ -281,6 +311,8 @@ struct semantic_analysis_visitor {
 
         return Result::Success(leftType);
       }
+      break;
+
       break;  
       
       case PRINT: {
