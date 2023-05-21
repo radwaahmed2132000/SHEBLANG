@@ -42,12 +42,12 @@ nodeType* varDecl(nodeType* type, nodeType* name) {
     auto nameStr = std::get<idNodeType>(name->un).id;
     auto typeStr = std::get<idNodeType>(type->un).id;
 
-    return new nodeType(VarDecl(type, name));
+    return new nodeType(VarDecl(type, name), yylineno);
 }
 
 nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
     auto* declPtr = std::get_if<VarDecl>(&decl->un);
-    return new nodeType(VarDefn(declPtr, initExpr, isConstant));
+    return new nodeType(VarDefn(declPtr, initExpr, isConstant), yylineno);
 }
 
 %}
@@ -59,6 +59,7 @@ nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
     char cValue;                /* char value */
     char* sValue;               /* string value */
     nodeType *nPtr;             /* node pointer */
+    int lineNo;                 /* Line Number of Code Line */
 };
 
 %token <nPtr> IDENTIFIER
@@ -269,11 +270,11 @@ function_decl:
 %%
 
 nodeType* fn(nodeType* name, nodeType* return_type, nodeType* statements) {
-    return new nodeType(functionNodeType{return_type, name, statements});
+    return new nodeType(functionNodeType{return_type, name, statements}, yylineno);
 }
 
 nodeType* fn_call(nodeType* name) {
-    return new nodeType(functionNodeType{nullptr, name});
+    return new nodeType(functionNodeType{nullptr, name}, yylineno);
 }
 
 struct set_break_parent_visitor {
@@ -302,19 +303,19 @@ void set_break_parent(nodeType* node, nodeType* parent_switch) {
         std::visit(set_break_parent_visitor{parent_switch}, node->un);
 }
 nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
-    return new nodeType(doWhileNodeType{false, loop_condition, loop_body});
+    return new nodeType(doWhileNodeType{false, loop_condition, loop_body}, yylineno);
 }
 
 nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body) {
-    return new nodeType(whileNodeType{false, loop_condition, loop_body});
+    return new nodeType(whileNodeType{false, loop_condition, loop_body}, yylineno);
 }
 
 nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body) {
-    return new nodeType(forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body});
+    return new nodeType(forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body}, yylineno);
 }
 
 nodeType *br() {
-    return new nodeType(breakNodeType{NULL});
+    return new nodeType(breakNodeType{NULL}, yylineno);
 }
 
 nodeType *cs(nodeType* self, nodeType* prev) {
@@ -329,14 +330,14 @@ nodeType *cs(nodeType* self, nodeType* prev) {
         self->un
     );
 
-    return new nodeType(cs);
+    return new nodeType(cs, yylineno);
 }
 
 nodeType *sw(nodeType* var, nodeType* case_list_head) {
-    return new nodeType(switchNodeType{ 0, 0, var, case_list_head });
+    return new nodeType(switchNodeType{ 0, 0, var, case_list_head }, yylineno);
 }
 
-#define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}))
+#define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}), yylineno)
 
 nodeType *con(int iValue)   { return CON_INIT(p, iValue);    }
 nodeType *con(float fValue) { return CON_INIT(p, fValue);  }
@@ -346,7 +347,7 @@ nodeType *con(char* sValue) { return CON_INIT(p, std::string(sValue)); }
 
 // Create an identifier node.
 nodeType *id(const char* id) {
-    return new nodeType(idNodeType{std::string(id)});
+    return new nodeType(idNodeType{std::string(id)}, yylineno);
 }
 
 // Create an operator node with a variable number of inputs (usually 2)
@@ -364,7 +365,7 @@ nodeType *opr(int oper, int nops, ...) {
 
     va_end(ap);
 
-    return new nodeType(opr);
+    return new nodeType(opr, yylineno);
 }
 
 // De-allocates a node and all of its children (if any).
