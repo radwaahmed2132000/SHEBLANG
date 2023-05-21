@@ -1,0 +1,6 @@
+int x=5;
+float y=5.5;
+if(x)
+{
+    print "x is greater than y";
+}
