@@ -80,9 +80,24 @@ nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
     return new nodeType(doWhileNode);
 }
 
-nodeType* varDecl(nodeType* type, nodeType* name) { return new nodeType(VarDecl{type, name}); };
+nodeType* varDecl(nodeType* type, nodeType* name) {
+    auto nameStr = std::get<idNodeType>(name->un).id;
+    auto typeStr = std::get<idNodeType>(type->un).id;
+    sym2[nameStr] = SymbolTableEntry(false, typeStr);
 
-nodeType* fn(nodeTypeTag* name, std::vector<VarDecl*>& params, nodeTypeTag* return_type, nodeType* statements) {
+    return new nodeType(VarDecl(type, name));
+}
+
+nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr) {
+    auto nameStr = std::get<idNodeType>(name->un).id;
+    auto typeStr = std::get<idNodeType>(type->un).id;
+    sym2[nameStr] = SymbolTableEntry(initExpr, true, typeStr);
+
+    return new nodeType(VarDecl(type, name));
+}
+
+
+nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements) {
     assert(std::holds_alternative<idNodeType>(name->un));
     assert(std::holds_alternative<idNodeType>(return_type->un));
     assert(std::holds_alternative<oprNodeType>(statements->un));
@@ -97,7 +112,7 @@ nodeType* fn(nodeTypeTag* name, std::vector<VarDecl*>& params, nodeTypeTag* retu
     return new nodeType(fn);
 }
 
-nodeType* fn_call(nodeTypeTag* name) {
+nodeType* fn_call(nodeType* name) {
     return new nodeType(functionNodeType{nullptr, name});
 }
 

@@ -19,9 +19,10 @@ nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
 nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
 
 nodeType* varDecl(nodeType* type, nodeType* name);
+nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr);
 
-nodeType* fn(nodeTypeTag* name, std::vector<VarDecl*>& params, nodeTypeTag* return_type, nodeType* statements);
-nodeType* fn_call(nodeTypeTag* name);
+nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements);
+nodeType* fn_call(nodeType* name);
 
 nodeType* fnParamList(nodeType* end);
 nodeType* fnParamList(nodeType* prev, nodeType* next);

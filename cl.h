@@ -32,34 +32,34 @@ typedef struct {
 /* operators */
 typedef struct {
     int oper;                   /* operator */
-    std::vector<struct nodeTypeTag*> op;
+    std::vector<struct nodeType*> op;
 } oprNodeType;
 
 typedef struct {
-    struct nodeTypeTag* self, *prev;
+    struct nodeType* self, *prev;
 } caseNodeType;
 
 typedef struct {
     int exit_label;
     bool break_encountered;
-    struct nodeTypeTag* var, *case_list_head;
+    struct nodeType* var, *case_list_head;
 } switchNodeType;
 
 typedef struct {
-    struct nodeTypeTag* parent_switch;
+    struct nodeType* parent_switch;
 } breakNodeType;
 
 typedef struct {
-    struct nodeTypeTag* return_type;
-    struct nodeTypeTag* name;
+    struct nodeType* return_type;
+    struct nodeType* name;
     std::vector<struct VarDecl*> parameters;
-    struct nodeTypeTag* statements;
+    struct nodeType* statements;
 } functionNodeType;
 
 typedef struct VarDecl : LinkedListNode<VarDecl>{
-	struct nodeTypeTag *type, *var_name;
+	struct nodeType *type, *var_name;
 
-	VarDecl(nodeTypeTag* type, nodeTypeTag* var_name) : type(type), var_name(var_name) {}
+	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
 
     std::string getType() const;
     std::string getName() const;
@@ -84,7 +84,7 @@ typedef struct VarDecl : LinkedListNode<VarDecl>{
 
 typedef struct {
     bool break_encountered;
-    struct nodeTypeTag *condition, *loop_body;
+    struct nodeType *condition, *loop_body;
 } whileNodeType;
 
 // Exactly the same as whileNodeType,
@@ -93,31 +93,55 @@ typedef struct {
 // split them.
 typedef struct {
     bool break_encountered;
-    struct nodeTypeTag *condition, *loop_body;
+    struct nodeType *condition, *loop_body;
 } doWhileNodeType;
 
 typedef struct {
     bool break_encountered;
-    struct nodeTypeTag *init_statement, *loop_condition, *post_loop_statement, *loop_body;
+    struct nodeType *init_statement, *loop_condition, *post_loop_statement, *loop_body;
 } forNodeType;
 
 #define NODE_TYPES \
-	conNodeType, idNodeType, oprNodeType, switchNodeType,  \
-	caseNodeType, breakNodeType, functionNodeType, whileNodeType, \
-	forNodeType, doWhileNodeType, VarDecl
+    conNodeType, idNodeType, oprNodeType, switchNodeType, \
+    caseNodeType, breakNodeType, functionNodeType, whileNodeType, \
+    forNodeType, doWhileNodeType, VarDecl
 
-typedef struct nodeTypeTag {
+typedef struct nodeType {
     std::variant<NODE_TYPES> un;
-	nodeTypeTag(std::variant<NODE_TYPES> inner_union) : un(inner_union) {}
+	nodeType(std::variant<NODE_TYPES> inner_union) : un(inner_union) {}
 } nodeType;
 
-extern std::unordered_map<std::string, Value> sym2;
-extern std::unordered_map<std::string, functionNodeType> functions;
+typedef struct SymbolTableEntry {
+    Value value;
+    bool isConstant;
+    std::string type;  
+    nodeType* initExpr;
 
-// Must include after the structs are defined
-#include "node_constructors.h"
+    SymbolTableEntry() = default;
+
+    SymbolTableEntry(nodeType* initExpr, bool isConstant, std::string type):
+        initExpr(initExpr), isConstant(isConstant), type(type) {}
+    
+    SymbolTableEntry(bool isConstant, std::string type):
+        value(0), isConstant(isConstant), type(type) {}
+
+    SymbolTableEntry& setValue(Value v) {
+        value = v;
+        return *this;
+    }
+
+    Value getValue() const { return value; }
+
+    Value& getRef() { return value; }
+} SymbolTableEntry;
+
+extern float sym[26];
+extern std::unordered_map<std::string, SymbolTableEntry> sym2;
+extern std::unordered_map<std::string, functionNodeType> functions;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Result semantic_analysis(nodeType* p);
-
 void set_break_parent(nodeType* node, nodeType* parent_switch);
+
+// Must include after the structs are defined
+#include "node_constructors.h"
