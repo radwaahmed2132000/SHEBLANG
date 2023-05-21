@@ -208,7 +208,7 @@ struct semantic_analysis_visitor {
         return Result::Success(leftType);
       }
       break;
-      case GE: case LE:  {
+      case GE: case LE:   case '>': case '<' :{
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           

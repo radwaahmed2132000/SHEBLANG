@@ -1,0 +1,7 @@
+float x=5;
+char y='z';
+if (x>=y)
+{ 
+    print "hi"
+
+}
