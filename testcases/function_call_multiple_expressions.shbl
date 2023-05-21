@@ -1,3 +1,2 @@
 test((a+b), test2());
 ===
-Function call (test2) parsed successfullyFunction call (test) parsed successfully

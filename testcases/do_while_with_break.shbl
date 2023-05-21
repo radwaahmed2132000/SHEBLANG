@@ -16,3 +16,20 @@ do {
 2
 1
 0
+====
+mov x,5
+loop1 : 
+        mov ah,9
+        mov dx,x
+        int 21h
+        sub  x,1
+        CMP x,0
+        JGE loop1
+        print "About to break!"
+        JMP break1
+        print "You shouldn't see this!" 
+        print,"nor this!"
+        int 21h
+
+break1:
+

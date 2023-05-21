@@ -23,3 +23,18 @@ for(int x = 0; x < 3; x += 1) {
 1
 2
 2
+====
+mov x,0
+loop1:
+    CMP x,3
+	JGE break1
+    mov y,0
+	loop2:
+        CMP y,3
+		JGE break2
+	    print x
+		print y
+		JMP loop1
+	break2: 
+	JMP loop1
+break1:

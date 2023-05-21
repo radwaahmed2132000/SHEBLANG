@@ -9,3 +9,13 @@ print y;
 8
 6
 4
+===
+mov x,10
+mov y,4
+mov z,2
+sub x,y
+add z,x
+print z
+print x
+print y
+

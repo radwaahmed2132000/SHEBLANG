@@ -6,3 +6,15 @@ else
   print "Greater than both 4 and 6";
 ===
 Greater than both 4 and 6
+====
+mov x,10
+CMP x,4
+JLE  else1:
+CMP x,6
+JGE break2:
+    print "Smaller than 6 and bigger than 4"
+JMP break1
+else1: 
+    print "Greater than both 4 and 6"
+break1:
+break2:

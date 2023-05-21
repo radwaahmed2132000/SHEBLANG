@@ -9,3 +9,11 @@ do {
 13.000000
 12.000000
 11.000000
+===
+mov x,15.
+loop1 : 
+    print x
+    sub x,1
+    CMP x,10
+    JLE break1
+    JMP break
