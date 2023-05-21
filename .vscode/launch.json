@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/invalid_oper_const.shbl", null, null]
+            "stdio": ["testcases/missing_declar.shbl", null, null]
         },
         {
             "name": "Launch Compiler",

@@ -1,1 +1,3 @@
 const x;
+===
+syntax_error

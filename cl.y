@@ -97,12 +97,12 @@ program:
         stmt_list { 
                 auto result = semantic_analysis($1);
                 if (result.isSuccess()) {
-                    //printf("Semantic analysis successful\n");
+                    // printf("Semantic analysis successful\n");
                 } else {
-                    // printf("Semantic analysis failed\n");
-                    // for (auto& error : std::get<ErrorType>(result)) {
-                    //     printf("%s\n", error.c_str());
-                    // }
+                    printf("Semantic analysis failed\n");
+                    for (auto& error : std::get<ErrorType>(result)) {
+                        printf("%s\n", error.c_str());
+                    }
                     exit(1);
                 }
                 ex($1);
@@ -114,7 +114,7 @@ program:
 
 var_decl:
         // TODO: Use $1 for semantic analysis.
-        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); std::cout << yylineno << std::endl; }
+        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); /* std::cout << yylineno << std::endl; */ }
         ;
 
 var_defn:
@@ -193,7 +193,7 @@ expr:
         | IDENTIFIER RSA expr           { $$ = opr('=', 2, $1, opr(RS,  2, $1, $3)); }
         | IDENTIFIER ANDA expr          { $$ = opr('=', 2, $1, opr('&', 2, $1, $3)); }
         | IDENTIFIER EORA expr          { $$ = opr('=', 2, $1, opr('^', 2, $1, $3)); }
-        | IDENTIFIER IORA expr          { $$ = opr('=', 2, $1, opr('"', 2, $1, $3)); }
+        | IDENTIFIER IORA expr          { $$ = opr('=', 2, $1, opr('|', 2, $1, $3)); }
         | expr PP                       { $$ = opr(PP, 1, $1); }
         | expr MM                       { $$ = opr(MM, 1, $1); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }

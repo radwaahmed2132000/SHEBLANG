@@ -8,14 +8,18 @@
 #include "y.tab.h"
 #include "result.h"
 
+/*
+  TODO: return line number along with error message
+*/
+
 #define LEFT_VALID(oper) \
-    Result left = std::visit(semantic_analysis_visitor(), oper->un); \
+    Result left = semantic_analysis(oper); \
     if (!left.isSuccess()) { \
         return left; \
     } \
 
 #define RIGHT_VALID(oper) \
-    Result right = std::visit(semantic_analysis_visitor(), oper->un); \
+    Result right = semantic_analysis(oper); \
     if (!right.isSuccess()) { \
         return right; \
     } \
@@ -32,13 +36,23 @@
     auto rightType = std::get<SuccessType>(right); \
     if (leftType != rightType) { \
         return Result::Error("Error: The LHS identifier type: " + \
-                 std::get<SuccessType>(left) + " doesn't match the RHS Expression type" \
+                 std::get<SuccessType>(left) + " doesn't match the RHS Expression type: " \
                  + std::get<SuccessType>(right) + "\n"); \
     } \
 
-#define TYPE_VAR(left) \
+#define LEFT_TYPE(left) \
     auto leftType = std::get<SuccessType>(left); \
    \
+
+#define RIGHT_TYPE(right) \
+    auto rightType = std::get<SuccessType>(right); \
+
+#define EXISTING_TYPE(type) \
+     static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool"}; \
+     if (builtinTypes.find(type) == builtinTypes.end()) { \
+            return Result::Error("Error: The type of the variable " \
+             + type + " is not valid\n"); \
+      } \
 
 struct semantic_analysis_visitor {
     
@@ -67,20 +81,17 @@ struct semantic_analysis_visitor {
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
         auto& entry = sym2[nameStr];
 
-        static std::unordered_set<std::string> builtinTypes = {"float", "int"};
-        if (builtinTypes.find(entry.type) == builtinTypes.end()) {
-            return Result::Error("Error: The type of the variable " + nameStr + " is not valid\n");
-        }
+        EXISTING_TYPE(entry.type);
 
         /* Check that the initial expression is valid if it exits */
         if (entry.initExpr != nullptr) {
-            Result init = std::visit(semantic_analysis_visitor(), entry.initExpr->un);
+            Result init = semantic_analysis(entry.initExpr);
             if (!init.isSuccess()) {
                 return init;
             }
             /* Check that the left & right types are matching */
             if (entry.type != std::get<SuccessType>(init)) {
-                return Result::Error("Error: The LHS identifier type: " + entry.type + " doesn't match the RHS Expression type" + entry.initExpr->type + "\n");
+                return Result::Error("Error: The LHS identifier type: " + entry.type + " doesn't match the RHS Expression type: " + std::get<SuccessType>(init) + "\n");
             }
         } else {
             /* The initialization expression doesn't exist*/
@@ -98,12 +109,18 @@ struct semantic_analysis_visitor {
             TODO: Add scope checking when scoping is added 
         */
 
+        /* Check that the identifier is declared */
         if (sym2.find(identifier.id) != sym2.end()) {
+            /* Check that the identifier type is valid */
+            EXISTING_TYPE(sym2[identifier.id].type);
+
             return Result::Success(sym2[identifier.id].type);
         }
         else {
             return Result::Error("Error: Identifier " + identifier.id + " is not declared\n");
         }
+
+        
     }
 
     Result operator()(caseNodeType& identifier) { return Result::Success("success"); }
@@ -133,17 +150,32 @@ struct semantic_analysis_visitor {
         */
         switch (opr.oper) {
 
-        case '=': {
-            /* Check that the left expression is valid (identifier is declared) */
-            LEFT_VALID(opr.op[0]); // * gives left
-            /* Check that the left identifier is not a constant */
-            NOT_CONST(opr.op[0]); 
-            /* Check that the right expression is semantically valid */
-            RIGHT_VALID(opr.op[1]); // * gives right
-            /*  Check that the two expressions on the left & on the right are of the same type */
-            LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+        case ';': {
+            /* Check that the first statement is semantically correct */
+            Result first = semantic_analysis(opr.op[0]);
+            if (!first.isSuccess()) {
+                return first;
+            }
 
-            return Result::Success(leftType);
+            /* Check that the rest of the statements are semantically correct */
+            Result second = semantic_analysis(opr.op[1]);
+            if (!second.isSuccess()) {
+                return second;
+            }
+
+            return Result::Success(std::get<SuccessType>(second));
+        }
+
+        case '=': {
+          /* Check that the left expression is valid (identifier is declared) */
+          LEFT_VALID(opr.op[0]); // * gives left
+          /* Check that the left identifier is not a constant */
+          NOT_CONST(opr.op[0]); 
+          /* Check that the right expression is semantically valid */
+          RIGHT_VALID(opr.op[1]); // * gives right
+          /*  Check that the two expressions on the left & on the right are of the same type */
+          LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+          return Result::Success(leftType);
         }
         break;
 
@@ -152,117 +184,107 @@ struct semantic_analysis_visitor {
             TODO: Alow float & int interoperability  
         */
 
-        case PA: case SA: case MA: case DA: case RA: {
-            /* Check that the left expression is valid (identifier is declared) */
-            LEFT_VALID(opr.op[0]); // * gives left
-            /* Check that the left identifier is not a constant */
-            NOT_CONST(opr.op[0]); 
-            /* Check that the right expression is semantically valid */
-            RIGHT_VALID(opr.op[1]); // * gives right
-            /*  Check that the two expressions on the left & on the right are of the same type */
-            LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
-            /* Check that the left and right are either both integers or both float */
-            
-            if (leftType != "int" && leftType != "float") {
-                return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
-            }
-            if (rightType != "int" && rightType != "float") {
-                return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
-            }
-            if (opr.oper== RA) {
-              if (leftType != "int" || rightType != "int") {
-                return Result::Error("Error: The LHS and RHS must be integers in mod  operation \n");
-                }  
-            }
-
-            return Result::Success(leftType);
-        }
-        break;
-
         case PP: case MM: {
           /* Check that the left identifier is not a constant */
           NOT_CONST(opr.op[0]); 
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
-
-          TYPE_VAR(left);
+          LEFT_TYPE(left);
           if (leftType != "int" && leftType != "float") {
                 return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
-            }
+          }
         }
-        break;
-        case AND : case OR :   {
-            /* Check that the left expression is valid (identifier is declared) */
-            LEFT_VALID(opr.op[0]); // * gives left
-            /* Check that the right expression is semantically valid */
-            RIGHT_VALID(opr.op[1]); // * gives right
-            /*  Check that the two expressions on the left & on the right are of the same type */
-            LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
-            /* Check that the left and right are bool */
-            if (leftType != "bool" ) {
-                return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a logical operation\n");
-            }
-            if (rightType != "bool" ) {
-                return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a logical operation\n");
-            }
-            return Result::Success(leftType);
+      break;
+      case AND : case OR :   {
+        /* Check that the left expression is valid (identifier is declared) */
+        LEFT_VALID(opr.op[0]); // * gives left
+        /* Check that the right expression is semantically valid */
+        RIGHT_VALID(opr.op[1]); // * gives right
+        /*  Check that the two expressions on the left & on the right are of the same type */
+        LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+        /* Check that the left and right are bool */
+        if (leftType != "bool" ) {
+          return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a logical operation\n");
+        }
+        if (rightType != "bool" ) {
+          return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a logical operation\n");
+        }
+        return Result::Success(leftType);
         }
         break;
         
-        case '+': case '-': case '*': case '/': case '%':  {
+      case '+': case '-': case '*': case '/': case '%':  {
+        /* Check that the left expression is valid (identifier is declared) */
+        LEFT_VALID(opr.op[0]); // * gives left
+        /* Check that the right expression is semantically valid */
+        RIGHT_VALID(opr.op[1]); // * gives right
+        /*  Check that the two expressions on the left & on the right are of the same type */
+        LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
+        /* Check that the left and right are either both integers or both float */
+        if (leftType != "int" && leftType != "float") {
+          return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
+        }
+        if (rightType != "int" && rightType != "float") {
+          return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
+        }
+        if (opr.oper== '%')
+        {
+          if (leftType != "int" || rightType != "int") {
+            return Result::Error("Error: The LHS and RHS must be integers in module operation \n");
+                
+          }
+        }
+        return Result::Success(leftType);
+      }
+      break;
+      case GE: case LE:   case '>': case '<' :{
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
+          
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
           LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
           /* Check that the left and right are either both integers or both float */
           if (leftType != "int" && leftType != "float") {
-                return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
+            return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
           }
           if (rightType != "int" && rightType != "float") {
-                return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
+            return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
           }
-           if (opr.oper== '%')
-          {
-            if (leftType != "int" || rightType != "int") {
-                    return Result::Error("Error: The LHS and RHS must be integers in mod  operation \n");
-                }
-          }
-          return Result::Success(leftType);
-      }
-        break;
-        case GE: case LE:  {
-            /* Check that the left expression is valid (identifier is declared) */
-            LEFT_VALID(opr.op[0]); // * gives left
-          
-            /* Check that the right expression is semantically valid */
-            RIGHT_VALID(opr.op[1]); // * gives right
-            /*  Check that the two expressions on the left & on the right are of the same type */
-            LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType
-            /* Check that the left and right are either both integers or both float */
-            if (leftType != "int" && leftType != "float") {
-                  return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a mathematical operation\n");
-            }
-            if (rightType != "int" && rightType != "float") {
-                  return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a mathematical operation\n");
-            }
             return Result::Success(leftType);
         }
-        break;
-        case EQ: case NE:  {
-          /* Check that the left expression is valid (identifier is declared) */
-          LEFT_VALID(opr.op[0]); // * gives left
-          /* Check that the right expression is semantically valid */
-          RIGHT_VALID(opr.op[1]); // * gives right
-          /*  Check that the two expressions on the left & on the right are of the same type */
-          LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType 
-          return Result::Success(leftType);
+      break;
+      case EQ: case NE:  {
+        /* Check that the left expression is valid (identifier is declared) */
+        LEFT_VALID(opr.op[0]); // * gives left
+        /* Check that the right expression is semantically valid */
+        RIGHT_VALID(opr.op[1]); // * gives right
+        /*  Check that the two expressions on the left & on the right are of the same type */
+        LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType 
+        return Result::Success(leftType);
       }
-        break;  
-        default:
-            return Result::Success("success"); 
-            break;
+      break;
+      case '&': case '^': case '|': case LS: case RS:  {
+        /* Check that the left expression is valid (identifier is declared) */
+        LEFT_VALID(opr.op[0]); // * gives left
+        /* Check that the right expression is semantically valid */
+        RIGHT_VALID(opr.op[1]); // * gives right
+        LEFT_TYPE(left);
+        RIGHT_TYPE(right);
+        if (leftType != "int" ) {
+          return Result::Error("Error: The LHS identifier type: " + leftType + " is not a valid type for a bitwise operation\n");
+        }
+        if (rightType != "int" ) {
+          return Result::Error("Error: The RHS identifier type: " + rightType + " is not a valid type for a bitwise operation\n");
+        }
+
+        return Result::Success(leftType);
+      }
+      break;  
+      default:
+          return Result::Success("success"); 
+          break;
       }
     }
 

@@ -1,1 +1,3 @@
 int x=5+'5';
+===
+Error: The LHS identifier type: int doesn't match the RHS Expression type: char
