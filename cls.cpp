@@ -139,15 +139,17 @@ struct semantic_analysis_visitor {
       if (condition.isSuccess() && loop.isSuccess())
       {
         auto conditionType =std::get<SuccessType>(condition); 
-        if(conditionType=="bool" || conditionType=="int"  || conditionType=="float")
-          return Result::Success("success"); 
+        if(conditionType=="bool")
+          return Result::Success(conditionType); 
         else
-          return Result::Error("Failed in do While loop ");
+          return Result::Error("The condition in do while loop is not a boolean");
       }
-       
-
-      else 
-        return Result::Error("Failed in do While loop ");
+      else {
+        if (!condition.isSuccess())
+          return condition; 
+        else 
+          return loop;
+      }
     }
 
     Result operator()(whileNodeType& w) { 
@@ -156,13 +158,17 @@ struct semantic_analysis_visitor {
       if (condition.isSuccess() && loop.isSuccess())
       {
         auto conditionType =std::get<SuccessType>(condition); 
-        if(conditionType=="bool" || conditionType=="int"  || conditionType=="float")
-          return Result::Success("success"); 
+        if(conditionType=="bool")
+          return Result::Success(conditionType); 
         else
-          return Result::Error("Failed in While loop ");
+          return Result::Error("The condition in a while loop is not a boolean");
       }
-      else 
-        return Result::Error("Failed in  While loop ");
+      else {
+        if (!condition.isSuccess())
+          return condition; 
+        else 
+          return loop;
+      }
      }
 
     Result operator()(forNodeType& f) { return Result::Success("success"); }
@@ -292,7 +298,7 @@ struct semantic_analysis_visitor {
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
         LEFT_SAME_TYPE_AS_RIGHT(left, right); // * gives leftType & rightType 
-        return Result::Success(leftType);
+        return Result::Success("bool");
       }
       break;
       case '&': case '^': case '|': case LS: case RS:  {
@@ -322,20 +328,16 @@ struct semantic_analysis_visitor {
       break;  
       case IF :
           {
-
-           Result first = semantic_analysis(opr.op[0]);
-           
-            if (first.isSuccess() ) {
-              auto firstType =std::get<SuccessType>(first);
-              if(firstType=="bool")
-                return Result::Success("success");
+           Result condition = semantic_analysis(opr.op[0]);
+            if (condition.isSuccess() ) {
+              auto conditionType =std::get<SuccessType>(condition);
+              if(conditionType=="bool")
+                return Result::Success(conditionType);
               else
-              return Result::Error("Failed If condition ");
-            }
-              else{
-                return Result::Error("Failed If condition ");
+              return Result::Error("Condition in an if statement is not boolean");
+            } else{
+                return condition;
               }
-
           }
       break;
       default:
