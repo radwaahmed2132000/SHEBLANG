@@ -79,8 +79,8 @@ typedef struct VarDecl {
 
 typedef struct nodeType {
     std::variant<NODE_TYPES> un;
-
-    nodeType(std::variant<NODE_TYPES> innerUnion): un(innerUnion) {}
+    int lineNo;
+    nodeType(std::variant<NODE_TYPES> innerUnion, int lineNo): un(innerUnion), lineNo(lineNo) {}
 } nodeType;
 
 typedef struct SymbolTableEntry {
