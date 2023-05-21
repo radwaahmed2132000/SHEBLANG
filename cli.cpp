@@ -207,7 +207,26 @@ struct ex_visitor {
                 return Value(0);
 
            }
-            case '=':       return sym2[std::get<idNodeType>(opr.op[0]->un).id] = ex(opr.op[1]);
+            case '=':       {
+                return std::visit(
+                    Visitor {
+                        [&opr](VarDecl& varDecl) { 
+                            auto varNameIdNode = std::get<idNodeType>(varDecl.var_name->un);
+                            return sym2[varNameIdNode.id] = ex(opr.op[1]); 
+                        },
+                        [&opr](idNodeType& idNode) { 
+                            auto ret = ex(opr.op[1]);
+                            return sym2[idNode.id] = ret; 
+                        },
+                        [](auto _default) { std::cout << "Invalid assignment expression"; return Value(0); }
+                    } ,
+                    opr.op[0]->un
+                );
+            }
+
+            // TODO: figure out how to return values in the interpreter
+            case RETURN:
+                return ex(opr.op[0]);
 
             BOP_CASE('+',+)
             BOP_CASE('-',-)

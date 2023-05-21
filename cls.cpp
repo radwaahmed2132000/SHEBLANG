@@ -5,35 +5,38 @@
 #include "cl.h"
 #include "y.tab.h"
 
+#include "result.h"
+
+
 struct semantic_analysis_visitor {
-    Value operator()(conNodeType& con) { return Value(0); }
+    Result operator()(conNodeType &con){ return Result::Success(""); }
 
-    Value operator()(idNodeType& identifier) { return Value(0); }
+    Result operator()(idNodeType &identifier) { return Result::Success("");; }
 
-    Value operator()(caseNodeType& identifier) { return Value(0); }
+    Result operator()(caseNodeType& identifier) { return Result::Success("");; }
 
-    Value operator()(switchNodeType& sw) { return Value(0); }
+    Result operator()(switchNodeType& sw) { return Result::Success("");; }
 
-    Value operator()(breakNodeType& br) { return Value(0); }
+    Result operator()(breakNodeType& br) { return Result::Success("");; }
 
-    Value operator()(functionNodeType& fn) { return Value(0); }
+    Result operator()(functionNodeType& fn) { return Result::Success("");; }
 
-    Value operator()(doWhileNodeType& dw) { return Value(0); }
+    Result operator()(doWhileNodeType& dw) { return Result::Success("");; }
 
-    Value operator()(whileNodeType& w) { return Value(0); }
+    Result operator()(whileNodeType& w) { return Result::Success("");; }
 
-    Value operator()(forNodeType& f) { return Value(0); }
+    Result operator()(forNodeType& f) { return Result::Success("");; }
 
-    Value operator()(oprNodeType& opr) { return Value(0); }
+    Result operator()(oprNodeType& opr) { return Result::Success("");; }
 
     // the default case:
     template<typename T> 
-    Value operator()(T const & /*UNUSED*/ ) const { return Value(0); } 
+    Result operator()(T const & /*UNUSED*/ ) const { return Result::Success("");; } 
 };
 
-Value semantic_analysis(nodeType *p) {    
+Result semantic_analysis(nodeType *p) {    
     // std::cout << "Semantic analysis running\n";
-    if (p == nullptr) return Value(0);
+    if (p == nullptr) return Result::Success("");;
     return std::visit(semantic_analysis_visitor(), p->un);
 }
 

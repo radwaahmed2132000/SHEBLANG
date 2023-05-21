@@ -7,34 +7,13 @@
 #include "cl.h"
 
 /* prototypes */
-nodeType *opr(int oper, int nops, ...);
-nodeType *id(const char* id);
-
-nodeType *con(int iValue);
-nodeType *con(float fValue);
-nodeType *con(bool bValue);
-nodeType *con(char cValue);
-nodeType *con(char* sValue);
-nodeType *sw(nodeType* var, nodeType* case_list_head);
-nodeType *cs(nodeType* self, nodeType* next);
-nodeType *br();
-
-nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body);
-nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
-nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
-
-void set_break_parent(nodeType* case_list, nodeType* parent_switch);
-
-nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements);
-nodeType* fn_call(nodeTypeTag* name);
-
 void freeNode(nodeType *p);
 Value ex(nodeType *p);
 int yylex(void);
 
 void yyerror(char *s);
-float sym[26];                    /* symbol table */
 std::unordered_map<std::string, Value> sym2;
+std::unordered_map<std::string, functionNodeType> functions;
 %}
 
 %union {
@@ -71,7 +50,7 @@ std::unordered_map<std::string, Value> sym2;
 %right UPLUS UMINUS '!' '~' PP MM
 /* left a++   a--	Suffix/postfix increment and decrement */
 
-%type <nPtr> stmt expr stmt_list case case_list function_call function_return_type function_defn function_decl var_defn var_decl
+%type <nPtr> stmt expr stmt_list case case_list function_call function_return_type function_defn var_defn function_parameter_list var_decl return_statement
 %%
 
 program:
@@ -81,7 +60,7 @@ program:
 
 var_decl:
         // TODO: Use $1 for semantic analysis.
-        IDENTIFIER IDENTIFIER       { $$ = $2; }
+        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); }
         ;
 
 var_defn:
@@ -109,17 +88,16 @@ stmt:
                 set_break_parent($2, $$);
         }
         | '{' stmt_list '}'                       { $$ = $2; }
-        | var_decl ';'                            { printf("Variable declaration parsed successfully\n"); }
         | var_defn                                { $$ = $1; }
+        | var_decl ';'                            { $$ = $1; }
         | CONST var_defn                          { $$ = $2; }
         | enum_decl                               
         | function_defn
-        | function_decl ';'
-        | return_statement                        { printf("Return statement\n"); }
+        | return_statement                        
         ;
 
 return_statement:
-                RETURN expr ';'
+                RETURN expr ';' { $$ = opr(RETURN, 1, $2); }
                 ;
 
 case: 
@@ -187,7 +165,6 @@ expr:
 function_call:
              IDENTIFIER '(' expr_list ')' { 
                      auto fn_name = std::get<idNodeType>($1->un);
-                     printf("Function call (%s) parsed successfully\n", fn_name.id.c_str()); 
                      $$ = fn_call($1);
              }
 
@@ -200,7 +177,6 @@ expr_list:
 enum_decl:
          ENUM IDENTIFIER '{' identifier_list '}' ';' { 
                  auto enum_name = std::get<idNodeType>($2->un);
-                 printf("Enum (%s) parsed successfully\n", enum_name.id.c_str()); 
          }
          ;
 
@@ -216,212 +192,19 @@ function_return_type:
                     ;
 
 function_parameter_list:
-                       function_parameter_list ',' var_decl
-                       | var_decl
-                       | /* NULL */
+                       function_parameter_list ',' var_decl  { $$ = fnParamList($1, $3); }
+                       | var_decl                            { $$ = fnParamList($1); }
+                       | /* NULL */                          { $$ = fnParamList(nullptr); }
                        ;
 function_defn:
              FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}' { 
-                     $$ = fn($2, $6, $8);
-                     auto fn_name = std::get<idNodeType>($2->un);
-                     printf("Function (%s) parsed successfully\n", fn_name.id.c_str()); 
-             } 
+                     auto head = std::get<VarDecl>($4->un);
+                     auto paramsList = head.toVec();
 
-function_decl:
-             FN IDENTIFIER '(' function_parameter_list ')' function_return_type { 
-                     $$ = fn_call($2); // TODO: Create another function for the declaration.
-                     auto fn_name = std::get<idNodeType>($2->un);
-                     printf("Function Declaration (%s) parsed successfully\n", fn_name.id.c_str()); 
+                     $$ = fn($2, paramsList, $6, $8);
              } 
 
 %%
-
-nodeType* fn(nodeTypeTag* name, nodeTypeTag* return_type, nodeType* statements) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-    p->un = std::variant<NODE_TYPES>(functionNodeType{return_type, name, statements});
-
-    return p;
-}
-
-nodeType* fn_call(nodeTypeTag* name) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-        p->un = std::variant<NODE_TYPES>(functionNodeType{nullptr, name});
-
-    return p;
-}
-
-struct set_break_parent_visitor {
-        nodeType* parent_switch;
-
-        void operator()(breakNodeType& b) {
-               b.parent_switch = parent_switch;
-        }
-        void operator()(oprNodeType& opr) {
-                for(int i = 0; i < opr.op.size(); i++) {
-                        set_break_parent(opr.op[i], parent_switch);
-                }
-        }
-        void operator()(caseNodeType& c) {
-               set_break_parent(c.self, parent_switch);
-               set_break_parent(c.prev, parent_switch);
-        }
-
-       // the default case:
-       template<typename T> void operator()(T const &) const { } 
-};
-
-void set_break_parent(nodeType* node, nodeType* parent_switch) {
-        if(node == NULL) return;
-        
-        std::visit(set_break_parent_visitor{parent_switch}, node->un);
-}
-nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-        p->un = std::variant<NODE_TYPES>(doWhileNodeType{false, loop_condition, loop_body});
-
-    return p;
-}
-
-nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-        p->un = std::variant<NODE_TYPES>(whileNodeType{false, loop_condition, loop_body});
-
-    return p;
-}
-
-nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-        p->un = std::variant<NODE_TYPES>(forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body});
-
-    return p;
-}
-
-nodeType *br() {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-        p->un = std::variant<NODE_TYPES>(breakNodeType{NULL});
-
-    return p;
-}
-
-nodeType *cs(nodeType* self, nodeType* prev) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-        p->un = std::variant<NODE_TYPES>(caseNodeType{});
-
-    auto cs = caseNodeType{};
-
-    std::visit(
-        Visitor {
-                [&cs, self](oprNodeType&)  { cs.self = self; cs.prev = NULL; },
-                [&cs, self, prev](caseNodeType&) { cs.prev = self; cs.self = prev; },
-                [](auto) {}
-        },
-        self->un
-    );
-
-    p->un = cs;
-    return p;
-}
-
-nodeType *sw(nodeType* var, nodeType* case_list_head) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-    /* copy information */
-    
-    p->un = std::variant<NODE_TYPES>(switchNodeType{
-            0, 0, var, case_list_head
-    });
-
-    return p;
-}
-
-#define CON_INIT(ptr_name, value)      \
-        nodeType* ptr_name;                                     \
-        if ((ptr_name = new nodeType()) == NULL)                \
-                yyerror("out of memory");                       \
-        auto con = conNodeType{value};                               \
-        (ptr_name)->un = std::variant<NODE_TYPES>(con);         \
-        return ptr_name
-
-nodeType *con(int iValue)   { CON_INIT(p, iValue);   return p; }
-nodeType *con(float fValue) { CON_INIT(p, fValue); return p; }
-nodeType *con(bool bValue)  { CON_INIT(p, bValue);  return p; }
-nodeType *con(char cValue)  { CON_INIT(p, cValue);  return p; }
-nodeType *con(char* sValue) { CON_INIT(p, std::string(sValue));  return p; }
-
-// Create an identifier node.
-nodeType *id(const char* id) {
-    nodeType *p;
-
-    /* allocate node */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-    /* copy information */
-        p->un = std::variant<NODE_TYPES>(idNodeType{std::string(id)});
-
-    return p;
-}
-
-// Create an operator node with a variable number of inputs (usually 2)
-// Note that `oper` is an enum value (or #ifdef), you can find the definintions in `y.tab.h`.
-nodeType *opr(int oper, int nops, ...) {
-    va_list ap;
-    nodeType *p;
-    int i;
-
-    /* allocate node, extending op array */
-    if ((p = new nodeType()) == NULL)
-        yyerror("out of memory");
-
-    /* copy information */
-    p->un = std::variant<NODE_TYPES>(oprNodeType{});
-    auto& opr = std::get<oprNodeType>(p->un);
-    opr.oper = oper;
-    va_start(ap, nops);
-    for (i = 0; i < nops; i++)
-        opr.op.push_back(va_arg(ap, nodeType*));
-    va_end(ap);
-    return p;
-}
 
 // De-allocates a node and all of its children (if any).
 void freeNode(nodeType *p) {

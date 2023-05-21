@@ -1,3 +1,2 @@
 enum test {A, B, C};
 ===
-Enum (test) parsed successfully

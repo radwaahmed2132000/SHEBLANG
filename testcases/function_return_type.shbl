@@ -2,4 +2,3 @@ fn test() my_return_type {
 	;
 }
 ===
-Function (test) parsed successfully

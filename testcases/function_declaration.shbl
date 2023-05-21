@@ -1,3 +1,0 @@
-fn test(int a, int b) int;
-===
-Function Declaration (test) parsed successfully

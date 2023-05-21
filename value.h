@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 
+
 // https://en.cppreference.com/w/cpp/utility/variant/visit
 // Needed so you can use std::visitor ergonomically like so:
 //      std::visit(
@@ -34,11 +35,23 @@ struct Value : ValueVariant {
     explicit operator bool() const {
         return std::visit(
             Visitor {
-                    [](int iValue)         { return (bool)iValue; },
-                    [](float fValue)       { return (bool)fValue; },
                     [](bool bValue)        { return bValue; },
-                    [](char cValue)        { return (bool)cValue; },
                     [](std::string sValue) { std::cerr << "No conversion from string to bool, returning false\n"; return false; },
+                    [](auto arg)           { return (bool)arg; }
+            },
+            *this
+        );
+    }
+
+    std::string toString() const {
+        using namespace std::string_literals;
+        return std::visit(
+            Visitor {
+                    [](int iValue)         { return std::to_string(iValue); },
+                    [](float fValue)       { return std::to_string(fValue); },
+                    [](bool bValue)        { return bValue? "true"s: "false"s; },
+                    [](char cValue)        { return std::string(1, cValue); },
+                    [](std::string sValue) { return sValue; },
             },
             *this
         );
