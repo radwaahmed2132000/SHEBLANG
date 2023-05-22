@@ -157,19 +157,6 @@ typedef struct VarDefn {
 	VarDefn(VarDecl* decl, nodeType* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
 } VarDefn;
 
-#define NODE_TYPES                                                      \
-    conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, \
-    breakNodeType, functionNodeType, whileNodeType, forNodeType,        \
-    doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode,    \
-    enumUseNode, StatementList, FunctionCall, ExprListNode              
-
-typedef struct nodeType {
-    std::variant<NODE_TYPES> un;
-    int lineNo;
-    std::string conversionType = ""; 
-	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
-} nodeType;
-
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
@@ -194,6 +181,30 @@ typedef struct SymbolTableEntry {
     Value& getRef() { return value; }
 } SymbolTableEntry;
 
+struct ScopeSymbolTables {
+    std::unordered_map<std::string, SymbolTableEntry> sym2;
+    std::unordered_map<std::string, functionNodeType> functions;
+    std::unordered_map<std::string, enumNode> enums;
+};
+
+#define NODE_TYPES                                                      \
+    conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, \
+    breakNodeType, functionNodeType, whileNodeType, forNodeType,        \
+    doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode,    \
+    enumUseNode, StatementList, FunctionCall, ExprListNode              
+
+typedef struct nodeType {
+    std::variant<NODE_TYPES> un;
+    int lineNo;
+    std::string conversionType = ""; 
+
+    ScopeSymbolTables* parentScope;
+    ScopeSymbolTables currentScope;
+
+	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
+} nodeType;
+
+// TODO: Remove these once scoping works
 inline std::unordered_map<std::string, SymbolTableEntry> sym2;
 inline std::unordered_map<std::string, functionNodeType> functions;
 inline std::unordered_map<std::string, enumNode> enums;
@@ -201,6 +212,7 @@ inline Result errorsOutput;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Result semantic_analysis(nodeType* p);
+void setup_scopes(nodeType* p);
 void set_break_parent(nodeType* node, nodeType* parent_switch);
 
 // Must include after the structs are defined

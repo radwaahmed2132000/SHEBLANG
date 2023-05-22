@@ -60,6 +60,8 @@ extern int yylineno;            /* from lexer */
 
 program:
         stmt_list { 
+                setup_scopes($1);
+
                 auto result = semantic_analysis($1);
                 if (errorsOutput.isSuccess()) {
                     // printf("Semantic analysis successful\n");
@@ -70,6 +72,7 @@ program:
                     }
                     exit(1);
                 }
+
                 ex($1);
                 freeNode($1);
                 exit(0);
