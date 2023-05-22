@@ -87,7 +87,8 @@ var_defn:
         };
 
 stmt:
-        ';'                                     { $$ = opr(';', 0); }
+        '{' stmt_list '}'                       { $$ = $2; }
+        |';'                                     { $$ = opr(';', 0); }
         | FOR '(' var_defn expr ';' expr ')' stmt { 
                 $$ = for_loop($3, $4, $6, $8); 
                 set_break_parent($8, $$);
@@ -106,14 +107,9 @@ stmt:
                 $$ = do_while_loop($5, $2); 
                 set_break_parent($2, $$);
         }
-        | '{' stmt_list '}'                       { $$ = $2; }
-        | var_decl ';'                            
+        | var_decl ';'                            { $$ = $1; }
         | var_defn                                { $$ = $1; }
-
-        | CONST var_decl '=' expr ';' { 
-            $$ = varDefn($2, $4, true);;
-        }
-        
+        | CONST var_decl '=' expr ';'             { $$ = varDefn($2, $4, true); }
         | enum_defn                              
         | function_defn
         | return_statement                        
@@ -135,14 +131,8 @@ case_list:
          ;
 
 stmt_list:
-          stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); }
-        | stmt_list stmt        { 
-            if(!std::holds_alternative<StatementList>($2->un)) {
-                $$ = appendToLinkedList<StatementList>($1, statementList($2)); 
-            } else {
-                $$ = appendToLinkedList<StatementList>($1, $2); 
-            }
-        };
+        stmt_list stmt           { $$ = appendToLinkedList<StatementList>($1, statementList($2)); }
+        | stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); };
 
 expr:
           INTEGER                       { $$ = con($1); }

@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "cl.h"
+#include "result.h"
 #include "y.tab.h"
 
 #define BOP_CASE(case_value, oper) \
