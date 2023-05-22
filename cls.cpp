@@ -235,7 +235,48 @@ struct semantic_analysis_visitor {
       }
      }
 
-    Result operator()(forNodeType& f) { return Result::Success("success"); } // TODO
+    Result operator()(forNodeType& f) { 
+      
+      auto init_statement= semantic_analysis( f.init_statement); 
+      auto condition= semantic_analysis(f.loop_condition);
+      auto loop=semantic_analysis(f.loop_body);
+      auto post_statement= semantic_analysis(f.post_loop_statement);
+      if(init_statement.isSuccess() )
+      {
+          if(condition.isSuccess())
+          {
+              auto conditionType =std::get<SuccessType>(condition); 
+              if(conditionType!="bool")
+              {
+                return Result::Error("Error in condition in the for loop , it must be bool experssion" );
+              }
+              if(loop.isSuccess())
+              {
+
+                if(post_statement.isSuccess())
+                {
+                    return Result::Success(conditionType);
+                }
+                else
+                {
+                  return post_statement;
+                }
+              }
+              else{
+                return loop ;
+              }
+          } 
+          else{
+            return condition;
+          }    
+      }
+      else
+      {
+        return init_statement;
+      }
+      return Result::Success("success");
+      
+    } 
 
     Result operator()(oprNodeType& opr) {   
         /* Things that need to be checked */
