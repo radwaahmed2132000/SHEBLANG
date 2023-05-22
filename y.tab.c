@@ -633,14 +633,14 @@ static const yytype_int8 yytranslate[] =
 static const yytype_uint8 yyrline[] =
 {
        0,    62,    62,    77,    81,    85,    90,    91,    95,    96,
-      97,    98,    99,   100,   101,   105,   109,   110,   111,   113,
-     117,   118,   119,   123,   127,   128,   129,   133,   134,   138,
-     139,   148,   149,   150,   151,   152,   153,   154,   155,   156,
+      97,    98,    99,   100,   101,   105,   109,   110,   111,   112,
+     113,   114,   115,   119,   123,   124,   125,   129,   130,   134,
+     135,   138,   139,   140,   141,   142,   143,   144,   145,   146,
+     147,   148,   149,   150,   151,   152,   153,   154,   155,   156,
      157,   158,   159,   160,   161,   162,   163,   164,   165,   166,
      167,   168,   169,   170,   171,   172,   173,   174,   175,   176,
-     177,   178,   179,   180,   181,   182,   183,   184,   185,   186,
-     187,   188,   189,   190,   191,   195,   198,   203,   204,   205,
-     209,   221,   222,   223,   227,   228,   232,   233,   234,   237
+     177,   178,   179,   180,   181,   185,   188,   193,   194,   195,
+     199,   211,   212,   213,   217,   218,   222,   223,   224,   227
 };
 #endif
 
@@ -1674,11 +1674,11 @@ yyreduce:
 #line 62 "cl.y"
                   { 
                 auto result = semantic_analysis((yyvsp[0].nPtr));
-                if (result.isSuccess()) {
+                if (errorsOutput.isSuccess()) {
                     // printf("Semantic analysis successful\n");
                 } else {
                     // printf("Semantic analysis failed\n");
-                    for (auto& error : std::get<ErrorType>(result)) {
+                    for (auto& error : std::get<ErrorType>(errorsOutput)) {
                         printf("%s\n", error.c_str());
                     }
                     exit(1);
@@ -1779,366 +1779,364 @@ yyreduce:
 #line 1780 "y.tab.c"
     break;
 
-  case 18:
-#line 111 "cl.y"
-                                                  { (yyval.nPtr) = (yyvsp[0].nPtr); }
+  case 17:
+#line 110 "cl.y"
+                                                  { (yyval.nPtr) = (yyvsp[-1].nPtr); }
 #line 1786 "y.tab.c"
     break;
 
+  case 18:
+#line 111 "cl.y"
+                                                  { (yyval.nPtr) = (yyvsp[0].nPtr); }
+#line 1792 "y.tab.c"
+    break;
+
   case 19:
-#line 113 "cl.y"
-                                      { 
-            (yyval.nPtr) = varDefn((yyvsp[-3].nPtr), (yyvsp[-1].nPtr), true);;
-        }
-#line 1794 "y.tab.c"
+#line 112 "cl.y"
+                                                  { (yyval.nPtr) = varDefn((yyvsp[-3].nPtr), (yyvsp[-1].nPtr), true); }
+#line 1798 "y.tab.c"
     break;
 
   case 23:
-#line 123 "cl.y"
+#line 119 "cl.y"
                                 { (yyval.nPtr) = opr(RETURN, 1, (yyvsp[-1].nPtr)); }
-#line 1800 "y.tab.c"
+#line 1804 "y.tab.c"
     break;
 
   case 24:
-#line 127 "cl.y"
+#line 123 "cl.y"
                                 { (yyval.nPtr) = cs((yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1806 "y.tab.c"
+#line 1810 "y.tab.c"
     break;
 
   case 25:
-#line 128 "cl.y"
+#line 124 "cl.y"
                                 { (yyval.nPtr) = cs(nullptr, (yyvsp[0].nPtr)); }
-#line 1812 "y.tab.c"
+#line 1816 "y.tab.c"
     break;
 
   case 26:
-#line 129 "cl.y"
+#line 125 "cl.y"
                                 { (yyval.nPtr) = (yyvsp[-1].nPtr); }
-#line 1818 "y.tab.c"
+#line 1822 "y.tab.c"
     break;
 
   case 27:
-#line 133 "cl.y"
+#line 129 "cl.y"
                                   { (yyval.nPtr) = linkedListStump<caseNodeType>((yyvsp[0].nPtr)); }
-#line 1824 "y.tab.c"
+#line 1828 "y.tab.c"
     break;
 
   case 28:
-#line 134 "cl.y"
+#line 130 "cl.y"
                                   { (yyval.nPtr) = appendToLinkedList<caseNodeType>((yyvsp[-1].nPtr), (yyvsp[0].nPtr)); }
-#line 1830 "y.tab.c"
+#line 1834 "y.tab.c"
     break;
 
   case 29:
-#line 138 "cl.y"
+#line 134 "cl.y"
                                 { (yyval.nPtr) = linkedListStump<StatementList>(statementList((yyvsp[0].nPtr))); }
-#line 1836 "y.tab.c"
+#line 1840 "y.tab.c"
     break;
 
   case 30:
-#line 139 "cl.y"
-                                { 
-            if(!std::holds_alternative<StatementList>((yyvsp[0].nPtr)->un)) {
-                (yyval.nPtr) = appendToLinkedList<StatementList>((yyvsp[-1].nPtr), statementList((yyvsp[0].nPtr))); 
-            } else {
-                (yyval.nPtr) = appendToLinkedList<StatementList>((yyvsp[-1].nPtr), (yyvsp[0].nPtr)); 
-            }
-        }
-#line 1848 "y.tab.c"
+#line 135 "cl.y"
+                                { (yyval.nPtr) = appendToLinkedList<StatementList>((yyvsp[-1].nPtr), statementList((yyvsp[0].nPtr))); }
+#line 1846 "y.tab.c"
     break;
 
   case 31:
-#line 148 "cl.y"
+#line 138 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].iValue)); }
-#line 1854 "y.tab.c"
+#line 1852 "y.tab.c"
     break;
 
   case 32:
-#line 149 "cl.y"
+#line 139 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].fValue)); }
-#line 1860 "y.tab.c"
+#line 1858 "y.tab.c"
     break;
 
   case 33:
-#line 150 "cl.y"
+#line 140 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].bValue)); }
-#line 1866 "y.tab.c"
+#line 1864 "y.tab.c"
     break;
 
   case 34:
-#line 151 "cl.y"
+#line 141 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].cValue)); }
-#line 1872 "y.tab.c"
+#line 1870 "y.tab.c"
     break;
 
   case 35:
-#line 152 "cl.y"
+#line 142 "cl.y"
                                         { (yyval.nPtr) = con((yyvsp[0].sValue));  }
-#line 1878 "y.tab.c"
+#line 1876 "y.tab.c"
     break;
 
   case 36:
-#line 153 "cl.y"
+#line 143 "cl.y"
                                         { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 1884 "y.tab.c"
+#line 1882 "y.tab.c"
     break;
 
   case 37:
-#line 154 "cl.y"
+#line 144 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1890 "y.tab.c"
+#line 1888 "y.tab.c"
     break;
 
   case 38:
-#line 155 "cl.y"
+#line 145 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('+', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1896 "y.tab.c"
+#line 1894 "y.tab.c"
     break;
 
   case 39:
-#line 156 "cl.y"
+#line 146 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('-', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1902 "y.tab.c"
+#line 1900 "y.tab.c"
     break;
 
   case 40:
-#line 157 "cl.y"
+#line 147 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('*', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1908 "y.tab.c"
+#line 1906 "y.tab.c"
     break;
 
   case 41:
-#line 158 "cl.y"
+#line 148 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('/', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1914 "y.tab.c"
+#line 1912 "y.tab.c"
     break;
 
   case 42:
-#line 159 "cl.y"
+#line 149 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('%', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1920 "y.tab.c"
+#line 1918 "y.tab.c"
     break;
 
   case 43:
-#line 160 "cl.y"
+#line 150 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr(LS,  2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1926 "y.tab.c"
+#line 1924 "y.tab.c"
     break;
 
   case 44:
-#line 161 "cl.y"
+#line 151 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr(RS,  2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1932 "y.tab.c"
+#line 1930 "y.tab.c"
     break;
 
   case 45:
-#line 162 "cl.y"
+#line 152 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('&', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1938 "y.tab.c"
+#line 1936 "y.tab.c"
     break;
 
   case 46:
-#line 163 "cl.y"
+#line 153 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('^', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1944 "y.tab.c"
+#line 1942 "y.tab.c"
     break;
 
   case 47:
-#line 164 "cl.y"
+#line 154 "cl.y"
                                         { (yyval.nPtr) = opr('=', 2, (yyvsp[-2].nPtr), opr('|', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr))); }
-#line 1950 "y.tab.c"
+#line 1948 "y.tab.c"
     break;
 
   case 48:
-#line 165 "cl.y"
+#line 155 "cl.y"
                                         { (yyval.nPtr) = opr(PP, 1, (yyvsp[-1].nPtr)); }
-#line 1956 "y.tab.c"
+#line 1954 "y.tab.c"
     break;
 
   case 49:
-#line 166 "cl.y"
+#line 156 "cl.y"
                                         { (yyval.nPtr) = opr(MM, 1, (yyvsp[-1].nPtr)); }
-#line 1962 "y.tab.c"
+#line 1960 "y.tab.c"
     break;
 
   case 50:
-#line 167 "cl.y"
+#line 157 "cl.y"
                                         { (yyval.nPtr) = opr(UPLUS, 1, (yyvsp[0].nPtr)); }
-#line 1968 "y.tab.c"
+#line 1966 "y.tab.c"
     break;
 
   case 51:
-#line 168 "cl.y"
+#line 158 "cl.y"
                                         { (yyval.nPtr) = opr(UMINUS, 1, (yyvsp[0].nPtr)); }
-#line 1974 "y.tab.c"
+#line 1972 "y.tab.c"
     break;
 
   case 52:
-#line 169 "cl.y"
+#line 159 "cl.y"
                                         { (yyval.nPtr) = opr('!', 1, (yyvsp[0].nPtr)); }
-#line 1980 "y.tab.c"
+#line 1978 "y.tab.c"
     break;
 
   case 53:
-#line 170 "cl.y"
+#line 160 "cl.y"
                                         { (yyval.nPtr) = opr('~', 1, (yyvsp[0].nPtr)); }
-#line 1986 "y.tab.c"
+#line 1984 "y.tab.c"
     break;
 
   case 54:
-#line 171 "cl.y"
+#line 161 "cl.y"
                                         { (yyval.nPtr) = opr('&', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1992 "y.tab.c"
+#line 1990 "y.tab.c"
     break;
 
   case 55:
-#line 172 "cl.y"
+#line 162 "cl.y"
                                         { (yyval.nPtr) = opr('|', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 1998 "y.tab.c"
+#line 1996 "y.tab.c"
     break;
 
   case 56:
-#line 173 "cl.y"
+#line 163 "cl.y"
                                         { (yyval.nPtr) = opr('^', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2004 "y.tab.c"
+#line 2002 "y.tab.c"
     break;
 
   case 57:
-#line 174 "cl.y"
+#line 164 "cl.y"
                                         { (yyval.nPtr) = opr(LS, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2010 "y.tab.c"
+#line 2008 "y.tab.c"
     break;
 
   case 58:
-#line 175 "cl.y"
+#line 165 "cl.y"
                                         { (yyval.nPtr) = opr(RS, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2016 "y.tab.c"
+#line 2014 "y.tab.c"
     break;
 
   case 59:
-#line 176 "cl.y"
+#line 166 "cl.y"
                                         { (yyval.nPtr) = opr('+', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2022 "y.tab.c"
+#line 2020 "y.tab.c"
     break;
 
   case 60:
-#line 177 "cl.y"
+#line 167 "cl.y"
                                         { (yyval.nPtr) = opr('-', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2028 "y.tab.c"
+#line 2026 "y.tab.c"
     break;
 
   case 61:
-#line 178 "cl.y"
+#line 168 "cl.y"
                                         { (yyval.nPtr) = opr('*', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2034 "y.tab.c"
+#line 2032 "y.tab.c"
     break;
 
   case 62:
-#line 179 "cl.y"
+#line 169 "cl.y"
                                         { (yyval.nPtr) = opr('/', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2040 "y.tab.c"
+#line 2038 "y.tab.c"
     break;
 
   case 63:
-#line 180 "cl.y"
+#line 170 "cl.y"
                                         { (yyval.nPtr) = opr('%', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2046 "y.tab.c"
+#line 2044 "y.tab.c"
     break;
 
   case 64:
-#line 181 "cl.y"
+#line 171 "cl.y"
                                         { (yyval.nPtr) = opr('<', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2052 "y.tab.c"
+#line 2050 "y.tab.c"
     break;
 
   case 65:
-#line 182 "cl.y"
+#line 172 "cl.y"
                                         { (yyval.nPtr) = opr('>', 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2058 "y.tab.c"
+#line 2056 "y.tab.c"
     break;
 
   case 66:
-#line 183 "cl.y"
+#line 173 "cl.y"
                                         { (yyval.nPtr) = opr(AND, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2064 "y.tab.c"
+#line 2062 "y.tab.c"
     break;
 
   case 67:
-#line 184 "cl.y"
+#line 174 "cl.y"
                                         { (yyval.nPtr) = opr(OR, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2070 "y.tab.c"
+#line 2068 "y.tab.c"
     break;
 
   case 68:
-#line 185 "cl.y"
+#line 175 "cl.y"
                                         { (yyval.nPtr) = opr(GE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2076 "y.tab.c"
+#line 2074 "y.tab.c"
     break;
 
   case 69:
-#line 186 "cl.y"
+#line 176 "cl.y"
                                         { (yyval.nPtr) = opr(LE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2082 "y.tab.c"
+#line 2080 "y.tab.c"
     break;
 
   case 70:
-#line 187 "cl.y"
+#line 177 "cl.y"
                                         { (yyval.nPtr) = opr(NE, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2088 "y.tab.c"
+#line 2086 "y.tab.c"
     break;
 
   case 71:
-#line 188 "cl.y"
+#line 178 "cl.y"
                                         { (yyval.nPtr) = opr(EQ, 2, (yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2094 "y.tab.c"
+#line 2092 "y.tab.c"
     break;
 
   case 72:
-#line 189 "cl.y"
+#line 179 "cl.y"
                                         { (yyval.nPtr) = (yyvsp[-1].nPtr); }
-#line 2100 "y.tab.c"
+#line 2098 "y.tab.c"
     break;
 
   case 73:
-#line 190 "cl.y"
+#line 180 "cl.y"
                                         { (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 2106 "y.tab.c"
+#line 2104 "y.tab.c"
     break;
 
   case 75:
-#line 195 "cl.y"
+#line 185 "cl.y"
                                         { (yyval.nPtr) = enum_use((yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2112 "y.tab.c"
+#line 2110 "y.tab.c"
     break;
 
   case 76:
-#line 198 "cl.y"
+#line 188 "cl.y"
                                           { 
                      (yyval.nPtr) = functionCall((yyvsp[-3].nPtr), (yyvsp[-1].nPtr));
              }
-#line 2120 "y.tab.c"
+#line 2118 "y.tab.c"
     break;
 
   case 77:
-#line 203 "cl.y"
+#line 193 "cl.y"
                             { (yyval.nPtr) = appendToLinkedList<ExprListNode>((yyvsp[-2].nPtr), exprListNode((yyvsp[0].nPtr))); }
-#line 2126 "y.tab.c"
+#line 2124 "y.tab.c"
     break;
 
   case 78:
-#line 204 "cl.y"
+#line 194 "cl.y"
                             { (yyval.nPtr) = linkedListStump<ExprListNode>(exprListNode((yyvsp[0].nPtr))); }
-#line 2132 "y.tab.c"
+#line 2130 "y.tab.c"
     break;
 
   case 79:
-#line 205 "cl.y"
+#line 195 "cl.y"
                             { (yyval.nPtr) = linkedListStump<ExprListNode>(nullptr); }
-#line 2138 "y.tab.c"
+#line 2136 "y.tab.c"
     break;
 
   case 80:
-#line 209 "cl.y"
+#line 199 "cl.y"
                                                      { 
                 auto idListEnd = std::get<IdentifierListNode>((yyvsp[-2].nPtr)->un);
                 auto enumMembers = idListEnd.toVec();
@@ -2149,70 +2147,70 @@ yyreduce:
                 //     std::cout << memberName << ", " << memberIndex << '\n';
                 // }
          }
-#line 2153 "y.tab.c"
+#line 2151 "y.tab.c"
     break;
 
   case 81:
-#line 221 "cl.y"
+#line 211 "cl.y"
                                                 { (yyval.nPtr) = appendToLinkedList<IdentifierListNode>((yyvsp[-2].nPtr), identifierListNode((yyvsp[0].nPtr))); }
-#line 2159 "y.tab.c"
+#line 2157 "y.tab.c"
     break;
 
   case 82:
-#line 222 "cl.y"
+#line 212 "cl.y"
                                                 { (yyval.nPtr) = linkedListStump<IdentifierListNode>(identifierListNode((yyvsp[0].nPtr))); }
-#line 2165 "y.tab.c"
+#line 2163 "y.tab.c"
     break;
 
   case 83:
-#line 223 "cl.y"
+#line 213 "cl.y"
                                                 { (yyval.nPtr) = linkedListStump<IdentifierListNode>(nullptr); }
-#line 2171 "y.tab.c"
+#line 2169 "y.tab.c"
     break;
 
   case 84:
-#line 227 "cl.y"
+#line 217 "cl.y"
                                         {  (yyval.nPtr) = (yyvsp[0].nPtr); }
-#line 2177 "y.tab.c"
+#line 2175 "y.tab.c"
     break;
 
   case 85:
-#line 228 "cl.y"
+#line 218 "cl.y"
                                         {  (yyval.nPtr) = id("void"); }
-#line 2183 "y.tab.c"
+#line 2181 "y.tab.c"
     break;
 
   case 86:
-#line 232 "cl.y"
+#line 222 "cl.y"
                                                              { (yyval.nPtr) = appendToLinkedList<VarDecl>((yyvsp[-2].nPtr), (yyvsp[0].nPtr)); }
-#line 2189 "y.tab.c"
+#line 2187 "y.tab.c"
     break;
 
   case 87:
-#line 233 "cl.y"
+#line 223 "cl.y"
                                                              { (yyval.nPtr) = linkedListStump<VarDecl>((yyvsp[0].nPtr)); }
-#line 2195 "y.tab.c"
+#line 2193 "y.tab.c"
     break;
 
   case 88:
-#line 234 "cl.y"
+#line 224 "cl.y"
                                                              { (yyval.nPtr) = linkedListStump<VarDecl>(nullptr); }
-#line 2201 "y.tab.c"
+#line 2199 "y.tab.c"
     break;
 
   case 89:
-#line 237 "cl.y"
+#line 227 "cl.y"
                                                                                                   { 
                      auto head = std::get<VarDecl>((yyvsp[-5].nPtr)->un);
                      auto paramsList = head.toVec();
 
                      (yyval.nPtr) = fn((yyvsp[-7].nPtr), paramsList, (yyvsp[-3].nPtr), (yyvsp[-1].nPtr));
              }
-#line 2212 "y.tab.c"
+#line 2210 "y.tab.c"
     break;
 
 
-#line 2216 "y.tab.c"
+#line 2214 "y.tab.c"
 
       default: break;
     }
@@ -2444,7 +2442,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 244 "cl.y"
+#line 234 "cl.y"
 
 
 // De-allocates a node and all of its children (if any).

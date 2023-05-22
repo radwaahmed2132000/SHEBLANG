@@ -87,8 +87,7 @@ var_defn:
         };
 
 stmt:
-        '{' stmt_list '}'                       { $$ = $2; }
-        |';'                                     { $$ = opr(';', 0); }
+        ';'                                     { $$ = opr(';', 0); }
         | FOR '(' var_defn expr ';' expr ')' stmt { 
                 $$ = for_loop($3, $4, $6, $8); 
                 set_break_parent($8, $$);

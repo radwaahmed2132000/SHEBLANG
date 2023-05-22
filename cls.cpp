@@ -64,6 +64,17 @@
   ? other operand. If both of the operands aren't numbers (char, bool), cast to int.
 */
 
+Result castToTarget(std::string currentType,std::string targetType) {
+  if (currentType == "string" || targetType == "string") {
+    // return Result::Error("Error in line number: " +
+    //                       std::to_string((opr.op[0]->lineNo)) +
+    //                       " .Cannot cast to or from string\n");
+  }
+  if (currentType == targetType) {
+    return Result::Success(targetType);
+  }
+}
+
 Result cast_opr(const std::string& leftType, const std::string& rightType, oprNodeType& opr) {
     if (leftType == "string" || rightType == "string") {
         return Result::Error("Error in line number: " +
@@ -164,13 +175,12 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
     if (leftType != rightType) { \
       Result castResult = cast_opr(leftType, rightType, opr); \
       if (!castResult.isSuccess()) { \
-        errorsOutput.addError(std::get<std::string>(castResult)); \
+        errorsOutput.addError(std::get<ErrorType>(castResult)[0]); \
       } \
     } \
 
 #define LEFT_TYPE(left) \
     auto leftType = std::get<SuccessType>(left); \
-   \
 
 #define RIGHT_TYPE(right) \
     auto rightType = std::get<SuccessType>(right); \
@@ -229,7 +239,7 @@ struct semantic_analysis_visitor {
     }
 
     Result operator()(VarDefn& vd) {
-      int startingSize =errorsOutput.sizeError;
+      int startingSize = errorsOutput.sizeError;
       /* Check if the variable is declared */
       nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
       Result decl = semantic_analysis(nt); 
