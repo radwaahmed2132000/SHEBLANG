@@ -88,9 +88,22 @@ struct ex_visitor {
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
         auto& entry = sym2[nameStr];
 
-        if(entry.isConstant) {
+        // if(!(entry.isConstant)) {
             entry.setValue(ex(entry.initExpr));
-        }
+        // }
+
+        return Value(0);
+    }
+
+    Value operator()(VarDefn& vd) {
+        auto nameStr = std::get<idNodeType>(vd.decl->var_name->un).id;
+        // auto val = std::get<idNodeType>(vd.decl->)
+        auto val = ex(vd.initExpr);
+        // auto& entry = sym2[nameStr];
+        sym2[nameStr].setValue(val);
+        // auto temp = ex(entry.initExpr);
+
+        // entry.setValue(temp);
 
         return Value(0);
     }
