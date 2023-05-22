@@ -1,5 +1,7 @@
 int x=3;
 int y=2;
-int z = x && y;
+int z = true && y;
 ===
 Error in line number: 3 .The LHS identifier type: int is not a valid type for a logical operation
+
+Error in line number: 3 .The RHS identifier type: int is not a valid type for a logical operation

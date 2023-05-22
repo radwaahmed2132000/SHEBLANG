@@ -266,7 +266,7 @@ struct semantic_analysis_visitor {
         }
 
         /* Check that the left & right types are matching */
-        if ((declType != "") && declType != std::get<SuccessType>(init)) {
+        if ((declType != "") && init.isSuccess() && declType != std::get<SuccessType>(init)) {
           errorsOutput.addError("Error in line number: " +
             std::to_string(vd.initExpr->lineNo) + " .The LHS identifier type: " + declType
             + " doesn't match the RHS Expression type: "
@@ -286,7 +286,7 @@ struct semantic_analysis_visitor {
       }
       return Result::Success(declType);
     }
-
+    
     Result operator()(idNodeType& identifier)
     { 
         /*
@@ -374,7 +374,56 @@ struct semantic_analysis_visitor {
     /* For Enums (list of identifiers) */
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
-    Result operator()(functionNodeType& fn) { return Result::Success("success"); } // TODO
+    Result operator()(functionNodeType& fn) { 
+      
+      
+      return Result::Success("success");
+      
+    } // TODO
+    Result operator()(FunctionCall& fn) { 
+      // TODO line number of this
+      int startingSize =errorsOutput.sizeError;
+      auto function=functions.find(fn.functionName);
+      std::string type=" ";
+      if(function!= functions.end())
+      {
+        functionNodeType  currentFunction=function->second;
+        if(fn.parameterExpressions.size() !=currentFunction.parameters.size())
+        {
+          errorsOutput.addError("The paramaters length doesn't match paramters of functions, you have"+std::to_string(fn.parameterExpressions.size())+"but it expected to be "+std::to_string(currentFunction.parameters.size()));
+        }
+        int min_size = std::min(currentFunction.parameters.size(),fn.parameterExpressions.size());
+        for(int i=0;i< min_size;i++)
+        {
+          type = std::get<idNodeType>(currentFunction.parameters[i]->type->un).id;
+          EXISTING_TYPE(type, currentFunction.parameters[i]->type->lineNo);
+          auto functionParamter = semantic_analysis(fn.parameterExpressions[i]->exprCode);
+          if(!functionParamter.isSuccess())
+          {
+            errorsOutput.addError("This error in "+std::to_string(i)+" experssion which provided in function call in line");
+          }
+          auto functionParamterType =std::get<SuccessType>(functionParamter);
+          
+          if(type!=functionParamterType)
+          {
+            errorsOutput.addError("This error in "+std::to_string(i)+" experssion which provided in function call in line , the types doesn't match");
+          }
+          
+        }
+      }
+      else{
+        errorsOutput.addError("This function doesn't exist , error in line" );
+      }
+      
+      if(startingSize != errorsOutput.sizeError)
+      {
+       
+        return Result::Error("error");
+      }
+      return Result::Success(type);
+      
+    } 
+
 
 
     /* 
@@ -651,7 +700,6 @@ struct semantic_analysis_visitor {
         if (startingSize != errorsOutput.sizeError) {
           return Result::Error("error");
         }
-
         return Result::Success(finalType);
       }
       break;
