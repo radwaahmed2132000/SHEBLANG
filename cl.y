@@ -63,15 +63,15 @@ program:
                 setup_scopes($1);
 
                 auto result = semantic_analysis($1);
-                if (errorsOutput.isSuccess()) {
-                    // printf("Semantic analysis successful\n");
-                } else {
-                    // printf("Semantic analysis failed\n");
-                    for (auto& error : std::get<ErrorType>(errorsOutput)) {
-                        printf("%s\n", error.c_str());
-                    }
-                    exit(1);
-                }
+                // if (errorsOutput.isSuccess()) {
+                //     // printf("Semantic analysis successful\n");
+                // } else {
+                //     // printf("Semantic analysis failed\n");
+                //     for (auto& error : std::get<ErrorType>(errorsOutput)) {
+                //         printf("%s\n", error.c_str());
+                //     }
+                //     exit(1);
+                // }
 
                 ex($1);
                 freeNode($1);
@@ -88,7 +88,6 @@ var_defn:
         var_decl '=' expr ';'        { 
             $$ = varDefn($1, $3, false);
         };
-
 stmt:
         ';'                                     { $$ = opr(';', 0); }
         | FOR '(' var_defn expr ';' expr ')' stmt { 
