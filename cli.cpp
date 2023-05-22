@@ -41,7 +41,7 @@ Value evaluate_switch(switchNodeType& sw) {
     auto cases = std::get<caseNodeType>(head->un).toVec();
 
     bool foundCase = false;
-    for(int i = 0; i < cases.size() && !sw.break_encountered; i++) {
+    for(int i = 0; i < cases.size(); i++) {
         Value case_value = ex(cases[i]->labelExpr);
 
         if(cases[i]->isDefault()) {
@@ -54,7 +54,7 @@ Value evaluate_switch(switchNodeType& sw) {
         }
     }
 
-    if(!matching_case_index.has_value() && !sw.break_encountered && default_case_index.has_value()) {
+    if(!matching_case_index.has_value() &&  default_case_index.has_value()) {
         ex(cases[default_case_index.value()]->caseBody);
     }
 

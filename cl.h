@@ -68,6 +68,7 @@ typedef struct caseNodeType: LinkedListNode<caseNodeType> {
 
 typedef struct {
     int exit_label;
+    // TODO: remove break_encountered since switches break automatically on case completion.
     bool break_encountered;
     struct nodeType* var, *case_list_head;
 } switchNodeType;

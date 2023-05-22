@@ -41,39 +41,32 @@ Value ex(nodeType *p);
 //         add     eax, edx
 //         sar     eax
 //
+// Check cli.cpp for the reference interpreter implementation of this function.
+// The compiler function should follow a similar structure.
+// TODO: Update this to work with registers.
+// TODO: Make sure the output is correct.
 int compile_switch(switchNodeType &sw) {
 
-    int matching_case_index = -1;
-    int default_case_index = -1;
-    bool break_encountered = false;
-
-    std::vector<caseNodeType> cases;
-    std::vector<int> labels;
+    std::optional<int> matching_case_index = {};
+    std::optional<int> default_case_index = {};
+    Value var_value = ex(sw.var);
 
     // Check cli.cpp for an explanation of why we're collecting and reversing.
-    nodeType *head = sw.case_list_head;
-    do {
-        auto cs = std::get<caseNodeType>(head->un);
+    nodeType* head = sw.case_list_head;
+    std::vector<int> labels;
 
-        cases.push_back(cs);
-        labels.push_back(lbl++);
-
-        head = cs.prev;
-    } while (head != NULL);
-    std::reverse(cases.begin(), cases.end());
-    std::reverse(labels.begin(), labels.end());
+    auto cases = std::get<caseNodeType>(head->un).toVec();
+    for(int i = 0; i < cases.size(); i++) { labels.push_back(lbl++); }
 
     sw.exit_label = lbl++;
 
-    for (int i = 0; i < cases.size() && !break_encountered; i++) {
-        auto opr = std::get<oprNodeType>(cases[i].self->un);
-        if (opr.oper == DEFAULT) {
+    for (int i = 0; i < cases.size(); i++) {
+        Value case_value = ex(cases[i]->labelExpr);
+        if (cases[i]->isDefault()) {
             default_case_index = i;
         } else {
-            auto case_identifier = std::get<idNodeType>(sw.var->un);
-            ex(cases[i].self); // Label value
-            printf("\tpush\t%s\n",
-                   case_identifier.id.c_str()); // variable value
+            ex(cases[i]->labelExpr); // Label value
+            printf("\tpush\t%s\n", case_value.toString().c_str()); // variable value
             printf("\tcompEQ\n");
             printf("\tje\tL%03d\n", labels[i]);
         }
@@ -81,22 +74,16 @@ int compile_switch(switchNodeType &sw) {
 
     // If there exists a default case, jump to it if no other cases
     // match. Otherwise, jump to the exit label (skip the whole swtich).
-    if (default_case_index != -1) {
-        printf("\tjmp\tL%03d\n", labels[default_case_index]);
+    if (default_case_index.has_value()) {
+        printf("\tjmp\tL%03d\n", labels[default_case_index.value()]);
     } else {
         printf("\tjmp\tL%03d\n", sw.exit_label);
     }
 
-    for (int i = 0; i < cases.size() && !break_encountered; i++) {
+    // Emit the code that corresponds to each case.
+    for(int i = 0; i < cases.size(); i++) {
         printf("L%03d:\n", labels[i]);
-
-        auto opr = std::get<oprNodeType>(cases[i].self->un);
-
-        if (opr.oper == DEFAULT) {
-            ex(opr.op[0]);
-        } else {
-            ex(opr.op[1]);
-        }
+        ex(cases[i]->caseBody);
     }
 
     printf("L%03d:\n", sw.exit_label);
