@@ -107,6 +107,7 @@ stmt:
                 $$ = do_while_loop($5, $2); 
                 set_break_parent($2, $$);
         }
+        | '{' stmt_list '}'                       { $$ = $2; }
         | var_decl ';'                            { $$ = $1; }
         | var_defn                                { $$ = $1; }
         | CONST var_decl '=' expr ';'             { $$ = varDefn($2, $4, true); }
@@ -131,8 +132,8 @@ case_list:
          ;
 
 stmt_list:
-        stmt_list stmt           { $$ = appendToLinkedList<StatementList>($1, statementList($2)); }
-        | stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); };
+          stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); }
+        | stmt_list stmt        { $$ = appendToLinkedList<StatementList>($1, statementList($2)); };
 
 expr:
           INTEGER                       { $$ = con($1); }
