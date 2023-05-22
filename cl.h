@@ -24,13 +24,13 @@ struct LinkedListNode {
     T * prev = nullptr;
     LinkedListNode() = default;
     LinkedListNode(T* p) : prev(p) {}
-    virtual bool isStump() const = 0;
 
+    
 	std::vector<T*> toVec() {
 		std::vector<T*> nodes;
 
-		T* current = dynamic_cast<T*>(this);
-		while(current != nullptr && !current->isStump()) {
+		T* current = static_cast<T*>(this);
+		while(current != nullptr) {
 			nodes.push_back(current);
 			current = current->prev;
 		}
@@ -62,7 +62,6 @@ typedef struct caseNodeType: LinkedListNode<caseNodeType> {
     caseNodeType(): caseBody(nullptr), LinkedListNode(nullptr) {}
     caseNodeType(nodeType* labelExpr, nodeType* caseBody): labelExpr(labelExpr), caseBody(caseBody) {}
 
-    virtual bool isStump() const override { return (caseBody == nullptr); }
     bool isDefault() const { return (labelExpr == nullptr); }
 } caseNodeType;
 
@@ -108,9 +107,6 @@ typedef struct IdentifierListNode: LinkedListNode<IdentifierListNode> {
     IdentifierListNode(): identifierName(nullptr), LinkedListNode(nullptr) {}
     IdentifierListNode(idNodeType* idNode): identifierName(idNode), LinkedListNode(nullptr) {}
 
-    virtual bool isStump() const override {
-        return (identifierName == nullptr);
-    }
 } IdentifierListNode;
 
 typedef struct enumNode {
@@ -128,8 +124,6 @@ typedef struct StatementList: LinkedListNode<StatementList> {
     StatementList(): statementCode(nullptr) {}
 
     StatementList(nodeType* statementCode): statementCode(statementCode) {}
-
-    virtual bool isStump() const override { return (statementCode==nullptr); }
 } StatementList;
 
 typedef struct ExprListNode: LinkedListNode<ExprListNode> {
@@ -138,7 +132,6 @@ typedef struct ExprListNode: LinkedListNode<ExprListNode> {
     ExprListNode(): exprCode(nullptr) {}
     ExprListNode(nodeType* exprCode): exprCode(exprCode) {}
 
-    virtual bool isStump() const override { return (exprCode==nullptr); }
 } ExprListNode;
 
 typedef struct FunctionCall {
@@ -154,10 +147,6 @@ typedef struct VarDecl : LinkedListNode<VarDecl>{
 
     std::string getType() const;
     std::string getName() const;
-
-    virtual bool isStump() const override {
-        return (this->type == nullptr) && (this->var_name == nullptr);
-    }
 } VarDecl;
 
 typedef struct VarDefn {

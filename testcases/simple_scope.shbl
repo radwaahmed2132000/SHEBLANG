@@ -1,14 +1,16 @@
 int x;
 
-
 {
     float y = 20.0;
-    print x;
+    print x+2;
     x = 10;
-    print y;
+    print y+1.0;
 }
 
-print x;
-print y;
+print x+20;
+print y+50.0;
 ===
-Error in line number: 0 .Identifier z is not declared
+2
+21.000000
+30
+70.000000

@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "cl.h"
+#include "result.h"
 #include "y.tab.h"
 
 #define BOP_CASE(case_value, oper) \
@@ -219,6 +220,10 @@ struct ex_visitor {
                         [&opr](VarDecl& varDecl) { 
                             auto varNameIdNode = std::get<idNodeType>(varDecl.var_name->un);
                             return sym2[varNameIdNode.id].setValue(ex(opr.op[1])).getValue(); 
+                        },
+                            [&opr](VarDefn& varDefn) { 
+                            auto varNameIdNode = std::get<idNodeType>(varDefn.decl->var_name->un);
+                            return sym2[varNameIdNode.id].setValue(ex(varDefn.initExpr)).getValue(); 
                         },
                         [&opr](idNodeType& idNode) { 
                             auto ret = ex(opr.op[1]);

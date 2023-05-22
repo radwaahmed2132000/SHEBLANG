@@ -300,23 +300,24 @@ struct semantic_analysis_visitor {
     */
     Result operator()(StatementList& sl) {
         auto statements = sl.toVec();
-        3 > 4.0;
-        auto temp = semantic_analysis(statements[0]->statementCode);
-        int i = 0;
+
+        Result ret = Result::Success("");
         for(const auto& statement: statements) {
-            if (i == 0)
-            {
-              i++;
-              continue;
-            }
-            temp = semantic_analysis(statement->statementCode);
-            if(!(temp.isSuccess())) {
-                return temp;
+            auto statementError = semantic_analysis(statement->statementCode);
+
+            // If the child statement returned an error, convert the result
+            // we'll return to an error if it's not already, then add all child
+            // statement errors to the returned result.
+            if(auto* e = std::get_if<ErrorType>(&statementError); e) {
+                if(ret.isSuccess()) {
+                    ret = statementError;
+                }
+                ret.mergeErrors(*e);
             }
         }
-        return temp;
-        // return Result::Success("success");
+        return ret;
     }
+    
 
     Result operator()(functionNodeType& fn) { return Result::Success("success"); } // TODO
 

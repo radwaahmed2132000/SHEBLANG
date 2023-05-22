@@ -31,4 +31,12 @@ struct Result: std::variant<ErrorType, SuccessType> {
 
         return *this;
     }
+
+    Result& mergeErrors(ErrorType& errors) {
+        for(const auto& err: errors) {
+            this->addError(err);
+        }
+
+        return *this;
+    }
 };
