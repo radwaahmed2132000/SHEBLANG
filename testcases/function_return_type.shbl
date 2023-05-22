@@ -1,4 +1,4 @@
-fn test() my_return_type {
-	;
+fn test() int {
+	return 1;
 }
 ===

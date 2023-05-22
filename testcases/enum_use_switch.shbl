@@ -1,0 +1,26 @@
+enum foo { A, B, C };
+
+foo test = foo::A;
+int x = 1;
+switch(test) {
+    case foo::A: {
+        print "AAA";
+        x += 1;
+    }
+
+    case foo::B: {
+        print "BBB";
+        x += 2;
+    }
+
+    case foo::C: {
+        print "CCC";
+        x += 3;
+    }
+}
+
+print x;
+===
+AAA
+2
+===

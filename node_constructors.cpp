@@ -1,11 +1,16 @@
+#include <algorithm>
 #include <cassert>
+#include <iterator>
 #include <stdarg.h>
 
+#include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
 #include "cl.h"
 #include "node_constructors.h"
+
 #include "y.tab.h"
 
 #define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}))
@@ -46,18 +51,8 @@ nodeType *sw(nodeType* var, nodeType* case_list_head) {
     return new nodeType(switchNode);
 }
 
-nodeType *cs(nodeType* self, nodeType* prev) {
-    auto cs = caseNodeType{};
-    std::visit(
-        Visitor {
-                [&cs, self](oprNodeType&)  { cs.self = self; cs.prev = NULL; },
-                [&cs, self, prev](caseNodeType&) { cs.prev = self; cs.self = prev; },
-                [](auto) {}
-        },
-        self->un
-    );
-
-    return new nodeType(cs);
+nodeType *cs(nodeType* labelExpr, nodeType* caseBody) {
+    return new nodeType(caseNodeType(labelExpr, caseBody));
 }
 
 nodeType *br() {
@@ -83,92 +78,113 @@ nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
 nodeType* varDecl(nodeType* type, nodeType* name) {
     auto nameStr = std::get<idNodeType>(name->un).id;
     auto typeStr = std::get<idNodeType>(type->un).id;
-    sym2[nameStr] = SymbolTableEntry(false, typeStr);
 
     return new nodeType(VarDecl(type, name));
 }
+
+std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id; } 
+std::string VarDecl::getName() const { return std::get<idNodeType>(var_name->un).id; } 
 
 nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr) {
     auto nameStr = std::get<idNodeType>(name->un).id;
     auto typeStr = std::get<idNodeType>(type->un).id;
-    sym2[nameStr] = SymbolTableEntry(initExpr, true, typeStr);
 
+    // TODO: move to semantic analysis or something.
+    // Needed now so the interpreter works correctly.
+    sym2[nameStr] = SymbolTableEntry(initExpr, true, typeStr);
     return new nodeType(VarDecl(type, name));
 }
-
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements) {
     assert(std::holds_alternative<idNodeType>(name->un));
     assert(std::holds_alternative<idNodeType>(return_type->un));
-    assert(std::holds_alternative<oprNodeType>(statements->un));
+    assert(std::holds_alternative<StatementList>(statements->un));
 
-    auto stmts = std::get<oprNodeType>(statements->un);
-    assert(stmts.oper == ';' || stmts.oper == RETURN);
+    auto returnType = std::get<idNodeType>(return_type->un).id;
 
-    auto fn_name = std::get<idNodeType>(name->un).id;
-    auto fn = functionNodeType{return_type, name, params, statements};
-    functions[fn_name] = fn;
+    // TODO: probably move this to semantic analysis
+    if(returnType != "void") {
+        auto stmts = std::get<StatementList>(statements->un).toVec();
+        auto isReturn = [](const StatementList* s) {
+            if (const auto *opr = std::get_if<oprNodeType>(&s->statementCode->un); opr) {
+                return opr->oper == RETURN;
+            }
+            return false;
+        };
+        bool containsReturn = std::any_of(stmts.begin(), stmts.end(), isReturn);
 
-    return new nodeType(fn);
+        assert(containsReturn);
+    }
+
+    return new nodeType(functionNodeType{return_type, name, params, statements});
 }
 
 nodeType* fn_call(nodeType* name) {
     return new nodeType(functionNodeType{nullptr, name});
 }
 
-nodeType* fnParamList(nodeType* end) { 
-    auto* varDecl = std::get_if<VarDecl>(&end->un);
+struct set_break_parent_visitor {
+    nodeType *parent_switch;
 
-    // assert only if `end` is not null
-    // `end` should only be null for empty parameter lists.
-    if(end != nullptr) {
-        assert(varDecl != nullptr);
-    } else {
-        // Stump
-        varDecl = new VarDecl{nullptr, nullptr};
+    void operator()(breakNodeType &b) const { b.parent_switch = parent_switch; }
+
+    void operator()(oprNodeType &opr) const {
+        for (int i = 0; i < opr.op.size(); i++) {
+            set_break_parent(opr.op[i], parent_switch);
+        }
     }
 
-	return new nodeType(*varDecl); 
-}
-
-nodeType* fnParamList(nodeType* prev, nodeType* next) { 
-	auto* prevVarDecl = std::get_if<VarDecl>(&prev->un);
-	assert(prevVarDecl != nullptr);
-
-	auto* currValDecl = std::get_if<VarDecl>(&next->un);
-	assert(currValDecl != nullptr);
-
-    currValDecl->prev = prevVarDecl;
-	return new nodeType(*currValDecl); 
-}
-
-struct set_break_parent_visitor {
-        nodeType* parent_switch;
-
-        void operator()(breakNodeType& b) const {
-               b.parent_switch = parent_switch;
+    void operator()(StatementList& sl) const {
+        for(const auto* statement: sl.toVec()) {
+            set_break_parent(statement->statementCode, parent_switch);
         }
+    }
 
-        void operator()(oprNodeType& opr) const {
-                for(int i = 0; i < opr.op.size(); i++) {
-                        set_break_parent(opr.op[i], parent_switch);
-                }
+    void operator()(caseNodeType &c) const {
+        auto cases = c.toVec();
+        for (const auto *cs : cases) {
+            set_break_parent(cs->caseBody, parent_switch);
         }
+    }
 
-        void operator()(caseNodeType& c) const {
-               set_break_parent(c.self, parent_switch);
-               set_break_parent(c.prev, parent_switch);
-        }
-
-       // the default case:
-       template<typename T> void operator()(T const & /*UNUSED*/) const { } 
+    // the default case:
+    template <typename T> void operator()(T const & /*UNUSED*/) const {}
 };
 
 void set_break_parent(nodeType* node, nodeType* parent_switch) {
-        if(node == NULL) return;
-        
-        std::visit(set_break_parent_visitor{parent_switch}, node->un);
+    if(node == NULL) return;
+    
+    std::visit(set_break_parent_visitor{parent_switch}, node->un);
 }
 
-std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id; } 
-std::string VarDecl::getName() const { return std::get<idNodeType>(var_name->un).id; } 
+nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& members) {
+    assert(std::holds_alternative<idNodeType>(enumIdentifier->un));
+
+    std::vector<std::string> memberNames;
+    memberNames.reserve(members.size());
+    for(const auto& node: members) { memberNames.emplace_back(node->identifierName->id); }
+
+    // TODO: move to semantic analysis
+    // Needed now so the interpreter works correctly..
+    auto e = enumNode{enumIdentifier, memberNames};
+    auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
+    enums[enumName] = e;
+
+    return new nodeType(e);
+}
+
+nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
+    auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
+    auto enumMemberName = std::get<idNodeType>(enumMemberIdentifier->un).id;
+
+    return new nodeType(enumUseNode{enumName, enumMemberName});
+}
+
+nodeType* identifierListNode(nodeType* idNode) {
+    assert(std::holds_alternative<idNodeType>(idNode->un));
+    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)));
+}
+
+nodeType* statementList(nodeType* statement) {
+    return new nodeType(StatementList(statement));
+}
