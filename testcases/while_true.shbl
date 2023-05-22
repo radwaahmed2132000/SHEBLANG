@@ -1,5 +1,5 @@
 int x = 5;
-while(1) {
+while(true) {
     print x;
     x--;
     if(x<0)

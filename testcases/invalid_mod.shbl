@@ -1,2 +1,5 @@
 float x=5.0;
 int y=10.0%x;
+===
+Semantic analysis failed
+Error: The LHS and RHS must be integers in module operation 

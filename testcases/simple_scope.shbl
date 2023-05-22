@@ -13,8 +13,5 @@ print x;
 print y;
 print z;
 ===
-0
-20.000000
-10
-20.000000
-0
+Semantic analysis failed
+Error: Identifier z is not declared
