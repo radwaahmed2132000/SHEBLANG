@@ -1,2 +1,4 @@
-x = test(a, b);
+int a = 1;
+int b = 2;
+test(a, b);
 ===

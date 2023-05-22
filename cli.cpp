@@ -126,6 +126,17 @@ struct ex_visitor {
         return Value(0);
     }
 
+    Value operator()(FunctionCall& fc) {
+        // TODO: Function calls
+
+        // Print parameter list for debugging
+        // for(const auto& expr: fc.parameterExpressions) {
+        //     std::cout << ex(expr->exprCode) << '\n';
+        // }
+
+        return Value(0);
+    }
+
     Value operator()(StatementList& sl) {
         auto statements = sl.toVec();
 

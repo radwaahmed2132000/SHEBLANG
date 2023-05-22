@@ -153,7 +153,6 @@ struct set_break_parent_visitor {
 
 void set_break_parent(nodeType* node, nodeType* parent_switch) {
     if(node == NULL) return;
-    
     std::visit(set_break_parent_visitor{parent_switch}, node->un);
 }
 
@@ -187,4 +186,18 @@ nodeType* identifierListNode(nodeType* idNode) {
 
 nodeType* statementList(nodeType* statement) {
     return new nodeType(StatementList(statement));
+}
+
+nodeType* exprListNode(nodeType* exprCode) {
+    return new nodeType(ExprListNode(exprCode));
+}
+
+nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
+    assert(std::holds_alternative<ExprListNode>(exprListTail->un));
+    assert(std::holds_alternative<idNodeType>(fnIdentifier->un));
+
+    auto exprList = std::get<ExprListNode>(exprListTail->un).toVec();
+    auto fnName = std::get<idNodeType>(fnIdentifier->un).id;
+
+    return new nodeType(FunctionCall{fnName, exprList});
 }

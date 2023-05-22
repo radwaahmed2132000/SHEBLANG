@@ -53,7 +53,7 @@ extern int yylineno;            /* from lexer */
 
 %type <nPtr> stmt expr stmt_list case case_list function_call function_return_type 
  function_defn var_defn function_parameter_list var_decl return_statement 
- enum_defn identifier_list enum_use
+ enum_defn identifier_list enum_use expr_list
 %%
 
 program:
@@ -196,14 +196,13 @@ enum_use:
 
 function_call:
              IDENTIFIER '(' expr_list ')' { 
-                     auto fn_name = std::get<idNodeType>($1->un);
-                     $$ = fn_call($1);
+                     $$ = functionCall($1, $3);
              }
 
 expr_list:
-         expr_list ',' expr
-       | expr
-       |
+         expr_list ',' expr { $$ = appendToLinkedList<ExprListNode>($1, exprListNode($3)); }
+       | expr               { $$ = linkedListStump<ExprListNode>(exprListNode($1)); }
+       |                    { $$ = linkedListStump<ExprListNode>(nullptr); }
        ;
 
 enum_defn:

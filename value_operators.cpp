@@ -33,10 +33,10 @@
 //  is better for ease of reading and debugability, so feel free to expand the macros as you wish!
 
 #define ERR_MSG_BIN(type1, type2) \
-    std::cerr << "Invalid binary operator operands: " << type1 << " and " << type2
+    std::cerr << "Invalid binary operator operands: " << type1 << " and " << type2 << '\n'
 
 #define ERR_MSG_UN(type1) \
-    std::cerr << "Invalid unary operator operand: " << type1;
+    std::cerr << "Invalid unary operator operand: " << type1 << '\n'
 
 #define BINARY_OPERATOR_DEFN_BEGIN(name) \
     struct ValueVisitor##name { 
@@ -83,11 +83,14 @@
     ERROR_CASE_BINARY_SAME_TYPE(std::string, Value)         \
     ERROR_CASE_BINARY_SAME_TYPE(float, Value)
 
-#define LOGICAL_ERROR_CASES                                  \
+#define EQUALITY_ERROR_CASES \
     ERROR_CASE_BINARY_DIFF_TYPES(std::string, int, bool)     \
     ERROR_CASE_BINARY_DIFF_TYPES(std::string, float, bool)   \
     ERROR_CASE_BINARY_DIFF_TYPES(std::string, char, bool)    \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, bool)    \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, bool)    
+
+#define LOGICAL_ERROR_CASES \
+    EQUALITY_ERROR_CASES    \
     ERROR_CASE_BINARY_SAME_TYPE(std::string, bool)
 
 #define INT_ERROR_CASES                              \
@@ -122,8 +125,8 @@ BINARY_OPERATOR_DEFN_BEGIN(And) LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(&&
 BINARY_OPERATOR_DEFN_BEGIN(Or)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(||, bool)
 BINARY_OPERATOR_DEFN_BEGIN(LE)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(<=, bool)
 BINARY_OPERATOR_DEFN_BEGIN(GE)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(>=, bool)
-BINARY_OPERATOR_DEFN_BEGIN(EQ)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(==, bool)
-BINARY_OPERATOR_DEFN_BEGIN(NE)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(!=, bool)
+BINARY_OPERATOR_DEFN_BEGIN(EQ)  EQUALITY_ERROR_CASES  BINARY_OPERATOR_DEFN_END(==, bool)
+BINARY_OPERATOR_DEFN_BEGIN(NE)  EQUALITY_ERROR_CASES  BINARY_OPERATOR_DEFN_END(!=, bool)
 UNARY_OPERATOR_DEFN_BEGIN(LogicalNot) ERROR_CASE_UNARY(std::string, bool) UNARY_OPERATOR_DEFN_END(!, bool);
 
 // Shifting and modulo are defined only for integers.
@@ -180,3 +183,7 @@ BINARY_OPERATOR(%, Modulo)
 
 UNARY_OPERATOR(+, UnaryPlus)
 UNARY_OPERATOR(-, UnaryMinus)
+
+std::ostream& operator<<(std::ostream& os, const Value& v) {
+    return os << v.toString();
+}

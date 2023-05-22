@@ -1,0 +1,8 @@
+string a = "foo";
+
+switch(a) {
+    case "bar": { print "bar"; }
+    case "baz": { print "baz"; }
+    case 1: { print 1; }
+    case "foo": { print "foo"; }
+}

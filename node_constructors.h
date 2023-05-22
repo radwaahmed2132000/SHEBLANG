@@ -22,13 +22,15 @@ nodeType* varDecl(nodeType* type, nodeType* name);
 nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr);
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements);
-nodeType* fn_call(nodeType* name);
 
 nodeType* identifierListNode(nodeType* idNode);
 nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& members);
 nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier);
 
 nodeType* statementList(nodeType* statement);
+
+nodeType* exprListNode(nodeType* exprCode);
+nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListHeader);
 
 template<typename LinkedListNode>
 nodeType* appendToLinkedList(nodeType* prev, nodeType* next) { 

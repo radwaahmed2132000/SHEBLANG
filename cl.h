@@ -142,11 +142,25 @@ typedef struct StatementList: LinkedListNode<StatementList> {
     virtual bool isStump() const override { return (statementCode==nullptr); }
 } StatementList;
 
+typedef struct ExprListNode: LinkedListNode<ExprListNode> {
+    struct nodeType* exprCode;
+
+    ExprListNode(): exprCode(nullptr) {}
+    ExprListNode(nodeType* exprCode): exprCode(exprCode) {}
+
+    virtual bool isStump() const override { return (exprCode==nullptr); }
+} ExprListNode;
+
+typedef struct FunctionCall {
+    std::string functionName;
+    std::vector<ExprListNode*> parameterExpressions;    
+} FunctionCall;
+
 #define NODE_TYPES \
     conNodeType, idNodeType, oprNodeType, switchNodeType, \
     caseNodeType, breakNodeType, functionNodeType, whileNodeType, \
     forNodeType, doWhileNodeType, VarDecl, enumNode, IdentifierListNode, \
-    enumUseNode, StatementList 
+    enumUseNode, StatementList, FunctionCall, ExprListNode
 
 typedef struct nodeType {
     std::variant<NODE_TYPES> un;

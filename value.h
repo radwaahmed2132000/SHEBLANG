@@ -58,7 +58,6 @@ struct Value : ValueVariant {
     }
 };
 
-
 // Defined in `value_operators.cpp`
 Value operator+(Value, Value);
 Value operator-(Value, Value);
@@ -86,3 +85,5 @@ bool operator!(Value);
 
 Value operator+(Value);
 Value operator-(Value);
+
+std::ostream& operator<<(std::ostream& os, const Value& v);
