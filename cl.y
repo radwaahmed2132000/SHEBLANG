@@ -83,9 +83,7 @@ var_decl:
 
 var_defn:
         var_decl '=' expr ';'        { 
-            /*$$ = varDefn($1, $3, false); */
-            VarDecl vd = std::get<VarDecl>($1->un);
-            $$ = opr('=', 2, vd.var_name, $3); 
+            $$ = varDefn($1, $3, false);
         };
 
 stmt:
@@ -112,8 +110,8 @@ stmt:
         | var_decl ';'                            
         | var_defn                                { $$ = $1; }
 
-        | CONST IDENTIFIER IDENTIFIER '=' expr ';' { 
-            $$ = constVarDefn($2, $3, $5);
+        | CONST var_decl '=' expr ';' { 
+            $$ = varDefn($2, $4, true);;
         }
         
         | enum_defn                              

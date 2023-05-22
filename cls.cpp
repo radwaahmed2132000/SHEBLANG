@@ -159,27 +159,38 @@ struct semantic_analysis_visitor {
         }
     }
 
-    Result operator()(caseNodeType& identifier) { return Result::Success("success"); }
+    Result operator()(caseNodeType& identifier) { return Result::Success("success"); } // TODO
 
-    Result operator()(switchNodeType& sw) { return Result::Success("success"); }
+    Result operator()(switchNodeType& sw) { return Result::Success("success"); } // TODO
 
-    Result operator()(breakNodeType& br) { return Result::Success("success"); }
+    Result operator()(breakNodeType& br) { return Result::Success("success"); } // TODO
+
+    Result operator()(enumNode& en) { return Result::Success("success"); } // TODO
+
+    Result operator()(enumUseNode& eu) { return Result::Success("success"); } // TODO
+
+    Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
     Result operator()(StatementList& sl) {
         auto statements = sl.toVec();
-
+        auto temp = semantic_analysis(statements[0]->statementCode);
+        int i = 0;
         for(const auto& statement: statements) {
-            auto temp = semantic_analysis(statement->statementCode);
-            if(!(temp.isSuccess())) {
-                Result::Error("Error in line number: " +
-            std::to_string(statement->statementCode->lineNo));
+            if (i == 0)
+            {
+              i++;
+              continue;
             }
+            temp = semantic_analysis(statement->statementCode);
+            // if(!(temp.isSuccess())) {
+            //     return temp;
+            // }
         }
-
-        return Result::Success("success");
+        return temp;
+        // return Result::Success("success");
     }
 
-    Result operator()(functionNodeType& fn) { return Result::Success("success"); }
+    Result operator()(functionNodeType& fn) { return Result::Success("success"); } // TODO
 
     Result operator()(doWhileNodeType& dw) {
 
@@ -224,7 +235,7 @@ struct semantic_analysis_visitor {
       }
      }
 
-    Result operator()(forNodeType& f) { return Result::Success("success"); }
+    Result operator()(forNodeType& f) { return Result::Success("success"); } // TODO
 
     Result operator()(oprNodeType& opr) {   
         /* Things that need to be checked */

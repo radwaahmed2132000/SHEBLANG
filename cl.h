@@ -83,20 +83,6 @@ typedef struct {
     struct nodeType* statements;
 } functionNodeType;
 
-typedef struct VarDecl : LinkedListNode<VarDecl>{
-	struct nodeType *type, *var_name;
-
-    VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
-	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
-
-    std::string getType() const;
-    std::string getName() const;
-
-    virtual bool isStump() const override {
-        return (this->type == nullptr) && (this->var_name == nullptr);
-    }
-} VarDecl;
-
 typedef struct {
     bool break_encountered;
     struct nodeType *condition, *loop_body;
@@ -145,6 +131,20 @@ typedef struct StatementList: LinkedListNode<StatementList> {
     virtual bool isStump() const override { return (statementCode==nullptr); }
 } StatementList;
 
+typedef struct VarDecl : LinkedListNode<VarDecl>{
+	struct nodeType *type, *var_name;
+
+    VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
+	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
+
+    std::string getType() const;
+    std::string getName() const;
+
+    virtual bool isStump() const override {
+        return (this->type == nullptr) && (this->var_name == nullptr);
+    }
+} VarDecl;
+
 typedef struct VarDefn {
 	VarDecl* decl;
     bool isConstant;
@@ -168,7 +168,7 @@ typedef struct nodeType {
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
-    std::string type;  
+    std::string type = "";  
     nodeType* initExpr = nullptr;
 
     SymbolTableEntry() = default;

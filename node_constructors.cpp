@@ -84,18 +84,14 @@ nodeType* varDecl(nodeType* type, nodeType* name) {
     return new nodeType(VarDecl(type, name), yylineno);
 }
 
+nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
+    auto* declPtr = std::get_if<VarDecl>(&decl->un);
+    return new nodeType(VarDefn(declPtr, initExpr, isConstant), yylineno);
+}
+
 std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id; } 
 std::string VarDecl::getName() const { return std::get<idNodeType>(var_name->un).id; } 
 
-nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr) {
-    auto nameStr = std::get<idNodeType>(name->un).id;
-    auto typeStr = std::get<idNodeType>(type->un).id;
-
-    // TODO: move to semantic analysis or something.
-    // Needed now so the interpreter works correctly.
-    sym2[nameStr] = SymbolTableEntry(initExpr, true, typeStr);
-    return new nodeType(VarDecl(type, name), yylineno);
-}
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements) {
     assert(std::holds_alternative<idNodeType>(name->un));

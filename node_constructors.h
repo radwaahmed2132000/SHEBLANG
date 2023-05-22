@@ -19,7 +19,7 @@ nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
 nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
 
 nodeType* varDecl(nodeType* type, nodeType* name);
-nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr);
+nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant);
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements);
 nodeType* fn_call(nodeType* name);
