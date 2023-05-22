@@ -1,3 +1,3 @@
 kak x;
 ===
-Error: The type of the variable kak is not valid
+Error in line number: 1 .The data type "kak" is not valid

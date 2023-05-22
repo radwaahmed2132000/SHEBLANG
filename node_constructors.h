@@ -1,6 +1,8 @@
 #pragma once
 #include "cl.h"
 
+extern int yylineno;
+
 nodeType *con(int iValue);
 nodeType *con(float fValue);
 nodeType *con(bool bValue);
@@ -39,7 +41,7 @@ nodeType* appendToLinkedList(nodeType* prev, nodeType* next) {
 	assert(currNode != nullptr);
 
     currNode->prev = prevNode;
-	return new nodeType(*currNode, 0); 
+	return new nodeType(*currNode, yylineno); 
 }
 
 template<typename LinkedListNode> 
@@ -55,5 +57,5 @@ nodeType* linkedListStump(nodeType* end) {
         stump = new LinkedListNode();
     }
 
-	return new nodeType(*stump,0); 
+	return new nodeType(*stump, yylineno); 
 }

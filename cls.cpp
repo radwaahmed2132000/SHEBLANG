@@ -55,8 +55,8 @@
      static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool"}; \
      if (builtinTypes.find(type) == builtinTypes.end()) { \
             return Result::Error("Error in line number: " + \
-             std::to_string(lineNo) +" .The type of the variable " \
-             + type + " is not valid\n"); \
+             std::to_string(lineNo) +" .The data type \"" \
+             + type + "\" is not valid\n"); \
       } \
 
 struct semantic_analysis_visitor {

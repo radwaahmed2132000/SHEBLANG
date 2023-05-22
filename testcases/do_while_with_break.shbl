@@ -8,7 +8,7 @@ do {
         print "You shouldn't see this!";
         print "nor this!";
     }
-} while(1);
+} while(true);
 ===
 5
 4

@@ -6,7 +6,7 @@ if(x > 9.4)
     print "x > 9.4";
 else
   print "x < 9.4";
-print x * 10;
+print x * 10.0;
 ===
 x > 9.4
 175.000000

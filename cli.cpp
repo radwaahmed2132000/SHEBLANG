@@ -40,17 +40,19 @@ Value evaluate_switch(switchNodeType& sw) {
     nodeType* head = sw.case_list_head;
     auto cases = std::get<caseNodeType>(head->un).toVec();
 
+    bool foundCase = false;
     for(int i = 0; i < cases.size() && !sw.break_encountered; i++) {
         Value case_value = ex(cases[i]->labelExpr);
 
         if(cases[i]->isDefault()) {
             default_case_index = i;
-        } else if (case_value == var_value || matching_case_index.has_value()) {
+        // } else if (case_value == var_value || matching_case_index.has_value()) {
+        } else if (case_value == var_value || matching_case_index.has_value() || foundCase) {
             // break once you find a matching case
-
+            foundCase = true;
             matching_case_index = i;
             ex(cases[i]->caseBody);
-            break;
+            // break;
         }
     }
 
@@ -97,13 +99,8 @@ struct ex_visitor {
 
     Value operator()(VarDefn& vd) {
         auto nameStr = std::get<idNodeType>(vd.decl->var_name->un).id;
-        // auto val = std::get<idNodeType>(vd.decl->)
         auto val = ex(vd.initExpr);
-        // auto& entry = sym2[nameStr];
         sym2[nameStr].setValue(val);
-        // auto temp = ex(entry.initExpr);
-
-        // entry.setValue(temp);
 
         return Value(0);
     }
