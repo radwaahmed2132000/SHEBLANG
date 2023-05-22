@@ -177,6 +177,7 @@ typedef struct VarDefn {
 typedef struct nodeType {
     std::variant<NODE_TYPES> un;
     int lineNo;
+    std::string conversionType = ""; 
 	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
 } nodeType;
 

@@ -34,6 +34,121 @@
          + " .The left identifier is a constant\n"); \
     } \
 
+/*
+  * allows casting between int, float, char & bool it's possible.
+  * String casting is not allowed
+  * Casting between int & float just either adds a decimal point or removes it
+  * Casting between int & char just converts the int to its ASCII equivalent
+  * Casting between int & bool just converts 0 to false and everything else to true
+  * Casting float to char is the same as casting int to cha-r (truncates the decimal part)
+  * Casting float to bool is the same as casting int to bool (0 to false, everything else to true)
+
+  ! The way of casting will depend on the current operator type
+  
+  ? If the operator is an assignment operator (=) -> The casting target is the LHS type
+  
+  ? If the operator is a mathematical operator (++, --, +, -, *, /, %) ->  
+  ? The default cast target is to cast to int, unless the other operand is a float, in which case the cast target is float
+  ? In the case of the modulo operator, if none of the operands are float or string, the cast to int is allowed.
+
+  ? If the operator is a bitwise operator (&, |, ^, LS, RS) -> The cast target is int
+  ? The bitwise operator doesn't work with floats or strings but will function otherwise.
+  
+  ? If the operator is a logical operator (&&, ||) -> Cast target is bool
+
+  ? If the operator is a relational operator (<, >, <=, >=, ==, !=)
+  ? The case target depends on the two operands. If they're both numbers, no need.
+  ? If one of the two operands is a number (int or float) and the other isn't, cast to the type of the 
+  ? other operand. If both of the operands aren't numbers (char, bool), cast to int.
+*/
+
+#define CAST(leftType, rightType, opr) \
+    if (leftType == "string"  || rightType == "string") { \
+      return Result::Error("Error in line number: " + \
+      std::to_string(opr.lineNo) + " .Cannot cast to or from string\n"); \
+    } \
+    switch (opr.oper) { \
+      case '=': { \
+        std::string castResult = leftType; \
+        opr.op[1]->conversionType = castResult; \
+      } \
+      break; \
+      case '+': case '-': case '*': case '/'{ \
+        std::string castResult = leftType == "float" || rightType == "float" ? "float" : "int"; \
+        if (leftType != castResult) { \
+          opr.op[0]->conversionType = castResult; \
+        } else { \
+          opr.op[1]->conversionType = castResult; \
+          } \
+      } \
+      break; \
+      case '%': { \
+        std::string castResult = "int"; \
+        if (leftType == "float") { \
+          return Result::Error("Error in line number: " + \
+          std::to_string(opr.op[0]->lineNo) + \
+          " .The LHS in a modulo operation can't be float \n"); \
+        } else if (rightType == "float") { \
+          return Result::Error("Error in line number: " + \
+          std::to_string(opr.op[1]->lineNo) + \
+          " .The RHS in a modulo operation can't be float \n"); \
+        } else { \
+          if (leftType != castResult) { \
+            opr.op[0]->conversionType = castResult; \
+          } else { \
+            opr.op[1]->conversionType = castResult; \
+          } \
+        } \
+      } \
+      break; \
+      case '&': case '|': case '^': case LS: case RS: { \
+        std::string castResult = "int"; \
+        if (leftType == "float") { \
+          return Result::Error("Error in line number: " + \
+          std::to_string(opr.op[0]->lineNo) + \
+          " .The LHS in a bitwise operation can't be float \n"); \
+        } else if (rightType == "float") { \
+          return Result::Error("Error in line number: " + \
+          std::to_string(opr.op[1]->lineNo) + \
+          " .The RHS in bitwise operation can't be float \n"); \
+        } else { \
+          if (leftType != castResult) { \
+            opr.op[0]->conversionType = castResult; \
+          } else { \
+            opr.op[1]->conversionType = castResult; \
+          } \
+        } \
+      }  \
+      break; \
+      case AND: case OR: { \
+        std::string castResult = "bool"; \
+        if (leftType != castResult) { \
+          opr.op[0]->conversionType = castResult; \
+        } else { \
+          opr.op[1]->conversionType = castResult; \
+        } \
+      } \
+      break; \
+      case GE: case LE: case '>': case '<': case EQ: case NE: { \
+        if (leftType != "int" && leftType != "float") { \
+          if (rightType == "int" || rightType == "float") { \
+            opr.op[0]->conversionType = rightType; \
+          } else { \
+            opr.op[0]->conversionType = "int"; \
+            opr.op[1]->conversionType = "int"; \
+          } \
+        } else if (rightType != "int" && rightType != "float") { \
+          opr.op[1]->conversionType = leftType; \
+        } \
+        else {} \
+        std::string castResult = "bool"; \
+      } \
+      break; \
+      default : { \
+        return type; \
+      } \
+  }  \
+
 #define LEFT_SAME_TYPE_AS_RIGHT(left, right, lineNo) \
     auto leftType = std::get<SuccessType>(left); \
     auto rightType = std::get<SuccessType>(right); \
@@ -74,7 +189,7 @@ struct semantic_analysis_visitor {
         return Result::Success(type);
     }
 
-    Result operator()(VarDecl& vd) { 
+    Result operator()(VarDecl& vd) {
         /*
             TODO: Disallow redeclaration of variables within the same scope 
             
@@ -169,10 +284,16 @@ struct semantic_analysis_visitor {
 
     Result operator()(enumUseNode& eu) { return Result::Success("success"); } // TODO
 
+    /* For Enums (list of identifiers) */
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
+    /* 
+      Entry point, we get a list of statements & iterate over each of them & make sure they are
+      Semantically correct
+    */
     Result operator()(StatementList& sl) {
         auto statements = sl.toVec();
+        3 > 4.0;
         auto temp = semantic_analysis(statements[0]->statementCode);
         int i = 0;
         for(const auto& statement: statements) {
@@ -182,9 +303,9 @@ struct semantic_analysis_visitor {
               continue;
             }
             temp = semantic_analysis(statement->statementCode);
-            // if(!(temp.isSuccess())) {
-            //     return temp;
-            // }
+            if(!(temp.isSuccess())) {
+                return temp;
+            }
         }
         return temp;
         // return Result::Success("success");
@@ -250,22 +371,6 @@ struct semantic_analysis_visitor {
         */
         switch (opr.oper) {
 
-        case ';': {
-            /* Check that the first statement is semantically correct */
-            Result first = semantic_analysis(opr.op[0]);
-            if (!first.isSuccess()) {
-                return first;
-            }
-
-            /* Check that the rest of the statements are semantically correct */
-            Result second = semantic_analysis(opr.op[1]);
-            if (!second.isSuccess()) {
-                return second;
-            }
-
-            return Result::Success(std::get<SuccessType>(second));
-        }
-
         case '=': {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
@@ -290,10 +395,18 @@ struct semantic_analysis_visitor {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           LEFT_TYPE(left);
-          if (leftType != "int" && leftType != "float") {
-                return Result::Error("Error in line number: " +
-                std::to_string(opr.op[0]->lineNo) + " .The LHS identifier type: " +
-                leftType + " is not a valid type for a mathematical operation\n");
+
+          /* Manual casting without macro */
+          if (leftType == "string") {
+              return Result::Error("Error in line number: " +
+              std::to_string(opr.op[0]->lineNo) + " .Cannot cast to or from string\n"); \  
+          } else if (leftType == "int" || leftType == "float") {
+              return Result::Success(leftType);
+          } else if (leftType == "char") {
+              return Result::Success("int");
+          } else {
+              return Result::Error("Error in line number: " +
+              std::to_string(opr.op[0]->lineNo) + " .Can't Increment/Decrement booleans\n");
           }
         }
       break;
@@ -337,21 +450,12 @@ struct semantic_analysis_visitor {
           std::to_string(opr.op[0]->lineNo) + " .The RHS identifier type: " 
           + rightType + " is not a valid type for a mathematical operation\n");
         }
-        if (opr.oper== '%')
-        {
-          if (leftType != "int" || rightType != "int") {
-            return Result::Error("Error in line number: " + 
-            std::to_string(opr.op[0]->lineNo) +
-            " .The LHS and RHS must be integers in module operation \n");
-          }
-        }
         return Result::Success(leftType);
       }
       break;
       case GE: case LE:   case '>': case '<' :{
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
-          
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
@@ -370,6 +474,7 @@ struct semantic_analysis_visitor {
             return Result::Success("bool");
         }
       break;
+      
       case EQ: case NE:  {
         /* Check that the left expression is valid (identifier is declared) */
         LEFT_VALID(opr.op[0]); // * gives left
@@ -380,9 +485,8 @@ struct semantic_analysis_visitor {
         return Result::Success("bool");
       }
       break;
-
       case '&': case '^': case '|': case LS: case RS:  {
-        /* Check that the left expression is valid (identifier is declared) */
+        /* Che3 && 4ck that the left expression is valid (identifier is declared) */
         LEFT_VALID(opr.op[0]); // * gives left
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
