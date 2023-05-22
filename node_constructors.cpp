@@ -165,7 +165,7 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
     // Needed now so the interpreter works correctly..
     auto e = enumNode{enumIdentifier, memberNames};
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
-    enums[enumName] = e;
+    // enums[enumName] = e;
 
     return new nodeType(e, enumIdentifier->lineNo);
 }

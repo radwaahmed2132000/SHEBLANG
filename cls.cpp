@@ -365,17 +365,101 @@ struct semantic_analysis_visitor {
       return Result::Success(varType);
     } 
 
-    Result operator()(breakNodeType& br) { return Result::Success("success"); } // TODO
+    Result operator()(breakNodeType& br) { 
+      // loops 
+      
+      return Result::Success("success"); 
+    } // TODO
 
-    Result operator()(enumNode& en) { return Result::Success("success"); } // TODO
+    Result operator()(enumNode& en) { 
+      int startingSize = errorsOutput.sizeError;
+      auto nameStr = std::get<idNodeType>(en.name->un).id;
+      auto enumitr = enums.find(nameStr);
+      //TODO change in scope
+      if(enumitr!=enums.end() )
+      {
+        errorsOutput.addError("This enum is already declared , there is error in line "+ std::to_string(en.name->lineNo));
+      }
+        
+      std::unordered_set<std::string> members;
 
-    Result operator()(enumUseNode& eu) { return Result::Success("success"); } // TODO
+      for (int i=0;i<en.enumMembers.size();i++)
+      {
+        members.insert(en.enumMembers[i]);
+
+      }
+      if(members.size() != en.enumMembers.size())
+      {
+        errorsOutput.addError("Enum has duplicate memebers in line "+std::to_string(en.name->lineNo) );
+      }
+      if(errorsOutput.sizeError!=startingSize)
+      {
+        return Result::Error("error");
+
+      }
+      else{
+        enums.insert(make_pair(nameStr,en));
+          for (int i=0;i<en.enumMembers.size();i++)
+        {
+          members.insert(en.enumMembers[i]);
+          SymbolTableEntry entry = SymbolTableEntry();
+          entry.type = "enum";
+          entry.isConstant = false;
+          entry.initExpr = nullptr;
+          sym2[nameStr+" "+en.enumMembers[i]] = entry;
+      }
+         
+        return Result::Success("enum");
+      }
+      return Result::Success("ok");
+      
+      } 
+
+    Result operator()(enumUseNode& eu) { 
+      //TODO add line numbers
+      int startingSize = errorsOutput.sizeError;
+      auto enumitr = enums.find(eu.enumName);
+      if(enumitr==enums.end())
+      {
+        errorsOutput.addError("This enum is not defined, there is error in line ");
+      }
+      else
+      {
+        enumNode enumCurrent= enumitr->second;
+        bool found=false;
+        for(int i= 0;i< enumCurrent.enumMembers.size();i++)
+        {
+          if(enumCurrent.enumMembers[i]==eu.memberName)
+          {
+            found=true;
+            break;
+          }
+        }
+        if(!found)
+        {
+          errorsOutput.addError("This enum member is not defined, there is error in line ");
+
+        }
+        if(startingSize!=errorsOutput.sizeError)
+        {
+          return Result::Success( sym2[eu.enumName+" "+eu.memberName].type);
+        }
+      }
+      
+      return Result::Error("error"); 
+      } 
 
     /* For Enums (list of identifiers) */
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
     Result operator()(functionNodeType& fn) { 
-      
+      /*
+        TODO : add table , not existing , error
+        body
+        varaibles => scope , create table ,
+        return type, return 
+
+      */ 
       
       return Result::Success("success");
       
@@ -423,9 +507,6 @@ struct semantic_analysis_visitor {
       return Result::Success(type);
       
     } 
-
-
-
     /* 
       Entry point, we get a list of statements & iterate over each of them & make sure they are
       Semantically correct
