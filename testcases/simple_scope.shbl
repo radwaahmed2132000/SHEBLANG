@@ -13,5 +13,4 @@ print x;
 print y;
 print z;
 ===
-Semantic analysis failed
-Error: Identifier z is not declared
+Error in line number: 3 .Identifier z is not declared

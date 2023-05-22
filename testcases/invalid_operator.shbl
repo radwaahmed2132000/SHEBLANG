@@ -1,5 +1,4 @@
 char z='5';
 z+=5;
 ===
-Semantic analysis failed
 Error: The LHS identifier type: char doesn't match the RHS Expression type: int
