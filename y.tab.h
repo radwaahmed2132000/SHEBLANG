@@ -74,30 +74,31 @@ extern int yydebug;
     BOOL = 280,
     CHAR = 281,
     STRING = 282,
-    IFX = 283,
-    ELSE = 284,
-    PA = 285,
-    SA = 286,
-    MA = 287,
-    DA = 288,
-    RA = 289,
-    LSA = 290,
-    RSA = 291,
-    ANDA = 292,
-    EORA = 293,
-    IORA = 294,
-    OR = 295,
-    AND = 296,
-    EQ = 297,
-    NE = 298,
-    GE = 299,
-    LE = 300,
-    LS = 301,
-    RS = 302,
-    UPLUS = 303,
-    UMINUS = 304,
-    PP = 305,
-    MM = 306
+    SCOPE_RES = 283,
+    IFX = 284,
+    ELSE = 285,
+    PA = 286,
+    SA = 287,
+    MA = 288,
+    DA = 289,
+    RA = 290,
+    LSA = 291,
+    RSA = 292,
+    ANDA = 293,
+    EORA = 294,
+    IORA = 295,
+    OR = 296,
+    AND = 297,
+    EQ = 298,
+    NE = 299,
+    GE = 300,
+    LE = 301,
+    LS = 302,
+    RS = 303,
+    UPLUS = 304,
+    UMINUS = 305,
+    PP = 306,
+    MM = 307
   };
 #endif
 /* Tokens.  */
@@ -126,36 +127,37 @@ extern int yydebug;
 #define BOOL 280
 #define CHAR 281
 #define STRING 282
-#define IFX 283
-#define ELSE 284
-#define PA 285
-#define SA 286
-#define MA 287
-#define DA 288
-#define RA 289
-#define LSA 290
-#define RSA 291
-#define ANDA 292
-#define EORA 293
-#define IORA 294
-#define OR 295
-#define AND 296
-#define EQ 297
-#define NE 298
-#define GE 299
-#define LE 300
-#define LS 301
-#define RS 302
-#define UPLUS 303
-#define UMINUS 304
-#define PP 305
-#define MM 306
+#define SCOPE_RES 283
+#define IFX 284
+#define ELSE 285
+#define PA 286
+#define SA 287
+#define MA 288
+#define DA 289
+#define RA 290
+#define LSA 291
+#define RSA 292
+#define ANDA 293
+#define EORA 294
+#define IORA 295
+#define OR 296
+#define AND 297
+#define EQ 298
+#define NE 299
+#define GE 300
+#define LE 301
+#define LS 302
+#define RS 303
+#define UPLUS 304
+#define UMINUS 305
+#define PP 306
+#define MM 307
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 55 "cl.y"
+#line 21 "cl.y"
 
     int iValue;                 /* integer value */
     float fValue;               /* double value */
@@ -165,7 +167,7 @@ union YYSTYPE
     nodeType *nPtr;             /* node pointer */
     int lineNo;                 /* Line Number of Code Line */
 
-#line 169 "y.tab.h"
+#line 171 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

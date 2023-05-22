@@ -1,0 +1,4 @@
+enum foo { A, B, C };
+print foo::C;
+===
+2

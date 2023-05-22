@@ -3,7 +3,6 @@ switch(a) {
 	default: {
 		b = 42;
 		print b;
-		break;
 	}
 	case 3: {
 		b = 3;

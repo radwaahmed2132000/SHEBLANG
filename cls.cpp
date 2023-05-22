@@ -4,6 +4,7 @@
 #include <optional>
 #include <unordered_set>
 
+
 #include "cl.h"
 #include "y.tab.h"
 #include "result.h"
@@ -24,12 +25,12 @@
         return right; \
     } \
 
-#define NOT_CONST(oper, lineNo) \ 
+#define NOT_CONST(oper, lineNo) \
     auto lhsName = std::get<idNodeType>(oper->un).id; \
     auto& lEntry = sym2[lhsName]; \
-    if(lEntry.isConstant) { \
-        return Result::Error("Error in line number: " \
-        + std::to_string(lineNo) + \ 
+    if(lEntry.isConstant) {\
+        return Result::Error("Error in line number: "\
+        + std::to_string(lineNo) \
          + " .The left identifier is a constant\n"); \
     } \
 
@@ -59,7 +60,6 @@
       } \
 
 struct semantic_analysis_visitor {
-    
     Result operator()(conNodeType& con) { 
         auto type = std::visit(
             Visitor {
@@ -164,6 +164,20 @@ struct semantic_analysis_visitor {
     Result operator()(switchNodeType& sw) { return Result::Success("success"); }
 
     Result operator()(breakNodeType& br) { return Result::Success("success"); }
+
+    Result operator()(StatementList& sl) {
+        auto statements = sl.toVec();
+
+        for(const auto& statement: statements) {
+            auto temp = semantic_analysis(statement->statementCode);
+            if(!(temp.isSuccess())) {
+                Result::Error("Error in line number: " +
+            std::to_string(statement->statementCode->lineNo));
+            }
+        }
+
+        return Result::Success("success");
+    }
 
     Result operator()(functionNodeType& fn) { return Result::Success("success"); }
 
@@ -404,6 +418,7 @@ struct semantic_analysis_visitor {
           return Result::Success("success"); 
           break;
       }
+      return Result::Success("success"); 
     }
 
     // the default case:

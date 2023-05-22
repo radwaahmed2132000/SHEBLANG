@@ -1,0 +1,25 @@
+CompileFlags:
+  # Treat code as C++, use C++17 standard, enable more warnings.
+  Add: [-xc++, -std=c++17, -Wno-missing-prototypes, -I=vendor/**]
+  # Remove extra warnings specified in compile commands.
+  # Single value is also acceptable, same as "Remove: [-mabi]"
+  Remove: -mabi
+  
+Diagnostics:
+  # Tweak Clang-Tidy checks.
+  ClangTidy:
+    Add: [performance*, readability*]
+    Remove:
+      [
+        modernize-use-trailing-return-type,
+        readability-braces-around-statements,
+        readability-magic-numbers,
+        readability-uppercase-literal-suffix,
+        readability-simplify-boolean-expr,
+        readability-identifier-length,
+        readability-redundant-access-specifiers,
+        performance-unnecessary-value-param,
+      ]
+    # CheckOptions:
+    #   readability-identifier-naming.VariableCase: camelBack
+

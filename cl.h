@@ -1,16 +1,44 @@
 #pragma once
+
+#include <cstddef>
 #include <cstdio>
-#include <new>
-#include <system_error>
+#include <algorithm>
+#include <memory>
 #include <vector>
 #include <variant>
 #include <string>
 #include <iostream>
 #include <unordered_map>
 #include <utility>
+#include <assert.h>
+#include <new>
+#include <system_error>
 
-# include "result.h"
 #include "value.h"
+#include "result.h"
+
+void yyerror(char *s);
+
+template <typename T>
+struct LinkedListNode {
+    T * prev = nullptr;
+    LinkedListNode() = default;
+    LinkedListNode(T* p) : prev(p) {}
+    virtual bool isStump() const = 0;
+
+	std::vector<T*> toVec() {
+		std::vector<T*> nodes;
+
+		T* current = dynamic_cast<T*>(this);
+		while(current != nullptr && !current->isStump()) {
+			nodes.push_back(current);
+			current = current->prev;
+		}
+	
+        std::reverse(nodes.begin(), nodes.end());
+		return nodes;
+	}
+};
 
 /* constants */
 // Operators needed: +, -, *, /, %, &, |, ^, &&, ||, !
@@ -28,8 +56,14 @@ typedef struct {
     std::vector<struct nodeType*> op;
 } oprNodeType;
 
-typedef struct {
-    struct nodeType* self, *prev;
+typedef struct caseNodeType: LinkedListNode<caseNodeType> {
+    struct  nodeType* labelExpr, * caseBody;
+
+    caseNodeType(): caseBody(nullptr), LinkedListNode(nullptr) {}
+    caseNodeType(nodeType* labelExpr, nodeType* caseBody): labelExpr(labelExpr), caseBody(caseBody) {}
+
+    virtual bool isStump() const override { return (caseBody == nullptr); }
+    bool isDefault() const { return (labelExpr == nullptr); }
 } caseNodeType;
 
 typedef struct {
@@ -45,9 +79,23 @@ typedef struct {
 typedef struct {
     struct nodeType* return_type;
     struct nodeType* name;
-    // TODO: some sort of list for parameters
-    struct nodeType* statemenst;
+    std::vector<struct VarDecl*> parameters;
+    struct nodeType* statements;
 } functionNodeType;
+
+typedef struct VarDecl : LinkedListNode<VarDecl>{
+	struct nodeType *type, *var_name;
+
+    VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
+	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
+
+    std::string getType() const;
+    std::string getName() const;
+
+    virtual bool isStump() const override {
+        return (this->type == nullptr) && (this->var_name == nullptr);
+    }
+} VarDecl;
 
 typedef struct {
     bool break_encountered;
@@ -68,10 +116,34 @@ typedef struct {
     struct nodeType *init_statement, *loop_condition, *post_loop_statement, *loop_body;
 } forNodeType;
 
-typedef struct VarDecl {
-	struct nodeType *type, *var_name;
-	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
-} VarDecl;
+typedef struct IdentifierListNode: LinkedListNode<IdentifierListNode> {
+    idNodeType* identifierName;
+    IdentifierListNode(): identifierName(nullptr), LinkedListNode(nullptr) {}
+    IdentifierListNode(idNodeType* idNode): identifierName(idNode), LinkedListNode(nullptr) {}
+
+    virtual bool isStump() const override {
+        return (identifierName == nullptr);
+    }
+} IdentifierListNode;
+
+typedef struct enumNode {
+    nodeType* name;
+    std::vector<std::string> enumMembers;
+} enumNode;
+
+typedef struct enumUseNode {
+    std::string enumName, memberName;
+} enumUseNode;
+
+typedef struct StatementList: LinkedListNode<StatementList> {
+    struct nodeType* statementCode;
+
+    StatementList(): statementCode(nullptr) {}
+
+    StatementList(nodeType* statementCode): statementCode(statementCode) {}
+
+    virtual bool isStump() const override { return (statementCode==nullptr); }
+} StatementList;
 
 typedef struct VarDefn {
 	VarDecl* decl;
@@ -84,18 +156,19 @@ typedef struct VarDefn {
 #define NODE_TYPES \
     conNodeType, idNodeType, oprNodeType, switchNodeType, \
     caseNodeType, breakNodeType, functionNodeType, whileNodeType, \
-    forNodeType, doWhileNodeType, VarDecl, VarDefn
+    forNodeType, doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode, \
+    enumUseNode, StatementList 
 
 typedef struct nodeType {
     std::variant<NODE_TYPES> un;
     int lineNo;
-    nodeType(std::variant<NODE_TYPES> innerUnion, int lineNo): un(innerUnion), lineNo(lineNo) {}
+	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
 } nodeType;
 
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
-    std::string type = "";  
+    std::string type;  
     nodeType* initExpr = nullptr;
 
     SymbolTableEntry() = default;
@@ -116,8 +189,13 @@ typedef struct SymbolTableEntry {
     Value& getRef() { return value; }
 } SymbolTableEntry;
 
-extern float sym[26];
-extern std::unordered_map<std::string, SymbolTableEntry> sym2;
+inline std::unordered_map<std::string, SymbolTableEntry> sym2;
+inline std::unordered_map<std::string, functionNodeType> functions;
+inline std::unordered_map<std::string, enumNode> enums;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Result semantic_analysis(nodeType* p);
+void set_break_parent(nodeType* node, nodeType* parent_switch);
+
+// Must include after the structs are defined
+#include "node_constructors.h"

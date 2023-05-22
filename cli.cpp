@@ -1,8 +1,10 @@
+#include <iterator>
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <variant>
 #include <algorithm>
+#include <optional>
 
 #include "cl.h"
 #include "y.tab.h"
@@ -29,45 +31,31 @@
 Value ex(nodeType* p);
 
 Value evaluate_switch(switchNodeType& sw) {
-    int matching_case_index = -1;
-    int default_case_index = -1;
+    std::optional<int> matching_case_index = {};
+    std::optional<int> default_case_index = {};
     Value var_value = ex(sw.var);
 
     assert(std::holds_alternative<caseNodeType>(sw.case_list_head->un));
-    std::vector<caseNodeType> cases;
 
     nodeType* head = sw.case_list_head;
-
-    // Since we have each switch case pointing at the one
-    // before it, we need to collect this list and walk it
-    // in reverse to have the switch case in the proper
-    // order.
-    do {
-        cases.push_back(std::get<caseNodeType>(head->un));
-        head = std::get<caseNodeType>(head->un).prev;
-    } while(head != NULL);
-    std::reverse(cases.begin(), cases.end());
+    auto cases = std::get<caseNodeType>(head->un).toVec();
 
     for(int i = 0; i < cases.size() && !sw.break_encountered; i++) {
-        Value case_value = ex(cases[i].self);
-        auto opr = std::get<oprNodeType>(cases[i].self->un);
+        Value case_value = ex(cases[i]->labelExpr);
 
-        if(opr.oper == DEFAULT) {
+        if(cases[i]->isDefault()) {
             default_case_index = i;
-        } else if (case_value == var_value || (matching_case_index != -1)) {
-            // Once you find a matching case, you execute
-            // the following cases until you find a break
-            // statement or you exhaust all the remaining
-            // cases.
+        } else if (case_value == var_value || matching_case_index.has_value()) {
+            // break once you find a matching case
 
             matching_case_index = i;
-            ex(opr.op[1]);
+            ex(cases[i]->caseBody);
+            break;
         }
     }
 
-    if(matching_case_index == -1 && !sw.break_encountered) {
-        auto opr = std::get<oprNodeType>(cases[default_case_index].self->un);
-        ex(opr.op[0]);
+    if(!matching_case_index.has_value() && !sw.break_encountered && default_case_index.has_value()) {
+        ex(cases[default_case_index.value()]->caseBody);
     }
 
     return Value(0);
@@ -107,6 +95,19 @@ struct ex_visitor {
         return Value(0);
     }
 
+    Value operator()(enumUseNode& eu) {
+        auto e = enums[eu.enumName];
+        auto memberIter = std::find(e.enumMembers.begin(), e.enumMembers.end(), eu.memberName);
+        
+        // TODO: move to semantic analysis
+        // if(memberIter == e.enumMembers.end()) {
+        //     std::cerr << "Enum" << '(' << eu.enumName << ')' << "does not contain a member with the name '" << eu.memberName << "'\n";
+        // }
+
+        int enumMemberValue = std::distance(e.enumMembers.begin(), memberIter);
+        return Value(enumMemberValue);
+    }
+
     Value operator()(switchNodeType& sw) {
         return evaluate_switch(sw);
     }
@@ -122,6 +123,19 @@ struct ex_visitor {
                 },
                 br.parent_switch->un
         );
+        return Value(0);
+    }
+
+    Value operator()(StatementList& sl) {
+        auto statements = sl.toVec();
+
+        for(const auto& statement: statements) {
+            ex(statement->statementCode);
+            if(std::holds_alternative<breakNodeType>(statement->statementCode->un)) {
+                break;
+            }
+        }
+
         return Value(0);
     }
 
@@ -177,46 +191,29 @@ struct ex_visitor {
                     },
                     exprValue
                 );
+                std::cout << std::flush;
                 return Value(0);
             }
-
-            case ';':  {
-                if(!opr.op.empty()) {
-
-                     ex(opr.op[0]);
-
-                     // Check if the current statement is `break`
-                     // If so, just execute it (so it can notify its parent
-                     // switch, while, for, do-while, etc...), but not the
-                     // remaining statements, and exit early.
-                     bool should_break = std::visit(
-                             Visitor {
-                                 [](oprNodeType& oprNode) {
-                                    if(oprNode.oper == ';') {
-                                    return std::holds_alternative<breakNodeType>(oprNode.op[0]->un) 
-                                    ||  std::holds_alternative<breakNodeType>(oprNode.op[1]->un) ;
-                                    }
-                                    return false;
-                                 },
-                                 [](auto def) { return false; }
-                                 },
-                                 opr.op[0]->un
-                             );
-
-                     if (should_break)
-                       return Value(0);
-                }
-
-                if(opr.op.size() > 1) 
-                    return ex(opr.op[1]);
-
-                return Value(0);
-
-           }
-            case '=': {
-                auto assignVar = std::get<idNodeType>(opr.op[0]->un).id;
-                return sym2[assignVar].setValue(ex(opr.op[1])).getValue();
+            case '=':       {
+                return std::visit(
+                    Visitor {
+                        [&opr](VarDecl& varDecl) { 
+                            auto varNameIdNode = std::get<idNodeType>(varDecl.var_name->un);
+                            return sym2[varNameIdNode.id].setValue(ex(opr.op[1])).getValue(); 
+                        },
+                        [&opr](idNodeType& idNode) { 
+                            auto ret = ex(opr.op[1]);
+                            return sym2[idNode.id].setValue(ret).getValue(); 
+                        },
+                        [](auto _default) { std::cout << "Invalid assignment expression"; return Value(0); }
+                    } ,
+                    opr.op[0]->un
+                );
             }
+
+            // TODO: figure out how to return values in the interpreter
+            case RETURN:
+                return ex(opr.op[0]);
 
             BOP_CASE('+',+)
             BOP_CASE('-',-)

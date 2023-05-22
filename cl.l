@@ -35,8 +35,7 @@ nodeType *id(const char* id);
                 return INTEGER;
             }
 
-[+-]?[1-9][0-9]* {
-                yylval.lineNo = yylineno;
+[1-9][0-9]* {
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
             }
@@ -47,8 +46,7 @@ nodeType *id(const char* id);
                 return REAL;
             }
 
-[+-]?([0-9]+([.][0-9]*)?([eE][+-]?[0-9]+)?|[.][0-9]+([eE][+-]?[0-9]+)?) {
-                yylval.lineNo = yylineno;
+([0-9]+([.][0-9]*)?([eE][+-]?[0-9]+)?|[.][0-9]+([eE][+-]?[0-9]+)?) {
                 yylval.fValue = atof(yytext);
                 return REAL;
             }
@@ -104,6 +102,7 @@ nodeType *id(const char* id);
 "enum"          return ENUM;
 "fn"            return FN;
 "return"        return RETURN;
+"::"            return SCOPE_RES;
 
 [a-zA-Z_][a-zA-Z_0-9]* { 
                 yylval.lineNo = yylineno;

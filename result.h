@@ -1,5 +1,4 @@
-# pragma once
-
+#pragma once
 #include <variant>
 #include <iostream>
 #include <vector>

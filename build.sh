@@ -15,7 +15,7 @@ generate_code() {
 }
 
 build() {
-	clang++-16 -ggdb -stdlib=libc++ -std=c++17 value_operators.cpp cls.cpp lex.yy.c y.tab.c $1 -o $2 -Wno-write-strings 		# compile/link
+	clang++-16 -ggdb -stdlib=libc++ -std=c++17 value_operators.cpp node_constructors.cpp cls.cpp lex.yy.c y.tab.c $1 -o $2 -Wno-write-strings 		# compile/link
 }
 
 interpreter() {
