@@ -220,6 +220,10 @@ struct ex_visitor {
                             auto varNameIdNode = std::get<idNodeType>(varDecl.var_name->un);
                             return sym2[varNameIdNode.id].setValue(ex(opr.op[1])).getValue(); 
                         },
+                            [&opr](VarDefn& varDefn) { 
+                            auto varNameIdNode = std::get<idNodeType>(varDefn.decl->var_name->un);
+                            return sym2[varNameIdNode.id].setValue(ex(varDefn.initExpr)).getValue(); 
+                        },
                         [&opr](idNodeType& idNode) { 
                             auto ret = ex(opr.op[1]);
                             return sym2[idNode.id].setValue(ret).getValue(); 
