@@ -1,4 +1,3 @@
 char x='5';
 x++;
 ===
-Error in line number: 2 .The LHS identifier type: char is not a valid type for a mathematical operation
