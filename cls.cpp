@@ -64,7 +64,7 @@
   ? other operand. If both of the operands aren't numbers (char, bool), cast to int.
 */
 
-Result cast(const std::string& leftType, const std::string& rightType, oprNodeType& opr) {
+Result cast_opr(const std::string& leftType, const std::string& rightType, oprNodeType& opr) {
     if (leftType == "string" || rightType == "string") {
         return Result::Error("Error in line number: " +
                             std::to_string((opr.op[0]->lineNo)) +
@@ -90,12 +90,12 @@ Result cast(const std::string& leftType, const std::string& rightType, oprNodeTy
           std::string castResult = "int";
           if (leftType == "float") {
               return Result::Error("Error in line number: " +
-                                  std::to_string(opr.op[0]->lineNo) +
-                                  " .The LHS in a modulo operation can't be float \n");
+                                    std::to_string(opr.op[0]->lineNo) +
+                                    " .The LHS in a modulo operation can't be float \n");
           } else if (rightType == "float") {
               return Result::Error("Error in line number: " +
-                                  std::to_string(opr.op[1]->lineNo) +
-                                  " .The RHS in a modulo operation can't be float \n");
+                                    std::to_string(opr.op[1]->lineNo) +
+                                    " .The RHS in a modulo operation can't be float \n");
           } else {
               if (leftType != castResult) {
                   opr.op[0]->conversionType = castResult;
@@ -110,12 +110,12 @@ Result cast(const std::string& leftType, const std::string& rightType, oprNodeTy
           std::string castResult = "int";
           if (leftType == "float") {
               return Result::Error("Error in line number: " +
-                                  std::to_string(opr.op[0]->lineNo) +
-                                  " .The LHS in a bitwise operation can't be float \n");
+                                    std::to_string(opr.op[0]->lineNo) +
+                                    " .The LHS in a bitwise operation can't be float \n");
           } else if (rightType == "float") {
               return Result::Error("Error in line number: " +
-                                  std::to_string(opr.op[1]->lineNo) +
-                                  " .The RHS in bitwise operation can't be float \n");
+                                    std::to_string(opr.op[1]->lineNo) +
+                                    " .The RHS in bitwise operation can't be float \n");
           } else {
               if (leftType != castResult) {
                   opr.op[0]->conversionType = castResult;
@@ -158,14 +158,14 @@ Result cast(const std::string& leftType, const std::string& rightType, oprNodeTy
     }
 }
 
-#define LEFT_SAME_TYPE_AS_RIGHT(left, right, lineNo) \
+#define LEFT_SAME_TYPE_AS_RIGHT(left, right, lineNo, opr) \
     auto leftType = std::get<SuccessType>(left); \
     auto rightType = std::get<SuccessType>(right); \
     if (leftType != rightType) { \
-       errorsOutput.addError ("Error in line number: " + \
-                std::to_string(lineNo) + " .The LHS identifier type: " + \
-                std::get<SuccessType>(left) + " doesn't match the RHS Expression type: " \
-                + std::get<SuccessType>(right) + "\n"); \
+      Result castResult = cast_opr(leftType, rightType, opr); \
+      if (!castResult.isSuccess()) { \
+        errorsOutput.addError(std::get<std::string>(castResult)); \
+      } \
     } \
 
 #define LEFT_TYPE(left) \
@@ -213,23 +213,19 @@ struct semantic_analysis_visitor {
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
 
         if (sym2.find(nameStr) != sym2.end()) {
-            errorsOutput.addError("Error in line number: " +
-             std::to_string(vd.type->lineNo) + " .The variable " +
-             nameStr + " is already declared\n");
+          errorsOutput.addError("Error in line number: " +
+            std::to_string(vd.type->lineNo) + " .The variable " +
+            nameStr + " is already declared\n");
+        } else {
+          /* Add the variable name & type as a new entry in the symbol table */
+          SymbolTableEntry entry = SymbolTableEntry();
+          entry.type = type;
+          entry.isConstant = false;
+          entry.initExpr = nullptr;
+          sym2[nameStr] = entry;
+          return Result::Success(entry.type);
         }
-
-        /* Add the variable name & type as a new entry in the symbol table */
-        SymbolTableEntry entry = SymbolTableEntry();
-        entry.type = type;
-        entry.isConstant = false;
-        entry.initExpr = nullptr;
-        sym2[nameStr] = entry;
-
-      if(startingSize != errorsOutput.sizeError)
-      {
         return Result::Error("error");
-      }
-      return Result::Success(entry.type);
     }
 
     Result operator()(VarDefn& vd) {
@@ -366,6 +362,9 @@ struct semantic_analysis_visitor {
     /* For Enums (list of identifiers) */
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
+    Result operator()(functionNodeType& fn) { return Result::Success("success"); } // TODO
+
+
     /* 
       Entry point, we get a list of statements & iterate over each of them & make sure they are
       Semantically correct
@@ -390,9 +389,6 @@ struct semantic_analysis_visitor {
         return ret;
     }
     
-
-    Result operator()(functionNodeType& fn) { return Result::Success("success"); } // TODO
-
     Result operator()(doWhileNodeType& dw) {
       int startingSize =errorsOutput.sizeError;
 
@@ -527,7 +523,7 @@ struct semantic_analysis_visitor {
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
-          LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
+          LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo, opr); // * gives leftType & rightType
           // return Result::Success(leftType);
         }
         break;
@@ -564,7 +560,7 @@ struct semantic_analysis_visitor {
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
-        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
+        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo, opr); // * gives leftType & rightType
         /* Check that the left and right are bool */
         if (leftType != "bool" ) {
           errorsOutput.addError("Error in line number: " +
@@ -586,7 +582,7 @@ struct semantic_analysis_visitor {
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
-        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
+        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo, opr); // * gives leftType & rightType
         /* Check that the left and right are either both integers or both float */
         if (leftType != "int" && leftType != "float") {
           errorsOutput.addError("Error in line number: " +
@@ -607,7 +603,7 @@ struct semantic_analysis_visitor {
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
-          LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType
+          LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo, opr); // * gives leftType & rightType
           /* Check that the left and right are either both integers or both float */
           if (leftType != "int" && leftType != "float") {
             errorsOutput.addError("Error in line number: " +
@@ -629,7 +625,7 @@ struct semantic_analysis_visitor {
         /* Check that the right expression is semantically valid */
         RIGHT_VALID(opr.op[1]); // * gives right
         /*  Check that the two expressions on the left & on the right are of the same type */
-        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo); // * gives leftType & rightType 
+        LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo, opr); // * gives leftType & rightType 
         return Result::Success("bool");
       }
       break;
@@ -654,7 +650,7 @@ struct semantic_analysis_visitor {
         return Result::Success(leftType);
       }
       break;
-      
+
       case PRINT: {
         /* Check that the right expression is valid */
         RIGHT_VALID(opr.op[0]); // * gives right
