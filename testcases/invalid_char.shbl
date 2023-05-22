@@ -1,4 +1,3 @@
 char x=5;
 ===
-Semantic analysis failed
-Error: The LHS identifier type: char doesn't match the RHS Expression type: int
+Error in line number: 1 .The LHS identifier type: char doesn't match the RHS Expression type: int

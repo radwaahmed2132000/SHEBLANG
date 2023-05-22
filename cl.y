@@ -61,11 +61,11 @@ extern int yylineno;            /* from lexer */
 program:
         stmt_list { 
                 auto result = semantic_analysis($1);
-                if (result.isSuccess()) {
+                if (errorsOutput.isSuccess()) {
                     // printf("Semantic analysis successful\n");
                 } else {
                     // printf("Semantic analysis failed\n");
-                    for (auto& error : std::get<ErrorType>(result)) {
+                    for (auto& error : std::get<ErrorType>(errorsOutput)) {
                         printf("%s\n", error.c_str());
                     }
                     exit(1);
