@@ -10,6 +10,7 @@ struct SuccessType: std::string {};
 // auto error  = Result::Error("LHS = int, RHS = string");
 // error.push_back("another error!");
 struct Result: std::variant<ErrorType, SuccessType> {
+    int sizeError=0;
     bool isSuccess() const {
         return std::holds_alternative<SuccessType>(*this);
     }
@@ -27,6 +28,7 @@ struct Result: std::variant<ErrorType, SuccessType> {
             std::cerr << "Cannot add an error to a success variant\n";
         } else if (auto *e = std::get_if<ErrorType>(this); e != nullptr) {
             e->push_back(newError);
+            sizeError++;
         }
 
         return *this;

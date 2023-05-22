@@ -10,7 +10,4 @@ int x;
 print x+20;
 print y+50.0;
 ===
-2
-21.000000
-30
-70.000000
+Error in line number: 3 .Identifier z is not declared

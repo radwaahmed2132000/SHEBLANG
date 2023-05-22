@@ -1,0 +1,6 @@
+int x = 10;
+float x = 25.4;
+
+print x;
+===
+Error in line number: 2 .The variable x is already declared

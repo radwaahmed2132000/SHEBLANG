@@ -197,6 +197,7 @@ typedef struct SymbolTableEntry {
 inline std::unordered_map<std::string, SymbolTableEntry> sym2;
 inline std::unordered_map<std::string, functionNodeType> functions;
 inline std::unordered_map<std::string, enumNode> enums;
+inline Result errorsOutput;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Result semantic_analysis(nodeType* p);

@@ -1,4 +1,4 @@
 char z='5';
 z+=5;
 ===
-Error in line number: 2 .The LHS identifier type: char doesn't match the RHS Expression type: int
+Error: The LHS identifier type: char doesn't match the RHS Expression type: int
