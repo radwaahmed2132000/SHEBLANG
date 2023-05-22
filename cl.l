@@ -7,15 +7,21 @@
 void yyerror(char *);
 nodeType *id(const char* id);
 %}
-
+%option yylineno
 %%
 
 [']([^']?|[\\][nt'])['] {
+                yylval.lineNo = yylineno;
                 yylval.cValue = std::string(yytext)[1];
                 return CHARACTER;
             }
 
+[']([^']?|[\\][nt'])*['] {
+                yyerror("Cannot use single quotes for strings. Instead use \"\"");
+            }
+
 ["]([^"]|[,\\][nt"])*["] {
+                yylval.lineNo = yylineno;
                 std::string temp = std::string(yytext);
                 temp = temp.substr(1,temp.size()-2);
                 yylval.sValue = new char[temp.length()];
@@ -24,6 +30,7 @@ nodeType *id(const char* id);
             }
 
 0           {
+                yylval.lineNo = yylineno;
                 yylval.iValue = atoi(yytext);
                 return INTEGER;
             }
@@ -34,6 +41,7 @@ nodeType *id(const char* id);
             }
 
 [0-9]+[.][0-9]+ {
+                yylval.lineNo = yylineno;
                 yylval.fValue = atof(yytext);
                 return REAL;
             }
@@ -44,15 +52,18 @@ nodeType *id(const char* id);
             }
 
 [-()<>=+*/%!~&|^;{}.,:] {
+                yylval.lineNo = yylineno;
                 return *yytext;
              }
 
 "true"      {
+                yylval.lineNo = yylineno;
                 yylval.bValue = true;
                 return BOOLEAN;
             }
 
 "false"     {
+                yylval.lineNo = yylineno;
                 yylval.bValue = false;
                 return BOOLEAN;
             }        
@@ -94,6 +105,7 @@ nodeType *id(const char* id);
 "::"            return SCOPE_RES;
 
 [a-zA-Z_][a-zA-Z_0-9]* { 
+                yylval.lineNo = yylineno;
                 yylval.nPtr = id(yytext);
                 return IDENTIFIER;
             }

@@ -1,0 +1,16 @@
+int x;
+
+z = 10;
+
+{
+    float y = 20.0;
+    print x;
+    x = 10;
+    print y;
+}
+
+print x;
+print y;
+print z;
+===
+Error in line number: 0 .Identifier z is not declared

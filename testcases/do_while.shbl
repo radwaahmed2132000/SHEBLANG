@@ -2,7 +2,7 @@ float x = 15.;
 do {
     print x;
     x--;
-} while(x>10);
+} while(x>10.);
 ===
 15.000000
 14.000000

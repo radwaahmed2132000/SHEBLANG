@@ -5,12 +5,13 @@
 #include <unordered_map>
 #include <string>
 #include "cl.h"
+#include "node_constructors.h"
 #include <variant>
+
 
 /* prototypes */
 void freeNode(nodeType *p);
 Value ex(nodeType *p);
-
 
 int yylex(void);
 void yyerror(char *s);
@@ -24,6 +25,7 @@ extern int yylineno;            /* from lexer */
     char cValue;                /* char value */
     char* sValue;               /* string value */
     nodeType *nPtr;             /* node pointer */
+    int lineNo;                 /* Line Number of Code Line */
 };
 
 %token <nPtr> IDENTIFIER
@@ -60,12 +62,12 @@ program:
         stmt_list { 
                 auto result = semantic_analysis($1);
                 if (result.isSuccess()) {
-                    //printf("Semantic analysis successful\n");
+                    // printf("Semantic analysis successful\n");
                 } else {
                     // printf("Semantic analysis failed\n");
-                    // for (auto& error : std::get<ErrorType>(result)) {
-                    //     printf("%s\n", error.c_str());
-                    // }
+                    for (auto& error : std::get<ErrorType>(result)) {
+                        printf("%s\n", error.c_str());
+                    }
                     exit(1);
                 }
                 ex($1);
@@ -81,10 +83,8 @@ var_decl:
 
 var_defn:
         var_decl '=' expr ';'        { 
-            VarDecl vd = std::get<VarDecl>($1->un);
-            $$ = opr('=', 2, vd.var_name, $3); 
-        }
-        ;
+            $$ = varDefn($1, $3, false);
+        };
 
 stmt:
         ';'                                     { $$ = opr(';', 0); }
@@ -110,8 +110,8 @@ stmt:
         | var_decl ';'                            
         | var_defn                                { $$ = $1; }
 
-        | CONST IDENTIFIER IDENTIFIER '=' expr ';' { 
-            $$ = constVarDefn($2, $3, $5);
+        | CONST var_decl '=' expr ';' { 
+            $$ = varDefn($2, $4, true);;
         }
         
         | enum_defn                              

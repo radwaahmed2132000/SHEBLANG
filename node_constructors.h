@@ -1,6 +1,8 @@
 #pragma once
 #include "cl.h"
 
+extern int yylineno;
+
 nodeType *con(int iValue);
 nodeType *con(float fValue);
 nodeType *con(bool bValue);
@@ -19,7 +21,7 @@ nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
 nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
 
 nodeType* varDecl(nodeType* type, nodeType* name);
-nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr);
+nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant);
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements);
 
@@ -41,7 +43,7 @@ nodeType* appendToLinkedList(nodeType* prev, nodeType* next) {
 	assert(currNode != nullptr);
 
     currNode->prev = prevNode;
-	return new nodeType(*currNode); 
+	return new nodeType(*currNode, yylineno); 
 }
 
 template<typename LinkedListNode> 
@@ -57,5 +59,5 @@ nodeType* linkedListStump(nodeType* end) {
         stump = new LinkedListNode();
     }
 
-	return new nodeType(*stump); 
+	return new nodeType(*stump, yylineno); 
 }

@@ -97,7 +97,6 @@ for test_case in test_cases:
 
     if expected_no_whitespace == actual_no_whitespace:
         passed += 1
-        print(f"PASSED: {test_case.filename}")
     else:
         failed += 1
         print(f"FAILED: {test_case.filename}")

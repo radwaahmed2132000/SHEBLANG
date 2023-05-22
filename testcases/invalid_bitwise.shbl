@@ -1,0 +1,4 @@
+int x=5;
+x|=3.0;
+===
+Error in line number: 2 .The RHS identifier type: float is not a valid type for a bitwise operation

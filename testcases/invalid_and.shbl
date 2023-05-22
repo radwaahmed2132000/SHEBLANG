@@ -1,0 +1,5 @@
+int x=3;
+int y=2;
+int z = x && y;
+===
+Error in line number: 3 .The LHS identifier type: int is not a valid type for a logical operation

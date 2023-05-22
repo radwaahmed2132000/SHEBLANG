@@ -1,2 +1,7 @@
+fn test() int {
+   return 42; 
+}
 int x = 10 + test();
+print x;
 ===
+52

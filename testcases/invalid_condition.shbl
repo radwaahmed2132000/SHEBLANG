@@ -1,0 +1,9 @@
+float x=5;
+char y='z';
+if (x>=y)
+{ 
+    print "hi";
+
+}
+===
+Error in line number: 3 .The LHS identifier type: float doesn't match the RHS Expression type: char

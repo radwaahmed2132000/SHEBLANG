@@ -1,0 +1,8 @@
+int x=5;
+char z='5';
+if(x==z)
+{
+    print "equals";
+}
+===
+Error in line number: 3 .The LHS identifier type: int doesn't match the RHS Expression type: char

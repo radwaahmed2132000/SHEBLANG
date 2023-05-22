@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <utility>
 #include <assert.h>
+#include <new>
+#include <system_error>
 
 #include "value.h"
 #include "result.h"
@@ -45,6 +47,7 @@ using conNodeType = Value;
 /* identifiers */
 typedef struct {
     std::string id;                 /* key/index to sym array */
+    int lineNo;
 } idNodeType;
 
 /* operators */
@@ -79,20 +82,6 @@ typedef struct {
     std::vector<struct VarDecl*> parameters;
     struct nodeType* statements;
 } functionNodeType;
-
-typedef struct VarDecl : LinkedListNode<VarDecl>{
-	struct nodeType *type, *var_name;
-
-    VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
-	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
-
-    std::string getType() const;
-    std::string getName() const;
-
-    virtual bool isStump() const override {
-        return (this->type == nullptr) && (this->var_name == nullptr);
-    }
-} VarDecl;
 
 typedef struct {
     bool break_encountered;
@@ -156,21 +145,44 @@ typedef struct FunctionCall {
     std::vector<ExprListNode*> parameterExpressions;    
 } FunctionCall;
 
-#define NODE_TYPES \
-    conNodeType, idNodeType, oprNodeType, switchNodeType, \
-    caseNodeType, breakNodeType, functionNodeType, whileNodeType, \
-    forNodeType, doWhileNodeType, VarDecl, enumNode, IdentifierListNode, \
-    enumUseNode, StatementList, FunctionCall, ExprListNode
+typedef struct VarDecl : LinkedListNode<VarDecl>{
+	struct nodeType *type, *var_name;
+
+    VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
+	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
+
+    std::string getType() const;
+    std::string getName() const;
+
+    virtual bool isStump() const override {
+        return (this->type == nullptr) && (this->var_name == nullptr);
+    }
+} VarDecl;
+
+typedef struct VarDefn {
+	VarDecl* decl;
+    bool isConstant;
+    struct nodeType* initExpr = nullptr;
+
+	VarDefn(VarDecl* decl, nodeType* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
+} VarDefn;
+
+#define NODE_TYPES                                                      \
+    conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, \
+    breakNodeType, functionNodeType, whileNodeType, forNodeType,        \
+    doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode,    \
+    enumUseNode, StatementList, FunctionCall, ExprListNode              
 
 typedef struct nodeType {
     std::variant<NODE_TYPES> un;
-	nodeType(std::variant<NODE_TYPES> inner_union) : un(inner_union) {}
+    int lineNo;
+	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
 } nodeType;
 
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
-    std::string type;  
+    std::string type = "";  
     nodeType* initExpr = nullptr;
 
     SymbolTableEntry() = default;

@@ -13,7 +13,9 @@
 
 #include "y.tab.h"
 
-#define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}))
+extern int yylineno;  
+
+#define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}),yylineno)
 
 nodeType *con(int iValue)   { return CON_INIT(p, iValue); }
 nodeType *con(float fValue) { return CON_INIT(p, fValue); }
@@ -36,64 +38,60 @@ nodeType *opr(int oper, int nops, ...) {
         opr.op.push_back(va_arg(ap, nodeType*));
     va_end(ap);
 
-    return new nodeType(opr);
+    return new nodeType(opr, yylineno);
 }
 
 // Create an identifier node.
 nodeType *id(const char* id) {
     /* copy information */
     auto idNode = idNodeType{std::string(id)};
-    return new nodeType(idNode);
+    return new nodeType(idNode, yylineno);
 }
 
 nodeType *sw(nodeType* var, nodeType* case_list_head) {
     auto switchNode = std::variant<NODE_TYPES>(switchNodeType{ 0, false, var, case_list_head });
-    return new nodeType(switchNode);
+    return new nodeType(switchNode, yylineno);
 }
 
 nodeType *cs(nodeType* labelExpr, nodeType* caseBody) {
-    return new nodeType(caseNodeType(labelExpr, caseBody));
+    return new nodeType(caseNodeType(labelExpr, caseBody), yylineno);
 }
 
 nodeType *br() {
     auto breakNode = std::variant<NODE_TYPES>(breakNodeType{NULL});
-    return new nodeType(breakNode);
+    return new nodeType(breakNode, yylineno);
 }
 
 nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body) {
     auto forNode = forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body};
-    return new nodeType(forNode);
+    return new nodeType(forNode, yylineno);
 }
 
 nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body) {
     auto whileNode = whileNodeType{false, loop_condition, loop_body};
-    return new nodeType(whileNode);
+    return new nodeType(whileNode, yylineno);
 }
 
 nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
     auto doWhileNode = std::variant<NODE_TYPES>(doWhileNodeType{false, loop_condition, loop_body});
-    return new nodeType(doWhileNode);
+    return new nodeType(doWhileNode, yylineno);
 }
 
 nodeType* varDecl(nodeType* type, nodeType* name) {
     auto nameStr = std::get<idNodeType>(name->un).id;
     auto typeStr = std::get<idNodeType>(type->un).id;
 
-    return new nodeType(VarDecl(type, name));
+    return new nodeType(VarDecl(type, name), yylineno);
+}
+
+nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
+    auto* declPtr = std::get_if<VarDecl>(&decl->un);
+    return new nodeType(VarDefn(declPtr, initExpr, isConstant), yylineno);
 }
 
 std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id; } 
 std::string VarDecl::getName() const { return std::get<idNodeType>(var_name->un).id; } 
 
-nodeType* constVarDefn(nodeType* type, nodeType* name, nodeType* initExpr) {
-    auto nameStr = std::get<idNodeType>(name->un).id;
-    auto typeStr = std::get<idNodeType>(type->un).id;
-
-    // TODO: move to semantic analysis or something.
-    // Needed now so the interpreter works correctly.
-    sym2[nameStr] = SymbolTableEntry(initExpr, true, typeStr);
-    return new nodeType(VarDecl(type, name));
-}
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements) {
     assert(std::holds_alternative<idNodeType>(name->un));
@@ -116,11 +114,11 @@ nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_typ
         assert(containsReturn);
     }
 
-    return new nodeType(functionNodeType{return_type, name, params, statements});
+    return new nodeType(functionNodeType{return_type, name, params, statements}, yylineno);
 }
 
 nodeType* fn_call(nodeType* name) {
-    return new nodeType(functionNodeType{nullptr, name});
+    return new nodeType(functionNodeType{nullptr, name}, yylineno);
 }
 
 struct set_break_parent_visitor {
@@ -169,27 +167,27 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
     enums[enumName] = e;
 
-    return new nodeType(e);
+    return new nodeType(e, yylineno);
 }
 
 nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
     auto enumMemberName = std::get<idNodeType>(enumMemberIdentifier->un).id;
 
-    return new nodeType(enumUseNode{enumName, enumMemberName});
+    return new nodeType(enumUseNode{enumName, enumMemberName}, yylineno);
 }
 
 nodeType* identifierListNode(nodeType* idNode) {
     assert(std::holds_alternative<idNodeType>(idNode->un));
-    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)));
+    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), yylineno);
 }
 
 nodeType* statementList(nodeType* statement) {
-    return new nodeType(StatementList(statement));
+    return new nodeType(StatementList(statement), yylineno);
 }
 
 nodeType* exprListNode(nodeType* exprCode) {
-    return new nodeType(ExprListNode(exprCode));
+    return new nodeType(ExprListNode(exprCode), yylineno);
 }
 
 nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
@@ -199,5 +197,5 @@ nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
     auto exprList = std::get<ExprListNode>(exprListTail->un).toVec();
     auto fnName = std::get<idNodeType>(fnIdentifier->un).id;
 
-    return new nodeType(FunctionCall{fnName, exprList});
+    return new nodeType(FunctionCall{fnName, exprList}, yylineno);
 }

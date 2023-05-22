@@ -1,0 +1,4 @@
+float x=5.0;
+int y=10.0%x;
+===
+Error in line number: 2 .The LHS and RHS must be integers in module operation
