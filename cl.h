@@ -48,6 +48,7 @@ using conNodeType = Value;
 typedef struct {
     std::string id;                 /* key/index to sym array */
     int lineNo;
+    struct nodeType* scopeNodePtr;         /* Used purely for scoping purposes */
 } idNodeType;
 
 /* operators */

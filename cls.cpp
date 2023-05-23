@@ -318,7 +318,7 @@ struct semantic_analysis_visitor {
             DONE: Add scope checking when scoping is added 
         */
         int startingSize = errorsOutput.sizeError;
-        auto symTable = currentNodePtr->currentScope;
+        auto symTable = identifier.scopeNodePtr->currentScope;
         /* Check that the identifier is declared */
         if (symTable->sym2.find(identifier.id) != symTable->sym2.end()) {
             /* Check that the identifier type is valid */

@@ -110,8 +110,9 @@ nodeType *id(const char* id);
                 return IDENTIFIER;
             }
 
-[ \t\n]+        ;       /* ignore whitespace */
+[ \t]+        ;       /* ignore whitespace */
 
+[\n]            currentLineNo++;  
 .               yyerror("Unknown character");
 %%
 int yywrap(void) {
