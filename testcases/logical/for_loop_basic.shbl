@@ -11,11 +11,18 @@ for(int b = 0; b < 10; b += 1) print b;
 8
 9
 ===
-mov b,0
-loop1: 
-        CMP x,10
-        JGE break1
-        print b
-        add x,1
-        JMP loop1
-break1
+    push 0
+    pop b
+L000:
+    push b
+    push 10
+    compLT
+    jnz L001
+    push b
+    print 
+    push b
+    push 1
+    add
+    pop b
+    jmp L000
+L001:

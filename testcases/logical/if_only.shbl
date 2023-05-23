@@ -2,9 +2,10 @@ int a = 1;
 if(a>0);
 ===
 ===
-mov a,1
-CMP a,0
-JLE break1:
-  
-JMP break1
-break1:
+    push 1
+    pop a
+    push a
+    push 0
+    compGT
+    jz  L000
+L000:

@@ -270,10 +270,14 @@ struct compiler_visitor {
             ex(opr.op[0]);
             break;
 
-        case PRINT:
-            printf("\tpush %s\n", ex(opr.op[0]).toString().c_str());
+        case PRINT: {
+            // HACK
+            auto ret = ex(opr.op[0]);
+            if(!(std::holds_alternative<std::string>(ret) && ret.toString() == "0")) {
+                printf("\tpush %s\n", ret.toString().c_str());
+            }
             printf("\tprint \n");
-            break;
+        } break;
         case '=': {
             std::string lhs = ex(opr.op[0]).toString();
             ex(opr.op[1]);
@@ -366,7 +370,7 @@ struct compiler_visitor {
             return Value(0);
         }
 
-        return Value(0);
+        return Value(std::string("0"));
     }
 
     template <typename T> Value operator()(T const & /*UNUSED*/) const {  return Value(0);}

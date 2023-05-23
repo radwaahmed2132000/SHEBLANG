@@ -3,8 +3,10 @@ print a + 12;
 ===
 14
 ===
-mov a,2
-add a,12
-
-print a
+push 2
+pop a
+push a
+push 12
+add 
+print
 
