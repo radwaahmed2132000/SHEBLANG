@@ -79,6 +79,8 @@ struct setup_scopes_visitor {
     }
 
     void operator()(functionNodeType& fn) {
+        // TODO: Revise this when doing the function logic. 
+        fn.name->currentScope = currentNodePtr->currentScope;
         fn.statements->currentScope = currentNodePtr->currentScope;
         setup_scopes(fn.statements);
     }
@@ -151,6 +153,8 @@ struct setup_scopes_visitor {
                     setup_scopes(opr.op[1]);
                 }
             }
+            case RETURN:
+                opr.op[0]->currentScope = currentNodePtr->currentScope;
             default: return;
         }
     }
