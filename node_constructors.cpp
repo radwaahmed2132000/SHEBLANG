@@ -174,7 +174,7 @@ nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
     auto enumMemberName = std::get<idNodeType>(enumMemberIdentifier->un).id;
 
-    return new nodeType(enumUseNode{enumName, enumMemberName}, currentLineNo);
+    return new nodeType(enumUseNode{enumName, enumMemberName, currentLineNo}, currentLineNo);
 }
 
 nodeType* identifierListNode(nodeType* idNode, bool addNewScope) {

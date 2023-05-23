@@ -638,86 +638,79 @@ struct semantic_analysis_visitor {
     } // TODO
 
     Result operator()(enumNode& en) { 
+
       int startingSize = errorsOutput.sizeError;
-      auto nameStr = std::get<idNodeType>(en.name->un).id;
-      auto& enums = enumSymTable(nameStr, currentNodePtr->currentScope);
-      auto& enumitr = enums[nameStr];
 
-      //TODO change in scope
-      if(enums.find(nameStr) != enums.end())
-      {
-        errorsOutput.addError("This enum is already declared , there is error in line "+ std::to_string(en.name->lineNo));
-      }
-        
-      std::unordered_set<std::string> members;
+      /* Check that an enum with the same name is not declared already */
+      std::string enumName = std::get<idNodeType>(en.name->un).id;
 
-      for (int i=0;i<en.enumMembers.size();i++)
-      {
-        members.insert(en.enumMembers[i]);
-      }
-      if(members.size() != en.enumMembers.size())
-      {
-        errorsOutput.addError("Enum has duplicate memebers in line "+std::to_string(en.name->lineNo) );
-      }
-      if(errorsOutput.sizeError!=startingSize)
-      {
-        return Result::Error("error");
-
-      }
-      else{
-        enums.insert(make_pair(nameStr,en));
-        for (int i=0;i<en.enumMembers.size();i++)
-        {
-          members.insert(en.enumMembers[i]);
-          SymbolTableEntry entry = SymbolTableEntry();
-          entry.type = "enum";
-          entry.isConstant = false;
-          entry.initExpr = nullptr;
-          currentNodePtr->currentScope->sym2[nameStr+" "+en.enumMembers[i]] = entry; // TODO: Change this to enums table.
-      }
-         
-        return Result::Success("enum");
-      }
-      return Result::Success("ok");
-      
-      } 
-
-    Result operator()(enumUseNode& eu) { 
-      //TODO add line numbers
-      int startingSize = errorsOutput.sizeError;
-      auto enums = enumSymTable(eu.enumName, currentNodePtr->currentScope);
-      auto enumitr = enums.find(eu.enumName);
-
-      if(enumitr==enums.end())
-      {
-        errorsOutput.addError("This enum is not defined, there is error in line ");
-      }
-      else
-      {
-        enumNode enumCurrent= enumitr->second;
-        bool found=false;
-        for(int i= 0;i< enumCurrent.enumMembers.size();i++)
-        {
-          if(enumCurrent.enumMembers[i]==eu.memberName)
-          {
-            found=true;
+      if (en.name->currentScope->enums.find(enumName) != en.name->currentScope->enums.end()) {
+        errorsOutput.addError("Error in line number: " + std::to_string(en.name->lineNo) +
+                              " .The enum " + enumName + " is already declared");
+      } else {
+        auto parentScope = en.name->currentScope->parentScope;
+        while (parentScope != nullptr) {
+          if (parentScope->enums.find(enumName) != parentScope->enums.end()) {
+            errorsOutput.addError("Error in line number: " + std::to_string(en.name->lineNo) +
+                              " .The enum " + enumName + " is already declared");
             break;
           }
-        }
-        if(!found)
-        {
-          errorsOutput.addError("This enum member is not defined, there is error in line ");
-
-        }
-        if(startingSize!=errorsOutput.sizeError)
-        {
-          // TODO: Make sure this is the proper scope.
-          return Result::Success( currentNodePtr->currentScope->sym2[eu.enumName+" "+eu.memberName].type); // TODO: Probably change this to enums table.
+          parentScope = parentScope->parentScope;
         }
       }
+      /* Check that all members are unique */
+      std::unordered_set<std::string> members;
+      for (int i=0;i<en.enumMembers.size();i++) {
+        members.insert(en.enumMembers[i]);
+      }
+      if(members.size() != en.enumMembers.size()) {
+        errorsOutput.addError("Enum has duplicate memebers in line "+std::to_string(en.name->lineNo) );
+      }
+    
+      /* Add the enum to the enums table */
+      en.name->currentScope->enums[enumName] = en;
       
-      return Result::Error("error"); 
-      } 
+      return Result::Success("ok");
+    } 
+
+    Result operator()(enumUseNode& eu) { 
+      
+      int startingSize = errorsOutput.sizeError;
+      bool found = false;
+      
+      /* Check that the enum is declared */
+      if (currentNodePtr->currentScope->enums.find(eu.enumName) == currentNodePtr->currentScope->enums.end()) {
+        auto parentScope = currentNodePtr->currentScope->parentScope;
+        while (parentScope != nullptr) {
+          if (parentScope->enums.find(eu.enumName) != parentScope->enums.end()) {
+            found = true;
+            break;
+          }
+          parentScope = parentScope->parentScope;
+        }
+      } else {
+        found = true;
+      }
+
+      if (!found) {
+        errorsOutput.addError("Error in line number: " + std::to_string(eu.lineNo) +
+                              " .The enum " + eu.enumName + " is not declared");
+      } else {
+        /* Check that the member name is part of the enum members */
+        auto& enumMembers = currentNodePtr->currentScope->enums[eu.enumName].enumMembers;
+        if (std::find(enumMembers.begin(), enumMembers.end(), eu.memberName) == enumMembers.end()) {
+          errorsOutput.addError("Error in line number: " + std::to_string(eu.lineNo) +
+                                " .The enum member " + eu.memberName + " is not part of the enum " + eu.enumName);
+        }
+      }
+
+      if (startingSize != errorsOutput.sizeError) {
+        return Result::Error("error");
+      }
+
+      return Result::Success("success");
+    }
+      
 
     /* For Enums (list of identifiers) */
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO

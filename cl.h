@@ -119,6 +119,7 @@ typedef struct enumNode {
 
 typedef struct enumUseNode {
     std::string enumName, memberName;
+    int lineNo;
 } enumUseNode;
 
 typedef struct StatementList: LinkedListNode<StatementList> {

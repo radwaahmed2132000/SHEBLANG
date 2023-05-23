@@ -2,5 +2,4 @@ int a = 1;
 int b = 2;
 test(a, b);
 ===
-===
 Error in line number: 3 .The function test is not declared

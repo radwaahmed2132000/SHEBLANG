@@ -80,6 +80,12 @@ struct setup_scopes_visitor {
         setup_scopes(vd.initExpr);        
     }
 
+    void operator()(enumNode& en) {
+        // Nothing needed here.
+        en.name->currentScope = currentNodePtr->currentScope;
+        setup_scopes(en.name);
+    }
+
     void operator()(enumUseNode& eu) {
         // Nothing needed here.
     }
