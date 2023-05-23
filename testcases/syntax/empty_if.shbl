@@ -1,2 +1,5 @@
 if()
     x = 0;
+===
+Syntax Error at line 2. If's condition can't be empty.
+Error in line number: 2 .Identifier x is not declared

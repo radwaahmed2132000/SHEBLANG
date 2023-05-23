@@ -6,3 +6,5 @@ switch(a) {
     case 1: { print 1; }
     case "foo": { print "foo"; }
 }
+===
+Error in line number: 6 .The label expression of the case statement is not of the same type as the switch variable

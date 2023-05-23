@@ -1,4 +1,4 @@
-a = 0;
+int a = 0;
 switch(a) {
     default: {
         print 69;
