@@ -4,3 +4,5 @@ char y = 'hi';
 print x;
 print y;
 ===
+Cannot use single quotes for strings. Insteasyntax errord use ""
+syntax error

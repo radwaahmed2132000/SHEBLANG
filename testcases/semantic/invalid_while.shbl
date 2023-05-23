@@ -1,4 +1,3 @@
-int x=5;
 char y='5';
 while(y)
 {

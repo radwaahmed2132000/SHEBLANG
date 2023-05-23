@@ -1,8 +1,10 @@
 int x=5;
 float y=5.5;
-if(x)
+if(x > y)
 {
     print "x is greater than y";
+} else {
+    print "x is less than 5";
 }
 ===
-x is greater than yError in line number: 1 .Identifier z is not declared
+x is less than 5
