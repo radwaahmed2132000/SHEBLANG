@@ -3,3 +3,4 @@ char y = 'hi';
 
 print x;
 print y;
+===
