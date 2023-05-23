@@ -57,6 +57,8 @@ def list_test_cases(test_cases: List[Testcase]):
 
 arg_parser = ArgumentParser()
 arg_parser.add_argument("shbl_binary_type", help="The type of binary to test", choices=["interpreter", "compiler"])
+arg_parser.add_argument("category", help="The category of test cases to run", choices=["logical", "scopes", "symantic", "syntax"], nargs='?', default=None)
+arg_parser._optionals
 args = arg_parser.parse_args()
 
 binary = f"./shbl_{args.shbl_binary_type}"
@@ -65,10 +67,17 @@ if not os.path.exists(binary):
     print(f"Binary {binary} does not exist")
     exit(1)
 
-test_case_dir = "./testcases/"
-test_cases = [file for file in os.listdir(test_case_dir) if file.endswith(".shbl")]
-test_cases = [Testcase(test_case_dir, test_case) for test_case in test_cases]
-
+if args.category is None:
+    test_case_dir = "./testcases/"
+    case_folders = [os.path.join(test_case_dir, file) for file in os.listdir(test_case_dir)]
+    test_cases = []
+    for case_folder in case_folders:
+        test_cases += [Testcase(case_folder, file) for file in os.listdir(case_folder) if file.endswith(".shbl")]
+        
+else:
+    test_case_dir = os.path.join("./testcases/", args.category)
+    test_cases = [file for file in os.listdir(test_case_dir) if file.endswith(".shbl")]
+    test_cases = [Testcase(test_case_dir, test_case) for test_case in test_cases]
 print("Testcases found:")
 print(indent_list(list_test_cases(test_cases)))
 
