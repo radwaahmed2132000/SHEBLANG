@@ -1,8 +1,5 @@
 Tables of Scope 0
 Identifiers Symbol Table
 sym_key, sym_val, declaration_line, type, isConstant
-x, -1, 1, int, 0
-Tables of Scope 1
-Identifiers Symbol Table
-sym_key, sym_val, declaration_line, type, isConstant
+z, 58, 1, char, 0
 ====
