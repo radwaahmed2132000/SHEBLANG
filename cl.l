@@ -36,7 +36,7 @@ nodeType *id(const char* id);
             }
 
 ["]([^"]|[\\][nt"])*[^"] {
-                std::string mes = "Syntax Error! Missing Double Quote (\") at line "+std::to_string(yylineno)+"!\n";
+                std::string mes = "Syntax Error! Missing Double Quote (\") at line "+std::to_string(yylineno-1)+"!\n";
                 printf("%s",mes.c_str());
             }
 

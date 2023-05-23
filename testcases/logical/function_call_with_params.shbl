@@ -3,5 +3,5 @@ fn foo(int a, int b) int {
 }
 
 print foo(32, 10);
-==
+===
 42

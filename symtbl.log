@@ -1,9 +1,17 @@
 Tables of Scope 0
 Identifiers Symbol Table
 sym_key, sym_val, declaration_line, type, isConstant
-myChar, ?, 4, char, 0
-myFloat, 20.450001, 2, float, 0
-myString, Hello World!, 5, string, 0
-myBool, true, 3, bool, 0
-myInt1, 10, 1, int, 0
+x, 11, 1, int, 0
+Tables of Scope 1
+Identifiers Symbol Table
+sym_key, sym_val, declaration_line, type, isConstant
+y, 0, 5, float, 0
+Tables of Scope 2
+Identifiers Symbol Table
+sym_key, sym_val, declaration_line, type, isConstant
+z, c, 9, char, 0
+Tables of Scope 3
+Identifiers Symbol Table
+sym_key, sym_val, declaration_line, type, isConstant
+x, 3, 13, int, 0
 ====
