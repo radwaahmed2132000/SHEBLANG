@@ -586,7 +586,9 @@ struct semantic_analysis_visitor {
             bool constant = false;
             bool literal = false;
             if (std::holds_alternative<idNodeType>(cases[i]->labelExpr->un)) {
-              constant = sym2[std::get<idNodeType>(cases[i]->labelExpr->un).id].isConstant;
+              auto& labelName = std::get<idNodeType>(cases[i]->labelExpr->un).id;
+              auto& labelSymTableEntry = varSymTableEntry(labelName, currentNodePtr->currentScope);
+              constant = labelSymTableEntry.isConstant;
             } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un)) {
               literal = true;
             }
@@ -618,9 +620,11 @@ struct semantic_analysis_visitor {
     Result operator()(enumNode& en) { 
       int startingSize = errorsOutput.sizeError;
       auto nameStr = std::get<idNodeType>(en.name->un).id;
-      auto enumitr = enums.find(nameStr);
+      auto& enums = enumSymTable(nameStr, currentNodePtr->currentScope);
+      auto& enumitr = enums[nameStr];
+
       //TODO change in scope
-      if(enumitr!=enums.end() )
+      if(enums.find(nameStr) != enums.end())
       {
         errorsOutput.addError("This enum is already declared , there is error in line "+ std::to_string(en.name->lineNo));
       }
@@ -662,7 +666,9 @@ struct semantic_analysis_visitor {
     Result operator()(enumUseNode& eu) { 
       //TODO add line numbers
       int startingSize = errorsOutput.sizeError;
+      auto enums = enumSymTable(eu.enumName, currentNodePtr->currentScope);
       auto enumitr = enums.find(eu.enumName);
+
       if(enumitr==enums.end())
       {
         errorsOutput.addError("This enum is not defined, there is error in line ");
@@ -698,21 +704,46 @@ struct semantic_analysis_visitor {
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
     Result operator()(functionNodeType& fn) { 
-      /*
-        TODO : add table , not existing , error
-        body
-        varaibles => scope , create table ,
-        return type, return 
+    auto nameFunction = std::get<idNodeType>(fn.name->un).id;
+    auto functionValue= fnSymTable(nameFunction,currentNodePtr->currentScope);
+    int startingSize =errorsOutput.sizeError;
+    for(int i=0;i<fn.parameters.size();i++)
+    {
+      nodeType *nt = new nodeType(VarDecl(  fn.parameters[i]->type   , fn.parameters[i]->var_name), fn.parameters[i]->type->lineNo);
+      nt->currentScope = new ScopeSymbolTables();
+      auto parameter=  semantic_analysis(nt);
+      nt->currentScope->parentScope = currentNodePtr->currentScope;
+      if(!parameter.isSuccess() )
+      {
+          errorsOutput.addError("This error in function paramters in line " +fn.name->lineNo);
+      }
+    }
+    auto statement = semantic_analysis(fn.statements);
+    if(!statement.isSuccess())
+    {
+      errorsOutput.addError("This error in function statements in line " +fn.statements->lineNo);
 
-      */ 
+    }
+    auto returnType= semantic_analysis(fn.return_type);
+    if(!returnType.isSuccess())
+    {
+      errorsOutput.addError("This error in function return type in line " +fn.return_type->lineNo);
+
+    }
+    if(startingSize != errorsOutput.sizeError)
+    {
+      return Result::Error("error");
+    }
       
-      return Result::Success("success");
+      return Result::Success("Success");
       
     } // TODO
     Result operator()(FunctionCall& fn) { 
       // TODO line number of this
       int startingSize =errorsOutput.sizeError;
-      auto function=functions.find(fn.functionName);
+      auto& functions = fnSymTable(fn.functionName, currentNodePtr->currentScope);
+      auto function = functions.find(fn.functionName);
+
       std::string type=" ";
       if(function!= functions.end())
       {

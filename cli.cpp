@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string>
 #include <variant>
 #include <algorithm>
 #include <optional>
@@ -23,9 +24,11 @@
             case case_value: return Value(oper (ex(opr.op[0])));
 
 #define POST_OP(oper) {                                                \
-        auto& varRef = sym2[std::get<idNodeType>(opr.op[0]->un).id].getRef();   \
+        auto nameStr = std ::get<idNodeType>(opr.op[0]->un).id;        \
+        auto& varEntry = varSymTableEntry(nameStr, p->currentScope);   \
+        auto &varRef = varEntry.getRef();                              \
         Value temp = varRef;                                           \
-        varRef =  varRef oper Value(1);                                \
+        varRef = varRef oper Value(1);                                 \
         return temp;                                                   \
     }
 
@@ -68,6 +71,10 @@ Value evaluate_function(functionNodeType& fn) {
 }
 
 struct ex_visitor {
+    // pointer to the node of the current variant
+    // since we need scope info from it.
+    nodeType* p;
+
     Value operator()(conNodeType& con) {
         return std::visit(
                 Visitor {
@@ -81,38 +88,33 @@ struct ex_visitor {
         );
     }
 
-    Value operator()(idNodeType& identifier) {
-        return sym2[identifier.id].getValue();
+    Value operator()(idNodeType& identifier) const {
+        auto& varSymbolTableEntry = varSymTableEntry(identifier.id, p->currentScope);
+        return varSymbolTableEntry.getValue();
     }
 
-    Value operator()(VarDecl& vd) {
+    Value operator()(VarDecl& vd) const {
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
-        auto& entry = sym2[nameStr];
+        auto& varSymbolTableEntry = varSymTableEntry(nameStr, p->currentScope);
 
-        // if(!(entry.isConstant)) {
-            entry.setValue(ex(entry.initExpr));
-        // }
+        varSymbolTableEntry.setValue(ex(varSymbolTableEntry.initExpr));
 
         return Value(0);
     }
 
-    Value operator()(VarDefn& vd) {
+    Value operator()(VarDefn& vd) const {
         auto nameStr = std::get<idNodeType>(vd.decl->var_name->un).id;
         auto val = ex(vd.initExpr);
-        sym2[nameStr].setValue(val);
+
+        auto& varSymbolTableEntry = varSymTableEntry(nameStr, p->currentScope);
+        varSymbolTableEntry.setValue(val);
 
         return Value(0);
     }
 
-    Value operator()(enumUseNode& eu) {
-        auto e = enums[eu.enumName];
+    Value operator()(enumUseNode& eu) const {
+        auto& e = enumSymTableEntry(eu.enumName, p->currentScope);
         auto memberIter = std::find(e.enumMembers.begin(), e.enumMembers.end(), eu.memberName);
-        
-        // TODO: move to semantic analysis
-        // if(memberIter == e.enumMembers.end()) {
-        //     std::cerr << "Enum" << '(' << eu.enumName << ')' << "does not contain a member with the name '" << eu.memberName << "'\n";
-        // }
-
         int enumMemberValue = std::distance(e.enumMembers.begin(), memberIter);
         return Value(enumMemberValue);
     }
@@ -185,7 +187,7 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(oprNodeType& opr) {
+    Value operator()(oprNodeType& opr) const {
         switch(opr.oper) {
             case IF: {
                  if (ex(opr.op[0]))
@@ -215,21 +217,34 @@ struct ex_visitor {
                 return Value(0);
             }
             case '=':       {
-                return std::visit(
+
+                using std::optional, std::string, std::make_optional, std::visit, std::get;
+                using namespace std::string_literals;
+
+                // Get the variable name based on the LHS's type.
+                optional<string> varNameOpt = visit(
                     Visitor {
-                        [&opr](VarDecl& varDecl) { 
-                            auto varNameIdNode = std::get<idNodeType>(varDecl.var_name->un);
-                            return sym2[varNameIdNode.id].setValue(ex(opr.op[1])).getValue(); 
-                        },
-                        [&opr](VarDefn& varDefn) { 
-                            auto varNameIdNode = std::get<idNodeType>(varDefn.decl->var_name->un);
-                            return sym2[varNameIdNode.id].setValue(ex(varDefn.initExpr)).getValue(); 
-                        },
-                        [&opr](idNodeType& idNode) { 
-                            auto ret = ex(opr.op[1]);
-                            return sym2[idNode.id].setValue(ret).getValue(); 
-                        },
-                        [](auto _default) { std::cout << "Invalid assignment expression"; return Value(0); }
+                        [&opr](VarDecl& varDecl)              { return make_optional(get<idNodeType>(varDecl.var_name->un).id); },
+                        [&opr](VarDefn& varDefn)              { return make_optional(get<idNodeType>(varDefn.decl->var_name->un).id); },
+                        [&opr](idNodeType& idNode)            { return make_optional(idNode.id); },
+                        [](auto _default) -> optional<string> {  return std::nullopt; }
+                    } ,
+                    opr.op[0]->un
+                );
+
+                if(!varNameOpt.has_value()) { std::cout << "Invalid assignment expression"; }
+                auto varName = varNameOpt.value();
+
+                // Get the symbol table entry of the scope containing the variable.
+                auto& symTable = varSymTableEntry(varName, p->currentScope);
+
+                // Assign the value in the scope table.
+                return visit(
+                    Visitor {
+                        [&](VarDecl& varDecl) { return symTable.setValue(ex(opr.op[1])).getValue(); },
+                        [&](VarDefn& varDefn) { return symTable.setValue(ex(varDefn.initExpr)).getValue(); },
+                        [&](idNodeType& idNode) { return symTable.setValue(ex(opr.op[1])).getValue(); },
+                        [](auto _default) { return Value(0); }  // Should never reach here
                     } ,
                     opr.op[0]->un
                 );
@@ -266,13 +281,8 @@ struct ex_visitor {
             UOP_CASE(UPLUS,+)     
             UOP_CASE(UMINUS,-)
 
-            case PP: {
-                auto &varRef = sym2[std ::get<idNodeType>(opr.op[0]->un).id].getRef();
-                Value temp = varRef;
-                varRef = varRef + Value(1);
-                return temp;
-            }
-            case MM:   POST_OP(-)
+            case PP: POST_OP(+)
+            case MM: POST_OP(-)
             default: return Value(0);
         }
 
@@ -286,6 +296,6 @@ struct ex_visitor {
 
 Value ex(nodeType *p) {
     if (p == nullptr) return Value(0);
-    return std::visit(ex_visitor(), p->un);
+    return std::visit(ex_visitor{p}, p->un);
 }
 

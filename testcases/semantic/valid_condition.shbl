@@ -3,6 +3,8 @@ char y='z';
 if (x>=y)
 { 
     print "hi";
-
+} else {
+    print "bye";
 }
 ===
+bye

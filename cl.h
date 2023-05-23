@@ -216,10 +216,6 @@ typedef struct nodeType {
 	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope) : un(inner_union), lineNo(lineNo), addNewScope(addNewScope), currentScope(nullptr) {}
 } nodeType;
 
-// TODO: Remove these once scoping works
-inline std::unordered_map<std::string, SymbolTableEntry> sym2;
-inline std::unordered_map<std::string, functionNodeType> functions;
-inline std::unordered_map<std::string, enumNode> enums;
 inline Result errorsOutput;
 inline Result warningsOutput;
 
@@ -233,3 +229,43 @@ inline int currentLineNo = 1;
 
 // Must include after the structs are defined
 #include "node_constructors.h"
+
+
+// Scope analysis should guarantee that we can find the variable in some parent scope.
+static SymbolTableEntry& varSymTableEntry(std::string variableName, ScopeSymbolTables* scope) {
+    auto& symbols = scope->sym2;
+
+    if(symbols.find(variableName) != symbols.end()) {
+        return symbols[variableName];
+    } 
+
+    return varSymTableEntry(variableName, scope->parentScope);
+}
+
+static auto& enumSymTable(std::string enumName, ScopeSymbolTables* scope) {
+    auto& enums = scope->enums;
+
+    if(enums.find(enumName) != enums.end()) {
+        return enums;
+    } 
+
+    return enumSymTable(enumName, scope->parentScope);
+}
+
+static auto& fnSymTable(std::string fnName, ScopeSymbolTables* scope) {
+    auto& functions = scope->functions;
+
+    if(functions.find(fnName) != functions.end()) {
+        return functions;
+    } 
+
+    return fnSymTable(fnName, scope->parentScope);
+}
+
+static enumNode& enumSymTableEntry(std::string enumName, ScopeSymbolTables* scope) {
+    return enumSymTable(enumName, scope)[enumName];
+}
+
+static functionNodeType& fnSymTableEntry(std::string enumName, ScopeSymbolTables* scope) {
+    return fnSymTable(enumName, scope)[enumName];
+}

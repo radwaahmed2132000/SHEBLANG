@@ -1,0 +1,10 @@
+int x=5;
+float y=5.5;
+if(x > y)
+{
+    print "x is greater than y";
+} else {
+    print "x is less than 5";
+}
+===
+x is less than 5
