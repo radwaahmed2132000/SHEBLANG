@@ -8,3 +8,4 @@ int x;
 print x+20;
 print y+50.0;
 ===
+Error in line number: 9 .Identifier y is not declared

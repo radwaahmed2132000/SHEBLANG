@@ -226,7 +226,7 @@ void setup_scopes(nodeType* p);
 void set_break_parent(nodeType* node, nodeType* parent_switch);
 
 // Tracking line numbers
-inline int currentLineNo = 0;
+inline int currentLineNo = 1;
 
 // Must include after the structs are defined
 #include "node_constructors.h"
