@@ -5,8 +5,15 @@ print x;
 ===
 3
 ===
-mov x,0
-add x,10
-mod x, 7
-
-print x
+push 0
+pop x
+push x
+push 10
+add
+pop x
+push x
+push 7
+mod
+pop x
+push x
+print

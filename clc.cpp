@@ -113,7 +113,7 @@ struct compiler_visitor {
     }
 
     Value operator()(conNodeType& c) {
-        return Value(c.toString());
+        return Value(c);
     }
 
     Value operator()(VarDecl& varDecl) {
@@ -152,7 +152,13 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(functionNodeType &fn) { return Value(0); }
+    Value operator()(functionNodeType &fn) {
+        auto name = std::get<idNodeType>(fn.name->un).id;
+        printf("%s:\n", name.c_str());
+        ex(fn.statements);
+
+        return Value(0);
+    }
 
     Value operator()(doWhileNodeType &dw) {
         int lbl1;
@@ -273,10 +279,12 @@ struct compiler_visitor {
         case PRINT: {
             // HACK
             auto ret = ex(opr.op[0]);
-            if(!(std::holds_alternative<std::string>(ret) && ret.toString() == "0")) {
+            if(std::holds_alternative<std::string>(ret) && ret.toString() == "0") {
+                printf("\tprint \n");
+            } else {
                 printf("\tpush %s\n", ret.toString().c_str());
+                printf("\tprint \n");
             }
-            printf("\tprint \n");
         } break;
         case '=': {
             std::string lhs = ex(opr.op[0]).toString();
