@@ -285,14 +285,33 @@ struct ex_const_visitor {
 
 
     Result operator()(idNodeType& id) {
-        if (id.scopeNodePtr->currentScope->sym2[id.id].isConstant && 
-            id.scopeNodePtr->currentScope->sym2[id.id].initExpr != nullptr &&
-            std::holds_alternative<conNodeType>(id.scopeNodePtr->currentScope->sym2[id.id].initExpr->un)) {
-          Result result = Result::Success(id.scopeNodePtr->currentScope->sym2[id.id].type);
-          result.value = &id.scopeNodePtr->currentScope->sym2[id.id].value;
-          return result;
+        if (id.scopeNodePtr->currentScope->sym2.find(id.id) != id.scopeNodePtr->currentScope->sym2.end()) {
+            if (id.scopeNodePtr->currentScope->sym2[id.id].isConstant && 
+              id.scopeNodePtr->currentScope->sym2[id.id].initExpr != nullptr &&
+              std::holds_alternative<conNodeType>(id.scopeNodePtr->currentScope->sym2[id.id].initExpr->un)) {
+            Result result = Result::Success(id.scopeNodePtr->currentScope->sym2[id.id].type);
+            result.value = &id.scopeNodePtr->currentScope->sym2[id.id].value;
+            return result;
+          } else {
+            return Result::Error("Error");
+          }
         } else {
-          return Result::Error("Error");
+            auto parentScope = id.scopeNodePtr->currentScope->parentScope;
+            while (parentScope != nullptr) {
+                if (parentScope->sym2.find(id.id) != parentScope->sym2.end()) {
+                    if (parentScope->sym2[id.id].isConstant && 
+                      parentScope->sym2[id.id].initExpr != nullptr &&
+                      std::holds_alternative<conNodeType>(parentScope->sym2[id.id].initExpr->un)) {
+                      Result result = Result::Success(parentScope->sym2[id.id].type);
+                      result.value = &parentScope->sym2[id.id].value;
+                      return result;
+                    } else {
+                      return Result::Error("Error");
+                    }
+                }
+                parentScope = parentScope->parentScope;
+            }
+            return Result::Error("Error");
         }
     }
 
@@ -537,6 +556,7 @@ struct semantic_analysis_visitor {
               if (parentTable->sym2.find(identifier.id) != parentTable->sym2.end()) {
                 /* Check that the identifier exists in an outer scope */
                 EXISTING_TYPE(parentTable->sym2[identifier.id].type, identifier.lineNo);
+                parentTable->sym2[identifier.id].isUsed = true;
                 return Result::Success(parentTable->sym2[identifier.id].type);
               }
               parentTable = parentTable->parentScope;
@@ -634,7 +654,6 @@ struct semantic_analysis_visitor {
       for (int i=0;i<en.enumMembers.size();i++)
       {
         members.insert(en.enumMembers[i]);
-
       }
       if(members.size() != en.enumMembers.size())
       {
@@ -851,11 +870,12 @@ struct semantic_analysis_visitor {
         }
 
         /* Check for unused variables in this scope */
-        if (currentNodePtr->currentScope == nullptr || 
-            currentNodePtr->currentScope->sym2.size() == 0) {
+        if (sl.statementCode->currentScope == nullptr || 
+            sl.statementCode->currentScope->sym2.size() == 0) {
             return ret;
         }
-        for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
+        
+        for(const auto& [name, entry]: sl.statementCode->currentScope->sym2) {
             if(!entry.isUsed) {
                 warningsOutput.addError("Warning in line number: " + std::to_string(entry.declaredAtLine) +
                                         " .Variable " + name + " is declared but never used");
