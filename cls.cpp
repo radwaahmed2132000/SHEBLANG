@@ -18,7 +18,8 @@
 #define RIGHT_VALID(oper) \
     Result right = semantic_analysis(oper); \
 
-#define NOT_CONST(oper, lineNo) \
+// TODO: Make sure sym2 works properly
+#define NOT_CONST(oper, lineNo, sym2) \
     auto lhsName = std::get<idNodeType>(oper->un).id; \
     auto& lEntry = sym2[lhsName]; \
     if(lEntry.isConstant) {\
@@ -240,6 +241,7 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
       } \
 
 struct semantic_analysis_visitor {
+    nodeType* currentNodePtr;
     Result operator()(conNodeType& con) { 
         auto type = std::visit(
             Visitor {
@@ -256,7 +258,7 @@ struct semantic_analysis_visitor {
 
     Result operator()(VarDecl& vd) {
         /*
-            TODO: Disallow redeclaration of variables within the same scope 
+            DONE: Disallow redeclaration of variables within the same scope 
             
             TODO: Don't allow the declaration of a variable with the same name as a function
         */
@@ -265,20 +267,20 @@ struct semantic_analysis_visitor {
         auto type = std::get<idNodeType>(vd.type->un).id;
         EXISTING_TYPE(type, vd.type->lineNo);
         
-        /* Check if the variable is already declared */
+        auto symTable = currentNodePtr->currentScope;
+        /* Check if the variable is already declared in this scope */
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
-
-        if (sym2.find(nameStr) != sym2.end()) {
+        if (symTable->sym2.find(nameStr) != symTable->sym2.end()) {
           errorsOutput.addError("Error in line number: " +
             std::to_string(vd.type->lineNo) + " .The variable " +
-            nameStr + " is already declared");
+            nameStr + " is already declared in this scope.");
         } else {
           /* Add the variable name & type as a new entry in the symbol table */
           SymbolTableEntry entry = SymbolTableEntry();
           entry.type = type;
           entry.isConstant = false;
           entry.initExpr = nullptr;
-          sym2[nameStr] = entry;
+          symTable->sym2[nameStr] = entry;
           return Result::Success(entry.type);
         }
         return Result::Error("error");
@@ -313,17 +315,29 @@ struct semantic_analysis_visitor {
     Result operator()(idNodeType& identifier)
     { 
         /*
-            TODO: Add scope checking when scoping is added 
+            DONE: Add scope checking when scoping is added 
         */
         int startingSize = errorsOutput.sizeError;
+        auto symTable = currentNodePtr->currentScope;
         /* Check that the identifier is declared */
-        if (sym2.find(identifier.id) != sym2.end()) {
+        if (symTable->sym2.find(identifier.id) != symTable->sym2.end()) {
             /* Check that the identifier type is valid */
-            EXISTING_TYPE(sym2[identifier.id].type, identifier.lineNo);
+            EXISTING_TYPE(symTable->sym2[identifier.id].type, identifier.lineNo);
 
-            return Result::Success(sym2[identifier.id].type);
+            return Result::Success(symTable->sym2[identifier.id].type);
         }
         else {
+            auto parentTable = symTable->parentScope;
+            while (parentTable != nullptr)
+            {
+              if (parentTable->sym2.find(identifier.id) != parentTable->sym2.end()) {
+                /* Check that the identifier exists in an outer scope */
+                EXISTING_TYPE(parentTable->sym2[identifier.id].type, identifier.lineNo);
+                return Result::Success(parentTable->sym2[identifier.id].type);
+              }
+              parentTable = parentTable->parentScope;
+            }
+            /* If not, then it's not in any scope. */
             errorsOutput.addError("Error in line number: " + 
             std::to_string(identifier.lineNo) + " .Identifier "
             + identifier.id + " is not declared");
@@ -366,7 +380,19 @@ struct semantic_analysis_visitor {
           bool constant = false;
           bool literal = false;
           if (std::holds_alternative<idNodeType>(cases[i]->labelExpr->un)) {
-            constant = sym2[std::get<idNodeType>(cases[i]->labelExpr->un).id].isConstant;
+            auto keyInd = std::get<idNodeType>(cases[i]->labelExpr->un).id;
+            auto symTable = currentNodePtr->currentScope;
+            if (symTable->sym2.find(keyInd) == symTable->sym2.end()) {
+              /* Check that the identifier type is valid */
+              symTable = symTable->parentScope;
+              while (symTable != nullptr)
+              {
+                if (symTable->sym2.find(keyInd) != symTable->sym2.end())
+                  break;
+                symTable = symTable->parentScope;
+              }
+            }
+            constant = symTable->sym2[keyInd].isConstant;
           } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un)) {
             literal = true;
           }
@@ -422,14 +448,14 @@ struct semantic_analysis_visitor {
       }
       else{
         enums.insert(make_pair(nameStr,en));
-          for (int i=0;i<en.enumMembers.size();i++)
+        for (int i=0;i<en.enumMembers.size();i++)
         {
           members.insert(en.enumMembers[i]);
           SymbolTableEntry entry = SymbolTableEntry();
           entry.type = "enum";
           entry.isConstant = false;
           entry.initExpr = nullptr;
-          sym2[nameStr+" "+en.enumMembers[i]] = entry;
+          currentNodePtr->currentScope->sym2[nameStr+" "+en.enumMembers[i]] = entry; // TODO: Change this to enums table.
       }
          
         return Result::Success("enum");
@@ -465,7 +491,8 @@ struct semantic_analysis_visitor {
         }
         if(startingSize!=errorsOutput.sizeError)
         {
-          return Result::Success( sym2[eu.enumName+" "+eu.memberName].type);
+          // TODO: Make sure this is the proper scope.
+          return Result::Success( currentNodePtr->currentScope->sym2[eu.enumName+" "+eu.memberName].type); // TODO: Probably change this to enums table.
         }
       }
       
@@ -687,7 +714,8 @@ struct semantic_analysis_visitor {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           /* Check that the left identifier is not a constant */
-          NOT_CONST(opr.op[0], opr.op[0]->lineNo); 
+          auto symTable = opr.op[0]->currentScope;
+          NOT_CONST(opr.op[0], opr.op[0]->lineNo, symTable->sym2); 
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right
           /*  Check that the two expressions on the left & on the right are of the same type */
@@ -705,7 +733,8 @@ struct semantic_analysis_visitor {
         
         case PP: case MM: {
           /* Check that the left identifier is not a constant */
-          NOT_CONST(opr.op[0], opr.op[0]->lineNo); 
+          auto symTable = opr.op[0]->currentScope;
+          NOT_CONST(opr.op[0], opr.op[0]->lineNo,symTable->sym2); 
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           LEFT_TYPE(left);
@@ -863,7 +892,7 @@ struct semantic_analysis_visitor {
 Result semantic_analysis(nodeType *p) {    
     // std::cout << "Semantic analysis running";
     if (p == nullptr) return Result::Success("success");
-    return std::visit(semantic_analysis_visitor(), p->un);
+    return std::visit(semantic_analysis_visitor{p}, p->un);
 }
 
 
