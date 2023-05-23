@@ -112,14 +112,20 @@ struct setup_scopes_visitor {
     }
 
     void operator()(breakNodeType& br) {
-        br.parent_switch->currentScope = currentNodePtr->currentScope;
-        setup_scopes(br.parent_switch); /*FIXME: This might cause issues. Unsure as I'm not even sure breaks are needed*/
+        //br.parent_switch->currentScope = currentNodePtr->currentScope;
+        //setup_scopes(br.parent_switch); /*FIXME: This might cause issues. Unsure as I'm not even sure breaks are needed*/
     }
 
     void operator()(FunctionCall& fc) {
-        currentNodePtr->currentScope = new ScopeSymbolTables(); 
+        // auto currentScope = currentNodePtr->currentScope;
+        // currentNodePtr->currentScope = new ScopeSymbolTables(); 
+        // currentNodePtr->currentScope->parentScope = currentScope;
+
         /* Loop over all expressions & add scopes */
         for(auto& c: fc.parameterExpressions) {
+            if (c == nullptr || c->exprCode == nullptr) {
+                break;
+            }
             c->exprCode->currentScope = currentNodePtr->currentScope;
             setup_scopes(c->exprCode);
         }  

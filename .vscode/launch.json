@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/semantic/function_call_one_expression.shbl", null, null]
+            "stdio": ["testcases/logical/while_true.shbl", null, null]
         },
         {
             "name": "Launch Compiler",
