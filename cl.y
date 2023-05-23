@@ -87,7 +87,6 @@ var_defn:
         var_decl '=' expr ';'        { 
             $$ = varDefn($1, $3, false);
         };
-
 stmt:
         ';'                                     { $$ = opr(';', 0); }
         | FOR '(' var_defn expr ';' expr ')' stmt { 
@@ -108,7 +107,7 @@ stmt:
                 $$ = do_while_loop($5, $2); 
                 set_break_parent($2, $$);
         }
-        | '{' stmt_list '}'                       { $$ = $2; }
+        | '{' stmt_list '}'                       { $2->addNewScope = true; $$ = $2; }
         | var_decl ';'                            { $$ = $1; }
         | var_defn                                { $$ = $1; }
         | CONST var_decl '=' expr ';'             { $$ = varDefn($2, $4, true); }
@@ -124,7 +123,7 @@ return_statement:
 case: 
      CASE expr ':' stmt         { $$ = cs($2, $4); }
      | DEFAULT ':' stmt         { $$ = cs(nullptr, $3); }
-     | '{' case_list '}'        { $$ = $2; }
+     | '{' case_list '}'        { $2->addNewScope = true; $$ = $2; }
      ;
 
 case_list:
@@ -202,16 +201,11 @@ enum_defn:
                 auto idListEnd = std::get<IdentifierListNode>($4->un);
                 auto enumMembers = idListEnd.toVec();
                 $$ = enum_defn($2, enumMembers);
-
-                // auto e = std::get<enumNode>($$->un);
-                // for(const auto& [memberName, memberIndex]: e.enumMembers) {
-                //     std::cout << memberName << ", " << memberIndex << '\n';
-                // }
          };
 
 identifier_list:
-               identifier_list ',' IDENTIFIER   { $$ = appendToLinkedList<IdentifierListNode>($1, identifierListNode($3)); }
-               | IDENTIFIER                     { $$ = linkedListStump<IdentifierListNode>(identifierListNode($1)); }
+               identifier_list ',' IDENTIFIER   { $$ = appendToLinkedList<IdentifierListNode>($1, identifierListNode($3, false)); }
+               | IDENTIFIER                     { $$ = linkedListStump<IdentifierListNode>(identifierListNode($1, false)); }
                | /* EMPTY */                    { $$ = linkedListStump<IdentifierListNode>(nullptr); }
                ;
 

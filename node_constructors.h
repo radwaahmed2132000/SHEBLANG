@@ -25,7 +25,7 @@ nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant);
 
 nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements);
 
-nodeType* identifierListNode(nodeType* idNode);
+nodeType* identifierListNode(nodeType* idNode, bool addNewScope);
 nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& members);
 nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier);
 

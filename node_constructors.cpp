@@ -165,7 +165,7 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
     // Needed now so the interpreter works correctly..
     auto e = enumNode{enumIdentifier, memberNames};
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
-    enums[enumName] = e;
+    // enums[enumName] = e;
 
     return new nodeType(e, currentLineNo);
 }
@@ -177,9 +177,9 @@ nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
     return new nodeType(enumUseNode{enumName, enumMemberName}, currentLineNo);
 }
 
-nodeType* identifierListNode(nodeType* idNode) {
+nodeType* identifierListNode(nodeType* idNode, bool addNewScope) {
     assert(std::holds_alternative<idNodeType>(idNode->un));
-    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), currentLineNo);
+    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), currentLineNo ,addNewScope);
 }
 
 nodeType* statementList(nodeType* statement) {
