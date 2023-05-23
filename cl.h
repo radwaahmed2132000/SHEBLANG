@@ -182,9 +182,16 @@ typedef struct SymbolTableEntry {
 } SymbolTableEntry;
 
 struct ScopeSymbolTables {
+    static int tableCount;
+    int tableId;
+    ScopeSymbolTables() {
+        tableId = ++tableCount;
+        parentScope = nullptr;
+    }
     std::unordered_map<std::string, SymbolTableEntry> sym2;
     std::unordered_map<std::string, functionNodeType> functions;
     std::unordered_map<std::string, enumNode> enums;
+    ScopeSymbolTables* parentScope;
 };
 
 #define NODE_TYPES                                                      \
@@ -197,11 +204,10 @@ typedef struct nodeType {
     std::variant<NODE_TYPES> un;
     int lineNo;
     std::string conversionType = ""; 
-
-    ScopeSymbolTables* parentScope;
-    ScopeSymbolTables currentScope;
-
-	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
+    bool addNewScope;
+    ScopeSymbolTables* currentScope;
+    nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo), currentScope(nullptr) {}
+	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope) : un(inner_union), lineNo(lineNo), addNewScope(addNewScope), currentScope(nullptr) {}
 } nodeType;
 
 // TODO: Remove these once scoping works

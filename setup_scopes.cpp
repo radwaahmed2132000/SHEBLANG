@@ -2,6 +2,10 @@
 #include <variant>
 #include "cl.h"
 
+int ScopeSymbolTables::tableCount = 0;
+
+bool startSymbolTable = true;
+
 struct setup_scopes_visitor {
     nodeType* currentNodePtr;
 
@@ -12,11 +16,11 @@ struct setup_scopes_visitor {
     }
 
     void operator()(VarDecl& vd) { 
-        std::cerr << "decl";
+        // std::cerr << "decl";
     }
 
     void operator()(VarDefn &vd) { 
-        std::cerr << "defn"; 
+        // std::cerr << "defn"; 
     }
 
     void operator()(enumUseNode& eu) { }
@@ -24,19 +28,19 @@ struct setup_scopes_visitor {
     void operator()(caseNodeType &cs) { 
         auto cases = cs.toVec(); 
         for(auto* c: cases) {
-            c->caseBody->parentScope = &currentNodePtr->currentScope;
-            c->labelExpr->parentScope = &currentNodePtr->currentScope;
+            c->caseBody->currentScope = currentNodePtr->currentScope;
+            c->labelExpr->currentScope = currentNodePtr->currentScope;
             setup_scopes(c->caseBody);
         }
     }
 
     void operator()(switchNodeType& sw) {
-        sw.case_list_head->parentScope = &currentNodePtr->currentScope;
-
+        sw.case_list_head->currentScope = currentNodePtr->currentScope;
         setup_scopes(sw.case_list_head);
     }
 
     void operator()(breakNodeType& br) {
+        br.parent_switch->currentScope = currentNodePtr->currentScope;
     }
 
     void operator()(FunctionCall& fc) {
@@ -44,14 +48,26 @@ struct setup_scopes_visitor {
     }
 
     void operator()(StatementList& sl) {
+        if(startSymbolTable)
+        {
+            currentNodePtr->currentScope = new ScopeSymbolTables();
+            // This new global symbol table has parentTable = nullptr
+            startSymbolTable = false;
+        }
+        if(currentNodePtr->addNewScope)
+        {
+            auto temp = currentNodePtr->currentScope;
+            currentNodePtr->currentScope = new ScopeSymbolTables();
+            currentNodePtr->currentScope->parentScope = temp;
+        }
         for(auto& c: sl.toVec()) {
-            c->statementCode->parentScope = &currentNodePtr->currentScope;
+            c->statementCode->currentScope = currentNodePtr->currentScope;
             setup_scopes(c->statementCode);
         }
     }
 
     void operator()(functionNodeType& fn) {
-        fn.statements->parentScope = &currentNodePtr->currentScope;
+        fn.statements->currentScope = currentNodePtr->currentScope;
         setup_scopes(fn.statements);
     }
 
@@ -65,7 +81,7 @@ struct setup_scopes_visitor {
     }
 
     void operator()(oprNodeType& opr) {
-        std::cerr << "opr";
+        // std::cerr << "opr";
     }
 
     // the default case:

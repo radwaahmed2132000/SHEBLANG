@@ -177,9 +177,9 @@ nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
     return new nodeType(enumUseNode{enumName, enumMemberName}, enumIdentifier->lineNo);
 }
 
-nodeType* identifierListNode(nodeType* idNode) {
+nodeType* identifierListNode(nodeType* idNode, bool addNewScope) {
     assert(std::holds_alternative<idNodeType>(idNode->un));
-    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), idNode->lineNo);
+    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), idNode->lineNo,addNewScope);
 }
 
 nodeType* statementList(nodeType* statement) {
