@@ -1,0 +1,4 @@
+char x='5';
+x=5;
+===
+Error in line number: 2 .The LHS identifier type: char doesn't match the RHS Expression type: int

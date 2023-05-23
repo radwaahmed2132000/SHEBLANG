@@ -1,7 +1,0 @@
-int x=5;
-for(int i=5; i<"5";i++)
-{
-    print "l";
-}
-===
-Error in line number: 2 .The LHS identifier type: int doesn't match the RHS Expression type: string

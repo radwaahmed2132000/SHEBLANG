@@ -1,0 +1,14 @@
+int x = 10;
+x += 1;
+
+if (x) {
+    float y;
+}
+
+if (x) {
+    char z = 'c';
+}
+
+if (x) {
+    int x = 3;
+}

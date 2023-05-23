@@ -64,6 +64,13 @@ program:
                 setup_scopes($1);
 
                 auto result = semantic_analysis($1);
+                
+                if (warningsOutput.sizeError == 0) {
+                } else {
+                    for (auto& warning : std::get<ErrorType>(warningsOutput)) {
+                        printf("%s\n", warning.c_str());
+                    }
+                }
                 if (errorsOutput.sizeError == 0) {
                 } else {
                     for (auto& error : std::get<ErrorType>(errorsOutput)) {
@@ -71,7 +78,6 @@ program:
                     }
                     exit(1);
                 }
-
                 ex($1);
                 freeNode($1);
                 exit(0);

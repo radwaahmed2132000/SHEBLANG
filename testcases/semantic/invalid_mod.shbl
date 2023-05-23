@@ -1,0 +1,5 @@
+float x=5.0;
+int y=10.0%x;
+===
+Error in line number: 2 .The LHS in a modulo operation can't be float
+Error in line number: 2 .The RHS in a modulo operation can't be float

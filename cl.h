@@ -161,6 +161,8 @@ typedef struct VarDefn {
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
+    bool isUsed = false;
+    int declaredAtLine = -1;
     std::string type = "<no type>";  
     nodeType* initExpr = nullptr;
 
@@ -216,6 +218,7 @@ inline std::unordered_map<std::string, SymbolTableEntry> sym2;
 inline std::unordered_map<std::string, functionNodeType> functions;
 inline std::unordered_map<std::string, enumNode> enums;
 inline Result errorsOutput;
+inline Result warningsOutput;
 
 // Forward declare `semantic_analysis` for use in cl.y
 Result semantic_analysis(nodeType* p);

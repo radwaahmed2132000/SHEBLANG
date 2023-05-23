@@ -1,5 +1,0 @@
-int x = 10;
-char y = 'hi';
-
-print x;
-print y;

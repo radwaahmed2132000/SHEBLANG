@@ -1,5 +1,0 @@
-char z = '5';
-do
-{
-  print "ok";
-}while(z);
