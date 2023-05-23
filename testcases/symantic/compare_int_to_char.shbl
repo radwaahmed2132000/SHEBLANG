@@ -1,0 +1,8 @@
+int x=53;
+char z='5';
+if(x==z)
+{
+    print "equals";
+}
+===
+equals

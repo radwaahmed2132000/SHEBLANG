@@ -1,0 +1,8 @@
+int x = 5;
+for(int i='5'; i<'7';i++)
+{
+    print "l";
+}
+===
+l
+l

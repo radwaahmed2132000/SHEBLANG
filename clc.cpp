@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <variant>
+#include <optional>
 
 #include "cl.h"
 #include "y.tab.h"
@@ -53,9 +54,10 @@ int compile_switch(switchNodeType &sw) {
 
     // Check cli.cpp for an explanation of why we're collecting and reversing.
     nodeType* head = sw.case_list_head;
-    std::vector<int> labels;
 
     auto cases = std::get<caseNodeType>(head->un).toVec();
+    std::vector<int> labels; 
+    labels.reserve(cases.size());
     for(int i = 0; i < cases.size(); i++) { labels.push_back(lbl++); }
 
     sw.exit_label = lbl++;

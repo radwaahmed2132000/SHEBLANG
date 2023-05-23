@@ -389,7 +389,9 @@ struct semantic_analysis_visitor {
             bool constant = false;
             bool literal = false;
             if (std::holds_alternative<idNodeType>(cases[i]->labelExpr->un)) {
-              constant = sym2[std::get<idNodeType>(cases[i]->labelExpr->un).id].isConstant;
+              auto& labelName = std::get<idNodeType>(cases[i]->labelExpr->un).id;
+              auto& labelSymTableEntry = varSymTableEntry(labelName, currentNodePtr->currentScope);
+              constant = labelSymTableEntry.isConstant;
             } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un)) {
               literal = true;
             }
@@ -421,9 +423,11 @@ struct semantic_analysis_visitor {
     Result operator()(enumNode& en) { 
       int startingSize = errorsOutput.sizeError;
       auto nameStr = std::get<idNodeType>(en.name->un).id;
-      auto enumitr = enums.find(nameStr);
+      auto& enums = enumSymTable(nameStr, currentNodePtr->currentScope);
+      auto& enumitr = enums[nameStr];
+
       //TODO change in scope
-      if(enumitr!=enums.end() )
+      if(enums.find(nameStr) != enums.end())
       {
         errorsOutput.addError("This enum is already declared , there is error in line "+ std::to_string(en.name->lineNo));
       }
@@ -465,7 +469,9 @@ struct semantic_analysis_visitor {
     Result operator()(enumUseNode& eu) { 
       //TODO add line numbers
       int startingSize = errorsOutput.sizeError;
+      auto enums = enumSymTable(eu.enumName, currentNodePtr->currentScope);
       auto enumitr = enums.find(eu.enumName);
+
       if(enumitr==enums.end())
       {
         errorsOutput.addError("This enum is not defined, there is error in line ");
@@ -515,7 +521,9 @@ struct semantic_analysis_visitor {
     Result operator()(FunctionCall& fn) { 
       // TODO line number of this
       int startingSize =errorsOutput.sizeError;
-      auto function=functions.find(fn.functionName);
+      auto& functions = fnSymTable(fn.functionName, currentNodePtr->currentScope);
+      auto function = functions.find(fn.functionName);
+
       std::string type=" ";
       if(function!= functions.end())
       {

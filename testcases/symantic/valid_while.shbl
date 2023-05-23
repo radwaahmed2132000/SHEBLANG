@@ -1,6 +1,56 @@
 int x=5;
 char y='5';
-while(y)
+while(y > x)
 {
     print "jj";
+    x += 1;
 }
+===
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
+jj
