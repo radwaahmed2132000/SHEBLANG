@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_compiler",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/invalid_oper_const.shbl", null, null]
+            "stdio": ["testcases/logical/enum_use_switch.shbl", null, null]
         },
         {
             "name": "Python: Current File",

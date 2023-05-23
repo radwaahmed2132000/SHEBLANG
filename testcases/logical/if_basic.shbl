@@ -11,7 +11,7 @@ if(a > 0){
     pop a
     push a
     push 0
-    compGT
+    compLE
     jz L000
     push 0
     print 
