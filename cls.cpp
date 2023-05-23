@@ -235,7 +235,7 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
     auto rightType = std::get<SuccessType>(right); \
 
 #define EXISTING_TYPE(type, lineNo) \
-     static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool"}; \
+     static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool", "void"}; \
      if (type == "<no type>") { \
           \
      } else if (builtinTypes.find(type) == builtinTypes.end()) { \
@@ -243,6 +243,206 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
              std::to_string(lineNo) +" .The data type \"" \
              + type + "\" is not valid"); \
       } \
+
+Result ex_const_kak_TM(nodeType *p);
+
+struct ex_const_visitor {
+    Result operator()(conNodeType& con) { 
+        Value v = std::visit(
+                  Visitor {
+                      [](int iValue)         { return Value(iValue); },
+                      [](bool bValue)        { return Value(bValue); },
+                      [](char cValue)        { return Value(cValue); },
+                      [](float fValue)       { return Value(fValue); },
+                      [](std::string sValue) { return Value(sValue); },
+                  },
+                  con
+          );
+        if (std::holds_alternative<int>(v)) {
+             Result result = Result::Success("int");
+             result.value = new Value(std::get<int>(v));
+             return result;
+        } else if (std::holds_alternative<float>(v)) {
+             Result result = Result::Success("float");
+             result.value = new Value(std::get<float>(v));
+             return result;
+        } else if (std::holds_alternative<char>(v)) {
+             Result result = Result::Success("char");
+             result.value = new Value(std::get<char>(v));
+             return result;
+        } else if (std::holds_alternative<std::string>(v)) {
+             Result result = Result::Success("string");
+             result.value = new Value(std::get<std::string>(v));
+             return result;
+        } else if (std::holds_alternative<bool>(v)) {
+             Result result = Result::Success("bool");
+             result.value = new Value(std::get<bool>(v));
+             return result;
+        } else {
+            return Result::Error("Error");
+        }
+    }
+
+
+    Result operator()(idNodeType& id) {
+        if (id.scopeNodePtr->currentScope->sym2[id.id].isConstant && 
+            id.scopeNodePtr->currentScope->sym2[id.id].initExpr != nullptr &&
+            std::holds_alternative<conNodeType>(id.scopeNodePtr->currentScope->sym2[id.id].initExpr->un)) {
+          Result result = Result::Success(id.scopeNodePtr->currentScope->sym2[id.id].type);
+          result.value = &id.scopeNodePtr->currentScope->sym2[id.id].value;
+          return result;
+        } else {
+          return Result::Error("Error");
+        }
+    }
+
+    Result operator() (oprNodeType& opr) {
+      switch (opr.oper) {
+        case '+': case '-': case '*': case '/': case '%': {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          }
+          std::string finalType = std::get<SuccessType>(left) == "float" ? "float" : "int";
+          finalType = std::get<SuccessType>(right) == "float" ? "float" : finalType;
+          if (opr.oper == '+') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value + *right.value); 
+          }
+          if (opr.oper == '-') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value - *right.value); 
+          }
+          if (opr.oper == '*') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value * *right.value); 
+          }
+          if (opr.oper == '/') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value / *right.value); 
+          }
+          if (opr.oper == '%') {
+            Result result = Result::Success("int"); 
+            result.value = new Value(*left.value % *right.value); 
+          }
+        }
+        break;
+
+        case '&': case '|': case '^': case '~': case LS: case RS: {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          }
+          if (opr.oper == '&') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value & *right.value); 
+          }
+          if (opr.oper == '|') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value | *right.value); 
+          }
+          if (opr.oper == '^') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value ^ *right.value); 
+          }
+          if (opr.oper == '~') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(~(*left.value)); 
+          }
+          if (opr.oper == LS) {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value << *right.value); 
+          }
+          if (opr.oper == RS) {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value >> *right.value); 
+          }
+        }
+
+        case '<': case '>': case EQ: case NE: case GE: case LE: {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          } 
+          if (opr.oper == '<') {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value < *right.value);
+            return result;
+          }
+          if (opr.oper == '>') {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value > *right.value);
+            return result; 
+          }
+          if (opr.oper == EQ) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value == *right.value);
+            return result; 
+          }
+          if (opr.oper == NE) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value != *right.value);
+            return result; 
+          }
+          if (opr.oper == GE) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value >= *right.value);
+            return result; 
+          }
+          if (opr.oper == LE) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value <= *right.value);
+            return result; 
+          }
+        }
+
+        case AND: case OR: {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          }
+          if (opr.oper == AND) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value && *right.value); 
+            return result;
+          }
+          if (opr.oper == OR) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value || *right.value); 
+            return result;
+          }
+        }
+        default: {
+          return Result::Error("Unknown operator");
+        }
+      }
+    }
+
+    // the default case:
+    template<typename T> 
+    Result operator()(T const & /*UNUSED*/ ) const { return Result::Success(""); }  
+};
+
+Result ex_const_kak_TM(nodeType *p) {    
+    if (p == nullptr) return Result::Success("success");
+    return std::visit(ex_const_visitor(), p->un);
+}
 
 struct semantic_analysis_visitor {
     nodeType* currentNodePtr;
@@ -283,8 +483,8 @@ struct semantic_analysis_visitor {
           /* Add the variable name & type as a new entry in the symbol table */
           SymbolTableEntry entry = SymbolTableEntry();
           entry.type = type;
-          entry.isConstant = false;
-          entry.initExpr = nullptr;
+          entry.isConstant = vd.isConstant;
+          entry.initExpr = vd.initExpr;
           entry.declaredAtLine = vd.type->lineNo;
           entry.isUsed = false;
           symTable->sym2[nameStr] = entry;
@@ -296,7 +496,7 @@ struct semantic_analysis_visitor {
     Result operator()(VarDefn& vd) {
       int startingSize = errorsOutput.sizeError;
       /* Check if the variable is declared */
-      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
+      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name, vd.initExpr, vd.isConstant), vd.decl->type->lineNo);
       nt->currentScope = currentNodePtr->currentScope;
       Result decl = semantic_analysis(nt); 
       std::string declType = decl.isSuccess() ? (std::string)std::get<SuccessType>(decl) : "<no type>";
@@ -321,9 +521,6 @@ struct semantic_analysis_visitor {
     
     Result operator()(idNodeType& identifier)
     { 
-        /*
-            DONE: Add scope checking when scoping is added 
-        */
         int startingSize = errorsOutput.sizeError;
         auto symTable = identifier.scopeNodePtr->currentScope;
         /* Check that the identifier is declared */
@@ -507,84 +704,126 @@ struct semantic_analysis_visitor {
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
     Result operator()(functionNodeType& fn) { 
-    auto nameFunction = std::get<idNodeType>(fn.name->un).id;
-    auto functionValue= fnSymTable(nameFunction,currentNodePtr->currentScope);
-    int startingSize =errorsOutput.sizeError;
-    for(int i=0;i<fn.parameters.size();i++)
-    {
-      nodeType *nt = new nodeType(VarDecl(  fn.parameters[i]->type   , fn.parameters[i]->var_name), fn.parameters[i]->type->lineNo);
-      nt->currentScope = new ScopeSymbolTables();
-      auto parameter=  semantic_analysis(nt);
-      nt->currentScope->parentScope = currentNodePtr->currentScope;
-      if(!parameter.isSuccess() )
-      {
-          errorsOutput.addError("This error in function paramters in line " +fn.name->lineNo);
-      }
-    }
-    auto statement = semantic_analysis(fn.statements);
-    if(!statement.isSuccess())
-    {
-      errorsOutput.addError("This error in function statements in line " +fn.statements->lineNo);
-
-    }
-    auto returnType= semantic_analysis(fn.return_type);
-    if(!returnType.isSuccess())
-    {
-      errorsOutput.addError("This error in function return type in line " +fn.return_type->lineNo);
-
-    }
-    if(startingSize != errorsOutput.sizeError)
-    {
-      return Result::Error("error");
-    }
       
-      return Result::Success("Success");
-      
-    } // TODO
-    Result operator()(FunctionCall& fn) { 
-      // TODO line number of this
-      int startingSize =errorsOutput.sizeError;
-      auto& functions = fnSymTable(fn.functionName, currentNodePtr->currentScope);
-      auto function = functions.find(fn.functionName);
+      int startingSize = errorsOutput.sizeError;
 
-      std::string type=" ";
-      if(function!= functions.end())
-      {
-        functionNodeType  currentFunction=function->second;
-        if(fn.parameterExpressions.size() !=currentFunction.parameters.size())
-        {
-          errorsOutput.addError("The paramaters length doesn't match paramters of functions, you have"+std::to_string(fn.parameterExpressions.size())+"but it expected to be "+std::to_string(currentFunction.parameters.size()));
+      /* Function Declaration code */
+      auto functionName = std::get<idNodeType>(fn.name->un).id;
+      
+      auto symTable = currentNodePtr->currentScope;
+
+      /* Check if the function was already declared before */
+      if (symTable->functions.find(functionName) != symTable->functions.end()) {
+            errorsOutput.addError("Error in line number: " +
+                                  std::to_string(fn.name->lineNo) + " .Function " +
+                                  functionName + " is already declared in this scope");
         }
-        int min_size = std::min(currentFunction.parameters.size(),fn.parameterExpressions.size());
-        for(int i=0;i< min_size;i++)
-        {
-          type = std::get<idNodeType>(currentFunction.parameters[i]->type->un).id;
-          EXISTING_TYPE(type, currentFunction.parameters[i]->type->lineNo);
-          auto functionParamter = semantic_analysis(fn.parameterExpressions[i]->exprCode);
-          if(!functionParamter.isSuccess())
-          {
-            errorsOutput.addError("This error in "+std::to_string(i)+" experssion which provided in function call in line");
-          }
-          auto functionParamterType =std::get<SuccessType>(functionParamter);
-          
-          if(type!=functionParamterType)
-          {
-            errorsOutput.addError("This error in "+std::to_string(i)+" experssion which provided in function call in line , the types doesn't match");
-          }
-          
+      auto functionScope = new ScopeSymbolTables();
+
+      /* Check if the function parameters are valid */
+      for(int i = 0; i < fn.parameters.size(); i++) {
+        auto param = fn.parameters[i];
+        /* Check if the parameter list is emtpy */
+        if (param->type == nullptr || param->var_name == nullptr) {
+          break;
+        } 
+        nodeType *nt = new nodeType(VarDecl(param->type, param->var_name), param->type->lineNo);
+        nt->currentScope = functionScope;
+        //nt->currentScope->parentScope = currentNodePtr->currentScope;
+        auto parameter = semantic_analysis(nt);
+        if (!parameter.isSuccess()) {
+          errorsOutput.addError("Error in line number: " +
+                                std::to_string(param->type->lineNo) + " .The function parameter " +
+                                std::get<idNodeType>(param->var_name->un).id + " is not valid");
         }
       }
-      else{
-        errorsOutput.addError("This function doesn't exist , error in line" );
+
+      /* Check if the return type is valid */
+      std::string returnType = std::get<idNodeType>(fn.return_type->un).id;
+      EXISTING_TYPE(returnType, fn.return_type->lineNo);
+      if (errorsOutput.sizeError != startingSize) {
+        errorsOutput.addError("Error in line number: " +
+                              std::to_string(fn.return_type->lineNo) + 
+                              " .The function return type is not valid");
       }
       
+      /* Check if the function body is valid */
+      auto functionBody = semantic_analysis(fn.statements);
+      if (!functionBody.isSuccess()) {
+        errorsOutput.addError("Error in line number: " +
+                              std::to_string(fn.statements->lineNo) + " .The function body is not valid");
+      }
+
       if(startingSize != errorsOutput.sizeError)
       {
-       
         return Result::Error("error");
       }
-      return Result::Success(type);
-      
+
+      /* Add the new function to the functions table */
+      currentNodePtr->currentScope->functions[std::get<idNodeType>(fn.name->un).id] = fn;
+
+      return Result::Success(returnType);
+    } 
+
+    Result operator()(FunctionCall& fn) { 
+      // TODO: Check if the return type of the expression is the same as the function return type.
+      int startingSize = errorsOutput.sizeError;
+
+      auto symTable = currentNodePtr->currentScope;
+
+      functionNodeType *function = nullptr;
+
+      /* Check if the function exists in the functions table or not */
+      if (symTable->functions.find(fn.functionName) != symTable->functions.end()) {
+        function = &symTable->functions[fn.functionName];
+      } else {
+        auto parentTable = symTable->parentScope;
+        while (parentTable != nullptr)
+        {
+          if (parentTable->functions.find(fn.functionName) != parentTable->functions.end()) {
+            function = &symTable->functions[fn.functionName];
+            break;
+          } else {
+            parentTable = parentTable->parentScope;
+          }
+        }
+        /* If not, then it's not in any scope. */
+        errorsOutput.addError("Error in line number: " + 
+        std::to_string(fn.lineNo) + " .The function "
+        + fn.functionName + " is not declared");
+      }
+
+      /* Check if the Expression List is valid */
+      for(int i = 0; i < fn.parameterExpressions.size(); i++) {
+        auto param = fn.parameterExpressions[i];
+        /* Check if the Expression list is emtpy */
+        if (param->exprCode == nullptr) {
+          break;
+        } 
+        /* Check that the parameter types match with the function types */
+        auto expression = semantic_analysis(param->exprCode);
+        if (!expression.isSuccess()) {
+          errorsOutput.addError("Error in line number: " +
+                                std::to_string(param->exprCode->lineNo) + 
+                                " .The function parameter number: " + std::to_string(i) + " is not valid");
+        } else {
+          if (function != nullptr) {
+            if (std::get<idNodeType>(function->parameters[i]->type->un).id
+                != std::get<SuccessType>(expression)) {
+              errorsOutput.addError("Error in line number: " +
+                                    std::to_string(param->exprCode->lineNo) + 
+                                    " . The function parameter number: " + std::to_string(i) +
+                                    " type does not match");
+            }
+          }   
+        }
+      }
+
+      if (startingSize != errorsOutput.sizeError) {
+        return Result::Error("error");
+      }
+
+      return Result::Success("success");
     } 
     /* 
       Entry point, we get a list of statements & iterate over each of them & make sure they are
@@ -612,6 +851,10 @@ struct semantic_analysis_visitor {
         }
 
         /* Check for unused variables in this scope */
+        if (currentNodePtr->currentScope == nullptr || 
+            currentNodePtr->currentScope->sym2.size() == 0) {
+            return ret;
+        }
         for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
             if(!entry.isUsed) {
                 warningsOutput.addError("Warning in line number: " + std::to_string(entry.declaredAtLine) +
@@ -746,6 +989,11 @@ struct semantic_analysis_visitor {
         */
         int startingSize = errorsOutput.sizeError;
         switch (opr.oper) {
+
+        case ':': {
+          /* Empty Line */
+          return Result::Success("void");
+        }
 
         case '=': {
           /* Check that the left expression is valid (identifier is declared) */
@@ -892,6 +1140,19 @@ struct semantic_analysis_visitor {
             Result conditionCastResult = castToTarget(conditionType, "bool", opr.op[0], opr.op[0]->lineNo);
             if (!conditionCastResult.isSuccess()) {
               errorsOutput.addError(std::get<ErrorType>(conditionCastResult)[0]);
+            }
+          }
+        }
+
+        /* Check if the case condition is always false */
+        if (condition.isSuccess()) {
+          Result alwaysFalseResult = ex_const_kak_TM(opr.op[0]);
+          if (alwaysFalseResult.isSuccess() && std::get<SuccessType>(alwaysFalseResult) == "bool") {
+            Value val = *alwaysFalseResult.value;
+            if (std::get<bool>(val) == false) {
+              warningsOutput.addError("Warning in line number: " +
+                                  std::to_string(opr.op[0]->lineNo) +
+                                  " .Condition in an if statement is always false");
             }
           }
         }
