@@ -11,11 +11,11 @@ Greater than both 4 and 6
         pop x
         push x
         push 4
-        compGT
+        compLE
         jz      L000
         push x
         push 6
-        compLT
+        compGE
         jz      L001
         push Smaller than 6 and bigger than 4
         print 

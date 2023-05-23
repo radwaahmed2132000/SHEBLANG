@@ -89,6 +89,7 @@ typedef struct {
 typedef struct {
     bool break_encountered;
     struct nodeType *condition, *loop_body;
+    int exit_label;
 } whileNodeType;
 
 // Exactly the same as whileNodeType,
@@ -98,11 +99,13 @@ typedef struct {
 typedef struct {
     bool break_encountered;
     struct nodeType *condition, *loop_body;
+    int exit_label;
 } doWhileNodeType;
 
 typedef struct {
     bool break_encountered;
     struct nodeType *init_statement, *loop_condition, *post_loop_statement, *loop_body;
+    int exit_label;
 } forNodeType;
 
 typedef struct IdentifierListNode: LinkedListNode<IdentifierListNode> {

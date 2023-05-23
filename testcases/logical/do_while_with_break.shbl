@@ -18,19 +18,30 @@ do {
 0
 About to break!
 ====
-mov x,5
-loop1 : 
-        mov ah,9
-        mov dx,x
-        int 21h
-        sub  x,1
-        CMP x,0
-        JGE loop1
-        print "About to break!"
-        JMP break1
-        print "You shouldn't see this!" 
-        print,"nor this!"
-        int 21h
-
-break1:
-
+Warning in line number: -1 .Variable x is declared but never used
+Warning in line number: 1 .Variable x is declared but never used
+        push 5
+        pop x
+L000:
+        push x
+        print 
+        push x
+        dec1pre
+        pop x
+        push x
+        push 0
+        compGE
+        jz      L002
+        push About to break!
+        print 
+        jmp     L001
+        push You shouldn't see this!
+        print 
+        push nor this!
+        print 
+L002:
+        push true
+        push true
+        compNE
+        jnz      L000
+L001:

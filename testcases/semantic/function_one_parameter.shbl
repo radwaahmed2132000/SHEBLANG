@@ -1,4 +1,2 @@
-fn test(mytype param){;}
+fn test(int param){;}
 ===
-Error in line number: 1 .The data type "mytype" is not valid
-Error in line number: 1 .The function return type is not valid

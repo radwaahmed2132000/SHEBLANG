@@ -145,8 +145,16 @@ struct compiler_visitor {
     }
 
     Value operator()(breakNodeType &br) {
-        auto sw = std::get<switchNodeType>(br.parent_switch->un);
-        int exit_label = sw.exit_label;
+        int exit_label = std::visit(
+            Visitor {
+                [](whileNodeType& w) { return w.exit_label; },
+                [](forNodeType& f) { return f.exit_label; },
+                [](doWhileNodeType& dw) { return dw.exit_label; },
+                [](auto _default) { return 0; }
+            },
+            br.parent_switch->un
+        );
+        
         printf("\tjmp\tL%03d\n", exit_label);
 
         return Value(0);
@@ -154,6 +162,7 @@ struct compiler_visitor {
 
     Value operator()(functionNodeType &fn) {
         auto name = std::get<idNodeType>(fn.name->un).id;
+
         printf("%s:\n", name.c_str());
         ex(fn.statements);
 
@@ -161,44 +170,63 @@ struct compiler_visitor {
     }
 
     Value operator()(doWhileNodeType &dw) {
-        int lbl1;
+        int loopLabel = lbl++;
+        int exitLabel = lbl++;
+        dw.exit_label = exitLabel;
 
         // label:
-        printf("L%03d:\n", lbl1 = lbl++);
+        printf("L%03d:\n", loopLabel);
 
         //      code....
         ex(dw.loop_body);
 
-        //      condition check
-        ex(dw.condition);
+        if(auto* con = std::get_if<conNodeType>(&dw.condition->un); con) {
+            printf("\tpush %s\n", con->toString().c_str());
+            printf("\tpush true\n");
+            printf("\tcompNE\n");
+        } else {
+            //      check condition
+            ex(dw.condition);
+        }
 
         //      jump to label if condition holds
-        printf("\tjz\tL%03d\n", lbl1);
+        printf("\tjnz\tL%03d\n", loopLabel);
+
+        // exit label
+        printf("L%03d:\n", exitLabel);
 
         return Value(0);
     }
 
     Value operator()(whileNodeType &w) {
-        int lbl1;
-        int lbl2;
+        int loopLabel = lbl++;
+        int exitLabel = lbl++;
+
+        w.exit_label = exitLabel;
 
         // label1:
-        printf("L%03d:\n", lbl1 = lbl++);
+        printf("L%03d:\n", loopLabel);
 
-        //      check condition
-        ex(w.condition);
+        if(auto* con = std::get_if<conNodeType>(&w.condition->un); con) {
+            printf("\tpush %s\n", con->toString().c_str());
+            printf("\tpush true\n");
+            printf("\tcompNE\n");
+        } else {
+            //      check condition
+            ex(w.condition);
+        }
 
         //      if condition doesn't hold, jump to label2
-        printf("\tjz\tL%03d\n", lbl2 = lbl++);
+        printf("\tjz\tL%03d\n", exitLabel);
 
         //      code ...
         ex(w.loop_body);
 
         //      jump to label1
-        printf("\tjmp\tL%03d\n", lbl1);
+        printf("\tjmp\tL%03d\n", loopLabel);
 
         //  label2:
-        printf("L%03d:\n", lbl2);
+        printf("L%03d:\n", exitLabel);
 
         return Value(0);
     }
@@ -216,24 +244,25 @@ struct compiler_visitor {
         //      jump to label1
         //  label2:
 
-        int lbl1;
-        int lbl2;
+        int loopLabel;
+        int exitLabel;
+        f.exit_label = exitLabel;
 
         ex(f.init_statement);
 
-        printf("L%03d:\n", lbl1 = lbl++);
+        printf("L%03d:\n", loopLabel = lbl++);
 
         ex(f.loop_condition);
 
-        printf("\tjnz\tL%03d\n", lbl2 = lbl++);
+        printf("\tjz\tL%03d\n", exitLabel = lbl++);
 
         ex(f.loop_body);
 
         ex(f.post_loop_statement);
 
-        printf("\tjmp\tL%03d\n", lbl1);
+        printf("\tjmp\tL%03d\n", loopLabel);
 
-        printf("L%03d:\n", lbl2);
+        printf("L%03d:\n", exitLabel);
     
         return Value(0);
     }
@@ -352,28 +381,34 @@ struct compiler_visitor {
         } break;
         case '<': {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompLT\n");
+            printf("\tcompGE\n");
         } break;
         case '>': {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompGT\n");
+            printf("\tcompLE\n");
         } break;
         case GE: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompGE\n");
+            printf("\tcompLT\n");
         } break;
         case LE: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompLE\n");
+            printf("\tcompGT\n");
         } break;
         case NE: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompNE\n");
+            printf("\tcompEQ\n");
         } break;
         case EQ: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompEQ\n");
+            printf("\tcompNE\n");
         } break;
+        case RETURN: {
+            if(!opr.op.empty()) {
+                ex(opr.op[0]);
+            } 
+            printf("\tret\n");
+        }
         default:
             return Value(0);
         }

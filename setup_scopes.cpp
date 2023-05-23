@@ -113,7 +113,7 @@ struct setup_scopes_visitor {
 
     void operator()(breakNodeType& br) {
         br.parent_switch->currentScope = currentNodePtr->currentScope;
-        setup_scopes(br.parent_switch); /*FIXME: This might cause issues. Unsure as I'm not even sure breaks are needed*/
+        // setup_scopes(br.parent_switch); /*FIXME: This might cause issues. Unsure as I'm not even sure breaks are needed*/
     }
 
     void operator()(FunctionCall& fc) {

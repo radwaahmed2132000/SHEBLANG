@@ -24,3 +24,47 @@ print x;
 AAA
 2
 ===
+    push 0
+    pop test
+    push 1
+    pop x 
+    push x
+    push 0
+    compNE
+    jnz L000
+    push x
+    push 1
+    compNE
+    jnz L001
+    push x
+    push 2
+    compNE
+    jnz L002
+    jmp L003
+L000:
+    push AAA
+    print
+    push x
+    push 1
+    add
+    pop x
+    jmp L003
+L001:
+    push BBB
+    print
+    push x
+    push 2
+    add
+    pop x
+    jmp L003
+L002:
+    push CCC
+    print
+    push x
+    push 3
+    add
+    pop x
+    jmp L003
+L003:
+    push x
+    print

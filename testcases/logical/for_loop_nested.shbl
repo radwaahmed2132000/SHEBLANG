@@ -29,15 +29,15 @@ for(int x = 0; x < 3; x += 1) {
 L000:
         push x
         push 3
-        compLT
-        jnz     L001
+        compGE
+        jz     L001
         push 0
         pop y
 L002:
         push y
         push 3
-        compLT
-        jnz     L003
+        compGE
+        jz     L003
         push x
         print 
         push y
