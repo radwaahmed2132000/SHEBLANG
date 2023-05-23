@@ -142,9 +142,12 @@ typedef struct FunctionCall {
 
 typedef struct VarDecl : LinkedListNode<VarDecl>{
 	struct nodeType *type, *var_name;
+    bool isConstant = false;
+    struct nodeType* initExpr = nullptr;
 
     VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
 	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
+    VarDecl(nodeType* type, nodeType* var_name, nodeType* initExpr, bool isConstant) : type(type), var_name(var_name), initExpr(initExpr), isConstant(isConstant) {}
 
     std::string getType() const;
     std::string getName() const;

@@ -1788,19 +1788,19 @@ yyreduce:
                 setup_scopes((yyvsp[0].nPtr));
 
                 auto result = semantic_analysis((yyvsp[0].nPtr));
+                
+                if (warningsOutput.sizeError == 0) {
+                } else {
+                    for (auto& warning : std::get<ErrorType>(warningsOutput)) {
+                        printf("%s\n", warning.c_str());
+                    }
+                }
                 if (errorsOutput.sizeError == 0) {
                 } else {
                     for (auto& error : std::get<ErrorType>(errorsOutput)) {
                         printf("%s\n", error.c_str());
                     }
                     exit(1);
-                }
-
-                if (warningsOutput.sizeError == 0) {
-                } else {
-                    for (auto& warning : std::get<ErrorType>(warningsOutput)) {
-                        printf("%s\n", warning.c_str());
-                    }
                 }
                 ex((yyvsp[0].nPtr));
                 freeNode((yyvsp[0].nPtr));

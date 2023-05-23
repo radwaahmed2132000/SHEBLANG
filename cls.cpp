@@ -244,6 +244,206 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
              + type + "\" is not valid"); \
       } \
 
+Result ex_const_kak_TM(nodeType *p);
+
+struct ex_const_visitor {
+    Result operator()(conNodeType& con) { 
+        Value v = std::visit(
+                  Visitor {
+                      [](int iValue)         { return Value(iValue); },
+                      [](bool bValue)        { return Value(bValue); },
+                      [](char cValue)        { return Value(cValue); },
+                      [](float fValue)       { return Value(fValue); },
+                      [](std::string sValue) { return Value(sValue); },
+                  },
+                  con
+          );
+        if (std::holds_alternative<int>(v)) {
+             Result result = Result::Success("int");
+             result.value = new Value(std::get<int>(v));
+             return result;
+        } else if (std::holds_alternative<float>(v)) {
+             Result result = Result::Success("float");
+             result.value = new Value(std::get<float>(v));
+             return result;
+        } else if (std::holds_alternative<char>(v)) {
+             Result result = Result::Success("char");
+             result.value = new Value(std::get<char>(v));
+             return result;
+        } else if (std::holds_alternative<std::string>(v)) {
+             Result result = Result::Success("string");
+             result.value = new Value(std::get<std::string>(v));
+             return result;
+        } else if (std::holds_alternative<bool>(v)) {
+             Result result = Result::Success("bool");
+             result.value = new Value(std::get<bool>(v));
+             return result;
+        } else {
+            return Result::Error("Error");
+        }
+    }
+
+
+    Result operator()(idNodeType& id) {
+        if (id.scopeNodePtr->currentScope->sym2[id.id].isConstant && 
+            id.scopeNodePtr->currentScope->sym2[id.id].initExpr != nullptr &&
+            std::holds_alternative<conNodeType>(id.scopeNodePtr->currentScope->sym2[id.id].initExpr->un)) {
+          Result result = Result::Success(id.scopeNodePtr->currentScope->sym2[id.id].type);
+          result.value = &id.scopeNodePtr->currentScope->sym2[id.id].value;
+          return result;
+        } else {
+          return Result::Error("Error");
+        }
+    }
+
+    Result operator() (oprNodeType& opr) {
+      switch (opr.oper) {
+        case '+': case '-': case '*': case '/': case '%': {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          }
+          std::string finalType = std::get<SuccessType>(left) == "float" ? "float" : "int";
+          finalType = std::get<SuccessType>(right) == "float" ? "float" : finalType;
+          if (opr.oper == '+') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value + *right.value); 
+          }
+          if (opr.oper == '-') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value - *right.value); 
+          }
+          if (opr.oper == '*') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value * *right.value); 
+          }
+          if (opr.oper == '/') {
+            Result result = Result::Success(finalType); 
+            result.value = new Value(*left.value / *right.value); 
+          }
+          if (opr.oper == '%') {
+            Result result = Result::Success("int"); 
+            result.value = new Value(*left.value % *right.value); 
+          }
+        }
+        break;
+
+        case '&': case '|': case '^': case '~': case LS: case RS: {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          }
+          if (opr.oper == '&') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value & *right.value); 
+          }
+          if (opr.oper == '|') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value | *right.value); 
+          }
+          if (opr.oper == '^') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value ^ *right.value); 
+          }
+          if (opr.oper == '~') {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(~(*left.value)); 
+          }
+          if (opr.oper == LS) {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value << *right.value); 
+          }
+          if (opr.oper == RS) {
+            Result result = Result::Success(std::get<SuccessType>(left)); 
+            result.value = new Value(*left.value >> *right.value); 
+          }
+        }
+
+        case '<': case '>': case EQ: case NE: case GE: case LE: {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          } 
+          if (opr.oper == '<') {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value < *right.value);
+            return result;
+          }
+          if (opr.oper == '>') {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value > *right.value);
+            return result; 
+          }
+          if (opr.oper == EQ) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value == *right.value);
+            return result; 
+          }
+          if (opr.oper == NE) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value != *right.value);
+            return result; 
+          }
+          if (opr.oper == GE) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value >= *right.value);
+            return result; 
+          }
+          if (opr.oper == LE) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value <= *right.value);
+            return result; 
+          }
+        }
+
+        case AND: case OR: {
+          auto left = ex_const_kak_TM(opr.op[0]);
+          auto right = ex_const_kak_TM(opr.op[1]);
+          if (!left.isSuccess()) {
+            return left;
+          }
+          if (!right.isSuccess()) {
+            return right;
+          }
+          if (opr.oper == AND) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value && *right.value); 
+            return result;
+          }
+          if (opr.oper == OR) {
+            Result result = Result::Success("bool"); 
+            result.value = new Value(*left.value || *right.value); 
+            return result;
+          }
+        }
+        default: {
+          return Result::Error("Unknown operator");
+        }
+      }
+    }
+
+    // the default case:
+    template<typename T> 
+    Result operator()(T const & /*UNUSED*/ ) const { return Result::Success(""); }  
+};
+
+Result ex_const_kak_TM(nodeType *p) {    
+    if (p == nullptr) return Result::Success("success");
+    return std::visit(ex_const_visitor(), p->un);
+}
+
 struct semantic_analysis_visitor {
     nodeType* currentNodePtr;
     Result operator()(conNodeType& con) { 
@@ -283,8 +483,8 @@ struct semantic_analysis_visitor {
           /* Add the variable name & type as a new entry in the symbol table */
           SymbolTableEntry entry = SymbolTableEntry();
           entry.type = type;
-          entry.isConstant = false;
-          entry.initExpr = nullptr;
+          entry.isConstant = vd.isConstant;
+          entry.initExpr = vd.initExpr;
           entry.declaredAtLine = vd.type->lineNo;
           entry.isUsed = false;
           symTable->sym2[nameStr] = entry;
@@ -296,7 +496,7 @@ struct semantic_analysis_visitor {
     Result operator()(VarDefn& vd) {
       int startingSize = errorsOutput.sizeError;
       /* Check if the variable is declared */
-      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
+      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name, vd.initExpr, vd.isConstant), vd.decl->type->lineNo);
       nt->currentScope = currentNodePtr->currentScope;
       Result decl = semantic_analysis(nt); 
       std::string declType = decl.isSuccess() ? (std::string)std::get<SuccessType>(decl) : "<no type>";
@@ -321,9 +521,6 @@ struct semantic_analysis_visitor {
     
     Result operator()(idNodeType& identifier)
     { 
-        /*
-            DONE: Add scope checking when scoping is added 
-        */
         int startingSize = errorsOutput.sizeError;
         auto symTable = identifier.scopeNodePtr->currentScope;
         /* Check that the identifier is declared */
@@ -861,6 +1058,19 @@ struct semantic_analysis_visitor {
             Result conditionCastResult = castToTarget(conditionType, "bool", opr.op[0], opr.op[0]->lineNo);
             if (!conditionCastResult.isSuccess()) {
               errorsOutput.addError(std::get<ErrorType>(conditionCastResult)[0]);
+            }
+          }
+        }
+
+        /* Check if the case condition is always false */
+        if (condition.isSuccess()) {
+          Result alwaysFalseResult = ex_const_kak_TM(opr.op[0]);
+          if (alwaysFalseResult.isSuccess() && std::get<SuccessType>(alwaysFalseResult) == "bool") {
+            Value val = *alwaysFalseResult.value;
+            if (std::get<bool>(val) == false) {
+              warningsOutput.addError("Warning in line number: " +
+                                  std::to_string(opr.op[0]->lineNo) +
+                                  " .Condition in an if statement is always false");
             }
           }
         }

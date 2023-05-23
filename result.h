@@ -11,6 +11,7 @@ struct SuccessType: std::string {};
 // error.push_back("another error!");
 struct Result: std::variant<ErrorType, SuccessType> {
     int sizeError=0;
+    Value * value = nullptr;
     bool isSuccess() const {
         return std::holds_alternative<SuccessType>(*this);
     }
