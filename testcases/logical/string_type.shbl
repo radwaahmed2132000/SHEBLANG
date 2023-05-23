@@ -3,5 +3,7 @@ print s;
 ===
 Hello World
 ===
-mov s,"Hello World!"
-print s
+push "Hello World!"
+pop s
+push s
+print

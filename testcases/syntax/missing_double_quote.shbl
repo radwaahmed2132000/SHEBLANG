@@ -1,0 +1,6 @@
+char i = '1';
+string s = "Hello World;
+print s;
+===
+Syntax Error! Missing Double Quote (") at line 2!
+syntax error

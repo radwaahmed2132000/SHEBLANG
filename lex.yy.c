@@ -894,7 +894,20 @@ YY_RULE_SETUP
                 return STR;
             }
 	YY_BREAK
+<<<<<<< HEAD
 case 4:
+=======
+case 5:
+/* rule 5 can match eol */
+YY_RULE_SETUP
+#line 38 "cl.l"
+{
+                std::string mes = "Syntax Error! Missing Double Quote (\") at line "+std::to_string(yylineno-1)+"!\n";
+                printf("%s",mes.c_str());
+            }
+	YY_BREAK
+case 6:
+>>>>>>> 1cae5b5e69a032817c315394dc4bc6ab4a066c8a
 YY_RULE_SETUP
 #line 32 "cl.l"
 {

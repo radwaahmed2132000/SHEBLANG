@@ -24,17 +24,33 @@ for(int x = 0; x < 3; x += 1) {
 2
 2
 ====
-mov x,0
-loop1:
-    CMP x,3
-	JGE break1
-    mov y,0
-	loop2:
-        CMP y,3
-		JGE break2
-	    print x
-		print y
-		JMP loop1
-	break2: 
-	JMP loop1
-break1:
+        push 0
+        pop x
+L000:
+        push x
+        push 3
+        compLT
+        jnz     L001
+        push 0
+        pop y
+L002:
+        push y
+        push 3
+        compLT
+        jnz     L003
+        push x
+        print 
+        push y
+        print 
+        push y
+        push 1
+        add
+        pop y
+        jmp     L002
+L003:
+        push x
+        push 1
+        add
+        pop x
+        jmp     L000
+L001:

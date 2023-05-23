@@ -1,4 +1,4 @@
-a = 0;
+int a = 0;
 switch(a) {
     default: {
         print 69;
@@ -9,3 +9,11 @@ print 420;
 69
 420
 ===
+        push 0
+        pop a
+        push 69
+        print 
+        jmp     L001
+L001:
+        push 420
+        print

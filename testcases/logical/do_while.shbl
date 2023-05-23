@@ -10,10 +10,15 @@ do {
 12.000000
 11.000000
 ===
-mov x,15.
-loop1 : 
-    print x
-    sub x,1
-    CMP x,10
-    JLE break1
-    JMP break
+    push 15.000000
+    pop x
+L000:
+    push x
+    print
+    push x
+    dec1pre
+    pop x
+    push x
+    push 10.000000
+    compGT
+    jz  L000

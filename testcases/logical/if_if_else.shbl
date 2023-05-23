@@ -2,19 +2,26 @@ int x = 10;
 if(x>4)
   if(x<6)
     print "Smaller than 6 and bigger than 4";
-else
-  print "Greater than both 4 and 6";
+  else
+    print "Greater than both 4 and 6";
 ===
 Greater than both 4 and 6
 ====
-mov x,10
-CMP x,4
-JLE  else1:
-CMP x,6
-JGE break2:
-    print "Smaller than 6 and bigger than 4"
-JMP break1
-else1: 
-    print "Greater than both 4 and 6"
-break1:
-break2:
+        push 10
+        pop x
+        push x
+        push 4
+        compGT
+        jz      L000
+        push x
+        push 6
+        compLT
+        jz      L001
+        push Smaller than 6 and bigger than 4
+        print 
+        jmp     L002
+L001:
+        push Greater than both 4 and 6
+        print 
+L002:
+L000:

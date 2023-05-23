@@ -10,12 +10,23 @@ print y;
 6
 4
 ===
-mov x,10
-mov y,4
-mov z,2
-sub x,y
-add z,x
-print z
-print x
-print y
-
+push 10
+pop x
+push 4
+pop y
+push 2
+pop z
+push x
+push y
+sub
+pop x
+push z
+push x
+add
+pop z
+push z
+print
+push x
+print
+push y
+print

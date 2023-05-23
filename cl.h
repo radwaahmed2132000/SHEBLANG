@@ -18,6 +18,8 @@
 #include "result.h"
 
 void yyerror(char *s);
+void printSymbolTables();
+void appendSymbolTable(int i);
 
 template <typename T>
 struct LinkedListNode {

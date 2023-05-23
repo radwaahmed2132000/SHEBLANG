@@ -4,6 +4,13 @@ print a;
 ===
 7
 ===
-mov	a,1
+push 1
+pop a
+push 3 
+push 4
+add 
+pop a
+push a
+print
 
 

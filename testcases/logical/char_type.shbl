@@ -9,9 +9,15 @@ h
 !
 +
 ===
-mov x,'h'
-mov y,'!'
-mov z,'+'
-print x
-print y
-print z
+push h
+pop x
+push !
+pop y
+push +
+pop z
+push x
+print
+push y
+print
+push z
+print

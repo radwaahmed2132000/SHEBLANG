@@ -9,6 +9,19 @@
 #include "y.tab.h"
 
 static int lbl;
+#define PUSH_BIN_OPR_PARAMS              \
+    auto lhs = ex(opr.op[0]).toString(); \
+    auto rhs = ex(opr.op[1]).toString(); \
+    printf("\tpush %s\n", lhs.c_str());      \
+    printf("\tpush %s\n", rhs.c_str());
+
+#define UN_OP(OP_CODE)                  \
+    auto var = ex(opr.op[0]).toString();\
+    printf("\tpush %s\n", var.c_str());     \
+    OP_CODE                             \
+    printf("\tpop %s\n", var.c_str());      
+
+
 
 Value ex(nodeType *p);
 
@@ -50,7 +63,8 @@ int compile_switch(switchNodeType &sw) {
 
     std::optional<int> matching_case_index = {};
     std::optional<int> default_case_index = {};
-    Value var_value = ex(sw.var);
+    
+    Value var_name = ex(sw.var);
 
     // Check cli.cpp for an explanation of why we're collecting and reversing.
     nodeType* head = sw.case_list_head;
@@ -63,29 +77,28 @@ int compile_switch(switchNodeType &sw) {
     sw.exit_label = lbl++;
 
     for (int i = 0; i < cases.size(); i++) {
-        Value case_value = ex(cases[i]->labelExpr);
-        if (cases[i]->isDefault()) {
-            default_case_index = i;
-        } else {
-            ex(cases[i]->labelExpr); // Label value
-            printf("\tpush\t%s\n", case_value.toString().c_str()); // variable value
-            printf("\tcompEQ\n");
-            printf("\tje\tL%03d\n", labels[i]);
-        }
+        if(cases[i]->isDefault()) { default_case_index = i; continue; }
+
+        printf("\tpush\t%s\n", var_name.toString().c_str()); // variable value
+        printf("\tpush\t%s\n", ex(cases[i]->labelExpr).toString().c_str()); // label value
+        printf("\tcompEQ\n");
+        printf("\tje\tL%03d\n", labels[i]);
     }
 
     // If there exists a default case, jump to it if no other cases
     // match. Otherwise, jump to the exit label (skip the whole swtich).
     if (default_case_index.has_value()) {
-        printf("\tjmp\tL%03d\n", labels[default_case_index.value()]);
-    } else {
+        ex(cases[default_case_index.value()]->caseBody);
         printf("\tjmp\tL%03d\n", sw.exit_label);
     }
 
     // Emit the code that corresponds to each case.
     for(int i = 0; i < cases.size(); i++) {
+        if(cases[i]->isDefault()) { default_case_index = i; continue; }
+
         printf("L%03d:\n", labels[i]);
         ex(cases[i]->caseBody);
+        printf("\tjmp\tL%03d\n", sw.exit_label);
     }
 
     printf("L%03d:\n", sw.exit_label);
@@ -94,14 +107,36 @@ int compile_switch(switchNodeType &sw) {
 }
 
 struct compiler_visitor {
-    Value operator()(conNodeType &con) { return con; }
 
     Value operator()(idNodeType &identifier) {
-        return Value('[' + identifier.id + ']');
+        return Value(identifier.id);
+    }
+
+    Value operator()(conNodeType& c) {
+        return Value(c.toString());
     }
 
     Value operator()(VarDecl& varDecl) {
         return Value(ex(varDecl.var_name).toString());
+    }
+
+    Value operator()(VarDefn& vd) {
+        printf("\tpush %s\n", ex(vd.initExpr).toString().c_str());
+        printf("\tpop %s\n", ex(vd.decl->var_name).toString().c_str());
+        return Value(0);
+    }
+
+    Value operator()(caseNodeType& c) {
+        auto caseLabelValue = ex(c.labelExpr);
+        return Value(0);
+    }
+
+    Value operator()(StatementList& sl) {
+        for(const auto& s: sl.toVec()) {
+            ex(s->statementCode);
+        }
+
+        return Value(0);
     }
 
     Value operator()(switchNodeType &sw) {
@@ -235,105 +270,111 @@ struct compiler_visitor {
             ex(opr.op[0]);
             break;
 
-        case PRINT:
-            printf("\tprint %s\n", ex(opr.op[0]).toString().c_str());
-            break;
-        case '=': {
-            std::string rhs = ex(opr.op[1]).toString();
-            std::string lhs = ex(opr.op[0]).toString();
-
-            printf("mov %s, %s\n", lhs.c_str(), rhs.c_str());
+        case PRINT: {
+            // HACK
+            auto ret = ex(opr.op[0]);
+            if(!(std::holds_alternative<std::string>(ret) && ret.toString() == "0")) {
+                printf("\tpush %s\n", ret.toString().c_str());
+            }
+            printf("\tprint \n");
         } break;
-        case PP:
-            ex(opr.op[0]);
-            printf("\tinc1pre\n");
-            break;
-        case MM:
-            ex(opr.op[0]);
-            printf("\tdec1pre\n");
-            break;
-        case UPLUS:
-            ex(opr.op[0]);
-            printf("\tpos\n");
-            break;
-        case UMINUS:
-            ex(opr.op[0]);
-            printf("\tneg\n");
-            break;
-        case '!':
-            ex(opr.op[0]);
-            printf("\tnot\n");
-            break;
-        case '~':
-            ex(opr.op[0]);
-            printf("\tbitNOT\n");
-            break;
+        case '=': {
+            std::string lhs = ex(opr.op[0]).toString();
+            ex(opr.op[1]);
 
-        case '&':
+            printf("\tpop %s\n", lhs.c_str());
+            return Value(lhs);
+        } break;
+
+        case PP: { UN_OP(printf("\tinc1pre\n");) } break;
+        case MM: { UN_OP(printf("\tdec1pre\n");) } break;
+        case UPLUS: { UN_OP(printf("\tpos\n");) } break;
+        case UMINUS: { UN_OP(printf("\tneg\n");) } break;
+        case '!': { UN_OP(printf("\tnot\n");) } break;
+        case '~': { UN_OP(printf("\tbitNOT\n");) } break;
+
+        case '&': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tbitAND\n");
-            break;
-        case '|':
+        } break;
+        case '|': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tbitOR\n");
-            break;
-        case '^':
+        } break;
+        case '^': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tbitXOR\n");
             break;
-        case LS:
+        }
+        case LS: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tLshift\n");
-            break;
-        case RS:
+        } break;
+        case RS: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tRshift\n");
-            break;
-        case '+':
+        } break;
+        case '+': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tadd\n");
-            break;
-        case '-':
+        } break;
+        case '-': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tsub\n");
-            break;
-        case '*':
+        } break;
+        case '*': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tmul\n");
-            break;
-        case '/':
+        } break;
+        case '/': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tdiv\n");
-            break;
-        case '%':
+        } break;
+        case '%': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tmod\n");
-            break;
-        case AND:
+        } break;
+        case AND: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tand\n");
-            break;
-        case OR:
+        } break;
+        case OR: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tor\n");
-            break;
-        case '<':
+        } break;
+        case '<': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tcompLT\n");
-            break;
-        case '>':
+        } break;
+        case '>': {
+            PUSH_BIN_OPR_PARAMS
             printf("\tcompGT\n");
-            break;
-        case GE:
+        } break;
+        case GE: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tcompGE\n");
-            break;
-        case LE:
+        } break;
+        case LE: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tcompLE\n");
-            break;
-        case NE:
+        } break;
+        case NE: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tcompNE\n");
-            break;
-        case EQ:
+        } break;
+        case EQ: {
+            PUSH_BIN_OPR_PARAMS
             printf("\tcompEQ\n");
-            break;
+        } break;
         default:
             return Value(0);
         }
-    
-        return Value(0);
+
+        return Value(std::string("0"));
     }
 
-    // the default case:
-    template <typename T> Value operator()(T const & /*UNUSED*/) const {
-        return Value(0);
-    }
+    template <typename T> Value operator()(T const & /*UNUSED*/) const {  return Value(0);}
+    
 };
 
 Value ex(nodeType *p) {

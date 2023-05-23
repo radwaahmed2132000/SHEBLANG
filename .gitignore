@@ -4,3 +4,8 @@ a.exe
 shbl_interpreter
 lex.yy.c
 lex.yy.c
+y.tab.c
+y.tab.h
+shbl_interpreter
+y.tab.c
+y.tab.h

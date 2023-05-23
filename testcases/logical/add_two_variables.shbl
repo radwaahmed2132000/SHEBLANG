@@ -1,0 +1,8 @@
+int a;
+int b;
+a + b;
+===
+===
+push a
+push b
+add
