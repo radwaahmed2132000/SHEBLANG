@@ -17,6 +17,7 @@ int yylex(void);
 void yyerror(char *s);
 extern int yylineno;            /* from lexer */
 %}
+%locations
 
 %union {
     int iValue;                 /* integer value */
@@ -63,10 +64,8 @@ program:
                 setup_scopes($1);
 
                 auto result = semantic_analysis($1);
-                if (errorsOutput.isSuccess()) {
-                    // printf("Semantic analysis successful\n");
+                if (errorsOutput.sizeError == 0) {
                 } else {
-                    // printf("Semantic analysis failed\n");
                     for (auto& error : std::get<ErrorType>(errorsOutput)) {
                         printf("%s\n", error.c_str());
                     }
@@ -97,7 +96,7 @@ stmt:
         }
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
-        | SWITCH '(' expr ')' case                { $$ = sw($3, $5); set_break_parent($5, $$); }
+        | SWITCH '(' expr ')' case                {  currentLineNo = @1.first_line; $$ = sw($3, $5); set_break_parent($5, $$); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }

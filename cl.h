@@ -160,7 +160,7 @@ typedef struct VarDefn {
 typedef struct SymbolTableEntry {
     Value value;
     bool isConstant;
-    std::string type = "";  
+    std::string type = "<no type>";  
     nodeType* initExpr = nullptr;
 
     SymbolTableEntry() = default;
@@ -214,6 +214,9 @@ inline Result errorsOutput;
 Result semantic_analysis(nodeType* p);
 void setup_scopes(nodeType* p);
 void set_break_parent(nodeType* node, nodeType* parent_switch);
+
+// Tracking line numbers
+inline int currentLineNo = 0;
 
 // Must include after the structs are defined
 #include "node_constructors.h"

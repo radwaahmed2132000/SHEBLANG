@@ -290,7 +290,7 @@ struct semantic_analysis_visitor {
       nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
       Result decl = semantic_analysis(nt); 
 
-      std::string declType = decl.isSuccess() ? (std::string)std::get<SuccessType>(decl) : "";
+      std::string declType = decl.isSuccess() ? (std::string)std::get<SuccessType>(decl) : "<no type>";
 
       /* Check that the initial expression is valid if it exits */
       if (vd.initExpr != nullptr) {
@@ -341,7 +341,7 @@ struct semantic_analysis_visitor {
       // TODO:  checks if there are duplicate case identifiers - Not sure if this is doable using semantic analysis 
       int startingSize = errorsOutput.sizeError;
       auto var =  semantic_analysis(sw.var);
-      std::string varType="";
+      std::string varType="<no type>";
       if(var.isSuccess()){
         varType=std::get<SuccessType>(var); 
       } else {
@@ -357,22 +357,25 @@ struct semantic_analysis_visitor {
           errorsOutput.addError("Error in line number: " + std::to_string(cases[i]->labelExpr->lineNo) +
                                 " .The label expression of the case statement is not valid");
         } else {
-          /* Make sure of the type, constancy or literally or the expression */
-          std::string typeCaseExpr = std::get<SuccessType>(labelExpr);
-          if (varType != "" && typeCaseExpr != varType) {
+          if (cases[i]->labelExpr != nullptr) {
+            /* Make sure of the type, constancy or literally or the expression */
+            std::string typeCaseExpr = std::get<SuccessType>(labelExpr);
+            if (varType != "<no type>" && typeCaseExpr != varType) {
             errorsOutput.addError("Error in line number: " + std::to_string(cases[i]->labelExpr->lineNo) +
                                   " .The label expression of the case statement is not of the same type as the switch variable");
-          }
-          bool constant = false;
-          bool literal = false;
-          if (std::holds_alternative<idNodeType>(cases[i]->labelExpr->un)) {
-            constant = sym2[std::get<idNodeType>(cases[i]->labelExpr->un).id].isConstant;
-          } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un)) {
-            literal = true;
-          }
-          if (!constant && !literal) {
-            errorsOutput.addError("Error in line number: " + std::to_string(cases[i]->labelExpr->lineNo) +
-                                  " .The label expression of the case statement must be a constant or a literal");
+            }
+            
+            bool constant = false;
+            bool literal = false;
+            if (std::holds_alternative<idNodeType>(cases[i]->labelExpr->un)) {
+              constant = sym2[std::get<idNodeType>(cases[i]->labelExpr->un).id].isConstant;
+            } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un)) {
+              literal = true;
+            }
+            if (!constant && !literal) {
+              errorsOutput.addError("Error in line number: " + std::to_string(cases[i]->labelExpr->lineNo) +
+                                    " .The label expression of the case statement must be a constant or a literal");
+            }
           }
         }
         auto caseBody = semantic_analysis(cases[i]->caseBody);
@@ -780,7 +783,6 @@ struct semantic_analysis_visitor {
 };
 
 Result semantic_analysis(nodeType *p) {    
-    // std::cout << "Semantic analysis running";
     if (p == nullptr) return Result::Success("success");
     return std::visit(semantic_analysis_visitor(), p->un);
 }

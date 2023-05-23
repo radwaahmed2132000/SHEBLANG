@@ -15,7 +15,7 @@
 
 extern int yylineno;  
 
-#define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}),yylineno)
+#define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}), currentLineNo)
 
 nodeType *con(int iValue)   { return CON_INIT(p, iValue); }
 nodeType *con(float fValue) { return CON_INIT(p, fValue); }
@@ -38,55 +38,55 @@ nodeType *opr(int oper, int nops, ...) {
         opr.op.push_back(va_arg(ap, nodeType*));
     va_end(ap);
 
-    return new nodeType(opr, yylineno);
+    return new nodeType(opr, currentLineNo);
 }
 
 // Create an identifier node.
 nodeType *id(const char* id) {
     /* copy information */
     auto idNode = idNodeType{std::string(id)};
-    return new nodeType(idNode, yylineno);
+    return new nodeType(idNode, currentLineNo);
 }
 
 nodeType *sw(nodeType* var, nodeType* case_list_head) {
     auto switchNode = std::variant<NODE_TYPES>(switchNodeType{ 0, false, var, case_list_head });
-    return new nodeType(switchNode, var->lineNo);
+    return new nodeType(switchNode, currentLineNo);
 }
 
 nodeType *cs(nodeType* labelExpr, nodeType* caseBody) {
-    return new nodeType(caseNodeType(labelExpr, caseBody), labelExpr->lineNo);
+    return new nodeType(caseNodeType(labelExpr, caseBody), currentLineNo);
 }
 
 nodeType *br() {
     auto breakNode = std::variant<NODE_TYPES>(breakNodeType{NULL});
-    return new nodeType(breakNode, yylineno);
+    return new nodeType(breakNode, currentLineNo);
 }
 
 nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body) {
     auto forNode = forNodeType{false, init_statement, loop_condition, post_loop_statement, loop_body};
-    return new nodeType(forNode, init_statement->lineNo);
+    return new nodeType(forNode, currentLineNo);
 }
 
 nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body) {
     auto whileNode = whileNodeType{false, loop_condition, loop_body};
-    return new nodeType(whileNode, loop_condition->lineNo);
+    return new nodeType(whileNode, currentLineNo);
 }
 
 nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
     auto doWhileNode = std::variant<NODE_TYPES>(doWhileNodeType{false, loop_condition, loop_body});
-    return new nodeType(doWhileNode, loop_condition->lineNo);
+    return new nodeType(doWhileNode, currentLineNo);
 }
 
 nodeType* varDecl(nodeType* type, nodeType* name) {
     auto nameStr = std::get<idNodeType>(name->un).id;
     auto typeStr = std::get<idNodeType>(type->un).id;
 
-    return new nodeType(VarDecl(type, name), name->lineNo);
+    return new nodeType(VarDecl(type, name), currentLineNo);
 }
 
 nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
     auto* declPtr = std::get_if<VarDecl>(&decl->un);
-    return new nodeType(VarDefn(declPtr, initExpr, isConstant), initExpr->lineNo);
+    return new nodeType(VarDefn(declPtr, initExpr, isConstant), currentLineNo);
 }
 
 std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id; } 
@@ -114,11 +114,11 @@ nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_typ
         assert(containsReturn);
     }
 
-    return new nodeType(functionNodeType{return_type, name, params, statements}, name->lineNo);
+    return new nodeType(functionNodeType{return_type, name, params, statements}, currentLineNo);
 }
 
 nodeType* fn_call(nodeType* name) {
-    return new nodeType(functionNodeType{nullptr, name}, name->lineNo);
+    return new nodeType(functionNodeType{nullptr, name}, currentLineNo);
 }
 
 struct set_break_parent_visitor {
@@ -167,27 +167,27 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
     enums[enumName] = e;
 
-    return new nodeType(e, enumIdentifier->lineNo);
+    return new nodeType(e, currentLineNo);
 }
 
 nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
     auto enumMemberName = std::get<idNodeType>(enumMemberIdentifier->un).id;
 
-    return new nodeType(enumUseNode{enumName, enumMemberName}, enumIdentifier->lineNo);
+    return new nodeType(enumUseNode{enumName, enumMemberName}, currentLineNo);
 }
 
 nodeType* identifierListNode(nodeType* idNode) {
     assert(std::holds_alternative<idNodeType>(idNode->un));
-    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), idNode->lineNo);
+    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), currentLineNo);
 }
 
 nodeType* statementList(nodeType* statement) {
-    return new nodeType(StatementList(statement), statement->lineNo);
+    return new nodeType(StatementList(statement), currentLineNo);
 }
 
 nodeType* exprListNode(nodeType* exprCode) {
-    return new nodeType(ExprListNode(exprCode), exprCode->lineNo);
+    return new nodeType(ExprListNode(exprCode), currentLineNo);
 }
 
 nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
@@ -197,5 +197,5 @@ nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
     auto exprList = std::get<ExprListNode>(exprListTail->un).toVec();
     auto fnName = std::get<idNodeType>(fnIdentifier->un).id;
 
-    return new nodeType(FunctionCall{fnName, exprList}, fnIdentifier->lineNo);
+    return new nodeType(FunctionCall{fnName, exprList}, currentLineNo);
 }

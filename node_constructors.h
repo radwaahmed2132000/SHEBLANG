@@ -43,7 +43,7 @@ nodeType* appendToLinkedList(nodeType* prev, nodeType* next) {
 	assert(currNode != nullptr);
 
     currNode->prev = prevNode;
-	return new nodeType(*currNode, yylineno); 
+	return new nodeType(*currNode, currentLineNo); 
 }
 
 template<typename LinkedListNode> 
@@ -59,5 +59,5 @@ nodeType* linkedListStump(nodeType* end) {
         stump = new LinkedListNode();
     }
 
-	return new nodeType(*stump, yylineno); 
+	return new nodeType(*stump, currentLineNo); 
 }

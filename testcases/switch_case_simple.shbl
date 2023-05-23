@@ -1,5 +1,5 @@
 a = 1;
-switch(a) {
+switch (a) {
 	default: {
 		b = 42;
 		print b;
