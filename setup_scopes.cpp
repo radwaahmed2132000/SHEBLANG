@@ -28,6 +28,7 @@ struct setup_scopes_visitor {
 
     void operator()(VarDefn &vd) {
         nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
+        nt->currentScope = currentNodePtr->currentScope;
         setup_scopes(nt); 
         vd.initExpr->currentScope = currentNodePtr->currentScope;
         setup_scopes(vd.initExpr);        

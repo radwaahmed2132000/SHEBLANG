@@ -297,8 +297,8 @@ struct semantic_analysis_visitor {
       int startingSize = errorsOutput.sizeError;
       /* Check if the variable is declared */
       nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
+      nt->currentScope = currentNodePtr->currentScope;
       Result decl = semantic_analysis(nt); 
-
       std::string declType = decl.isSuccess() ? (std::string)std::get<SuccessType>(decl) : "<no type>";
 
       /* Check that the initial expression is valid if it exits */
