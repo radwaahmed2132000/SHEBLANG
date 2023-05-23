@@ -44,7 +44,7 @@ nodeType *opr(int oper, int nops, ...) {
 // Create an identifier node.
 nodeType *id(const char* id) {
     /* copy information */
-    auto idNode = idNodeType{std::string(id)};
+    auto idNode = idNodeType{std::string(id), currentLineNo};
     return new nodeType(idNode, currentLineNo);
 }
 

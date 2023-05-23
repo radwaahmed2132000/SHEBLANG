@@ -21,11 +21,13 @@
 // TODO: Make sure sym2 works properly
 #define NOT_CONST(oper, lineNo, sym2) \
     auto lhsName = std::get<idNodeType>(oper->un).id; \
-    auto& lEntry = sym2[lhsName]; \
-    if(lEntry.isConstant) {\
-        errorsOutput.addError ("Error in line number: "\
-        + std::to_string(lineNo) + " The LHS of an assignment operation is constant."); \
+      if (sym2.find(lhsName) != sym2.end()) { \
+        auto& lEntry = sym2[lhsName]; \
+      if(lEntry.isConstant) {\
+          errorsOutput.addError ("Error in line number: "\
+          + std::to_string(lineNo) + " The LHS of an assignment operation is constant."); \
     } \
+  } \
 
 /*
   * allows casting between int, float, char & bool it's possible.
@@ -234,7 +236,9 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
 
 #define EXISTING_TYPE(type, lineNo) \
      static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool"}; \
-     if (builtinTypes.find(type) == builtinTypes.end()) { \
+     if (type == "<no type>") { \
+          \
+     } else if (builtinTypes.find(type) == builtinTypes.end()) { \
           errorsOutput.addError ("Error in line number: " + \
              std::to_string(lineNo) +" .The data type \"" \
              + type + "\" is not valid"); \
@@ -265,6 +269,9 @@ struct semantic_analysis_visitor {
         int startingSize = errorsOutput.sizeError;
         /* Check that the type of the variable is valid */
         auto type = std::get<idNodeType>(vd.type->un).id;
+
+        /* Check that the type & name are valid */
+
         EXISTING_TYPE(type, vd.type->lineNo);
         
         auto symTable = currentNodePtr->currentScope;
@@ -689,7 +696,7 @@ struct semantic_analysis_visitor {
     }
            
 
-    Result operator()(oprNodeType& opr) {   
+    Result operator()(oprNodeType& opr) {
         /* Things that need to be checked */
         /*
             TODO: Implement the follow check when the function identifier is added to the symbol table
