@@ -1,0 +1,7 @@
+fn foo(int a, int b) int {
+    return a + b;
+}
+
+print foo(32, 10);
+==
+42

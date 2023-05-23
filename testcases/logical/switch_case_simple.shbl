@@ -1,23 +1,48 @@
-a = 1;
+int a = 1;
 switch (a) {
 	default: {
-		b = 42;
-		print b;
+		print 42;
 	}
 	case 3: {
-		b = 3;
-		print b;
+		print 3;
 	}
 	case 1: {
-		b = 1;
-		print b;
+		print 1;
 	}
 	case 2: {
-		b = 2;
-		print b;
+		print 2;
 	}
 }
 ===
 1
 ===
-mov a,1
+        push 1
+        pop a
+        push    a
+        push    3
+        compEQ
+        je      L001
+        push    a
+        push    1
+        compEQ
+        je      L002
+        push    a
+        push    2
+        compEQ
+        je      L003
+        push 42
+        print 
+        jmp     L004
+L001:
+        push 3
+        print
+        jmp     L004
+L002:
+        push 1
+        print
+        jmp     L004
+L003:
+        push 2
+        print
+        jmp     L004
+L004:
