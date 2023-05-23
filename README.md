@@ -11,7 +11,7 @@
 
 - You can then run `test.py` with with the arguments `interpreter` or `compiler` to test either.
 - You can also choose to run only the test cases in a certain file by running `test.py interpreter symantic` for example.
-- There are four files to choose from: `logical`, `symantic`, `scopes` and `syntax`. 
+- There are four files to choose from: `logical`, `semantic`, `scopes` and `syntax`. 
 - You can also run `shb_interpreter < path/to/testcase.shbl` to run a specific testcase.
 
 ## How to debug with VSCode

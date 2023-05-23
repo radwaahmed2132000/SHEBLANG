@@ -262,8 +262,6 @@ struct semantic_analysis_visitor {
 
     Result operator()(VarDecl& vd) {
         /*
-            DONE: Disallow redeclaration of variables within the same scope 
-            
             TODO: Don't allow the declaration of a variable with the same name as a function
         */
         int startingSize = errorsOutput.sizeError;
@@ -287,6 +285,8 @@ struct semantic_analysis_visitor {
           entry.type = type;
           entry.isConstant = false;
           entry.initExpr = nullptr;
+          entry.declaredAtLine = vd.type->lineNo;
+          entry.isUsed = false;
           symTable->sym2[nameStr] = entry;
           return Result::Success(entry.type);
         }
@@ -330,7 +330,7 @@ struct semantic_analysis_visitor {
         if (symTable->sym2.find(identifier.id) != symTable->sym2.end()) {
             /* Check that the identifier type is valid */
             EXISTING_TYPE(symTable->sym2[identifier.id].type, identifier.lineNo);
-
+            symTable->sym2[identifier.id].isUsed = true;
             return Result::Success(symTable->sym2[identifier.id].type);
         }
         else {
@@ -585,6 +585,14 @@ struct semantic_analysis_visitor {
                     ret = statementError;
                 }
                 ret.mergeErrors(*e);
+            }
+        }
+
+        /* Check for unused variables in this scope */
+        for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
+            if(!entry.isUsed) {
+                warningsOutput.addError("Warning in line number: " + std::to_string(entry.declaredAtLine) +
+                                        " .Variable " + name + " is declared but never used");
             }
         }
         return ret;

@@ -57,7 +57,7 @@ def list_test_cases(test_cases: List[Testcase]):
 
 arg_parser = ArgumentParser()
 arg_parser.add_argument("shbl_binary_type", help="The type of binary to test", choices=["interpreter", "compiler"])
-arg_parser.add_argument("category", help="The category of test cases to run", choices=["logical", "scopes", "symantic", "syntax"], nargs='?', default=None)
+arg_parser.add_argument("category", help="The category of test cases to run", choices=["logical", "scopes", "semantic", "syntax"], nargs='?', default=None)
 arg_parser._optionals
 args = arg_parser.parse_args()
 
