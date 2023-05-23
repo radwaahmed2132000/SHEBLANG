@@ -124,7 +124,7 @@ return_statement:
 case: 
      CASE expr ':' stmt         { $$ = cs($2, $4); }
      | DEFAULT ':' stmt         { $$ = cs(nullptr, $3); }
-     | '{' case_list '}'        { $$ = $2; }
+     | '{' case_list '}'        { $2->addNewScope = true; $$ = $2; }
      ;
 
 case_list:

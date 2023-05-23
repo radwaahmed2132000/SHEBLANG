@@ -11,24 +11,33 @@ struct setup_scopes_visitor {
     nodeType* currentNodePtr;
 
     void operator()(conNodeType& con) {
+        // Nothing needed here.
     }
 
     void operator()(idNodeType& identifier) {
+        // Nothing needed here.
     }
 
     void operator()(VarDecl& vd) { 
-        // std::cerr << "decl";
+        vd.type->currentScope = currentNodePtr->currentScope;
+        vd.var_name->currentScope = currentNodePtr->currentScope;
     }
 
     void operator()(VarDefn &vd) { 
-        // std::cerr << "defn"; 
+        vd.initExpr->currentScope = currentNodePtr->currentScope;
     }
 
     void operator()(enumUseNode& eu) {
-
+        // Nothing needed here.
     }
 
-    void operator()(caseNodeType &cs) { 
+    void operator()(caseNodeType &cs) {
+        if(currentNodePtr->addNewScope)
+        {
+            auto temp = currentNodePtr->currentScope;
+            currentNodePtr->currentScope = new ScopeSymbolTables();
+            currentNodePtr->currentScope->parentScope = temp;
+        } 
         auto cases = cs.toVec(); 
         for(auto* c: cases) {
             c->caseBody->currentScope = currentNodePtr->currentScope;
@@ -47,7 +56,7 @@ struct setup_scopes_visitor {
     }
 
     void operator()(FunctionCall& fc) {
-        
+     // TODO: Implement this when doing the function logic.   
     }
 
     void operator()(StatementList& sl) {
