@@ -94,16 +94,16 @@ struct setup_scopes_visitor {
 
     void operator()(functionNodeType& fn) {
         // TODO: Revise this when doing the function logic. 
-        fn.return_type->currentScope = currentNodePtr->currentScope;
-        setup_scopes(fn.return_type);
-        fn.name->currentScope = currentNodePtr->currentScope;
-        setup_scopes(fn.name);
-        fn.statements->currentScope = currentNodePtr->currentScope;
-        setup_scopes(fn.statements);
-        for (auto& p : fn.parameters) {
-            nodeType* nt = new nodeType(VarDecl(p->type, p->var_name), p->type->lineNo);
-            setup_scopes(nt);
-        }
+        // fn.return_type->currentScope = currentNodePtr->currentScope;
+        // setup_scopes(fn.return_type);
+        // fn.name->currentScope = currentNodePtr->currentScope;
+        // setup_scopes(fn.name);
+        // fn.statements->currentScope = currentNodePtr->currentScope;
+        // setup_scopes(fn.statements);
+        // for (auto& p : fn.parameters) {
+        //     nodeType* nt = new nodeType(VarDecl(p->type, p->var_name), p->type->lineNo);
+        //     setup_scopes(nt);
+        // }
     }
 
     void operator()(doWhileNodeType& dw) {

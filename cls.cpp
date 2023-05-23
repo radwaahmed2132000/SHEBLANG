@@ -235,7 +235,7 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
     auto rightType = std::get<SuccessType>(right); \
 
 #define EXISTING_TYPE(type, lineNo) \
-     static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool"}; \
+     static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool", "void"}; \
      if (type == "<no type>") { \
           \
      } else if (builtinTypes.find(type) == builtinTypes.end()) { \
@@ -704,40 +704,65 @@ struct semantic_analysis_visitor {
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
     Result operator()(functionNodeType& fn) { 
-    auto nameFunction = std::get<idNodeType>(fn.name->un).id;
-    auto functionValue= fnSymTable(nameFunction,currentNodePtr->currentScope);
-    int startingSize =errorsOutput.sizeError;
-    for(int i=0;i<fn.parameters.size();i++)
-    {
-      nodeType *nt = new nodeType(VarDecl(  fn.parameters[i]->type   , fn.parameters[i]->var_name), fn.parameters[i]->type->lineNo);
-      nt->currentScope = new ScopeSymbolTables();
-      auto parameter=  semantic_analysis(nt);
-      nt->currentScope->parentScope = currentNodePtr->currentScope;
-      if(!parameter.isSuccess() )
-      {
-          errorsOutput.addError("This error in function paramters in line " +fn.name->lineNo);
+      
+      int startingSize =errorsOutput.sizeError;
+
+      /* Function Declaration code */
+      auto functionName = std::get<idNodeType>(fn.name->un).id;
+      
+      auto symTable = currentNodePtr->currentScope;
+
+      /* Check if the function was already declared before */
+      
+      if (symTable->functions.find(functionName) != symTable->functions.end()) {
+            errorsOutput.addError("Error in line number: " +
+                                  std::to_string(fn.name->lineNo) + " .Function " +
+                                  functionName + " is already declared in this scope");
+        }
+        auto functionScope = new ScopeSymbolTables();
+
+      /* Check if the function parameters are valid */
+      for(int i = 0; i < fn.parameters.size(); i++) {
+        auto param = fn.parameters[i];
+        /* Check if the parameter list is emtpy */
+        if (param->type == nullptr || param->var_name == nullptr) {
+          break;
+        } 
+        nodeType *nt = new nodeType(VarDecl(param->type, param->var_name), param->type->lineNo);
+        nt->currentScope = functionScope;
+        //nt->currentScope->parentScope = currentNodePtr->currentScope;
+        auto parameter = semantic_analysis(nt);
+        if (!parameter.isSuccess()) {
+          errorsOutput.addError("Error in line number: " +
+                                std::to_string(param->type->lineNo) + " .The function parameter " +
+                                std::get<idNodeType>(param->var_name->un).id + " is not valid");
+        }
       }
-    }
-    auto statement = semantic_analysis(fn.statements);
-    if(!statement.isSuccess())
-    {
-      errorsOutput.addError("This error in function statements in line " +fn.statements->lineNo);
 
-    }
-    auto returnType= semantic_analysis(fn.return_type);
-    if(!returnType.isSuccess())
-    {
-      errorsOutput.addError("This error in function return type in line " +fn.return_type->lineNo);
+      /* Check if the return type is valid */
+      std::string returnType = std::get<idNodeType>(fn.return_type->un).id;
+      EXISTING_TYPE(returnType, fn.return_type->lineNo);
+      if (errorsOutput.sizeError != startingSize) {
+        errorsOutput.addError("Error in line number: " +
+                              std::to_string(fn.return_type->lineNo) + 
+                              " .The function return type is not valid");
+      }
+      
+      /* Check if the function body is valid */
+      auto functionBody = semantic_analysis(fn.statements);
+      if (!functionBody.isSuccess()) {
+        errorsOutput.addError("Error in line number: " +
+                              std::to_string(fn.statements->lineNo) + " .The function body is not valid");
+      }
 
-    }
-    if(startingSize != errorsOutput.sizeError)
-    {
-      return Result::Error("error");
-    }
+      if(startingSize != errorsOutput.sizeError)
+      {
+        return Result::Error("error");
+      }
       
-      return Result::Success("Success");
-      
-    } // TODO
+      return Result::Success(returnType);
+    } 
+
     Result operator()(FunctionCall& fn) { 
       // TODO line number of this
       int startingSize =errorsOutput.sizeError;
@@ -809,6 +834,10 @@ struct semantic_analysis_visitor {
         }
 
         /* Check for unused variables in this scope */
+        if (currentNodePtr->currentScope == nullptr || 
+            currentNodePtr->currentScope->sym2.size() == 0) {
+            return ret;
+        }
         for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
             if(!entry.isUsed) {
                 warningsOutput.addError("Warning in line number: " + std::to_string(entry.declaredAtLine) +
@@ -943,6 +972,11 @@ struct semantic_analysis_visitor {
         */
         int startingSize = errorsOutput.sizeError;
         switch (opr.oper) {
+
+        case ':': {
+          /* Empty Line */
+          return Result::Success("void");
+        }
 
         case '=': {
           /* Check that the left expression is valid (identifier is declared) */
