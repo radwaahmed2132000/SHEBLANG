@@ -507,15 +507,38 @@ struct semantic_analysis_visitor {
     Result operator()(IdentifierListNode& il) { return Result::Success("success"); } // TODO
 
     Result operator()(functionNodeType& fn) { 
-      /*
-        TODO : add table , not existing , error
-        body
-        varaibles => scope , create table ,
-        return type, return 
+    auto nameFunction = std::get<idNodeType>(fn.name->un).id;
+    auto functionValue= fnSymTable(nameFunction,currentNodePtr->currentScope);
+    int startingSize =errorsOutput.sizeError;
+    for(int i=0;i<fn.parameters.size();i++)
+    {
+      nodeType *nt = new nodeType(VarDecl(  fn.parameters[i]->type   , fn.parameters[i]->var_name), fn.parameters[i]->type->lineNo);
+      nt->currentScope = new ScopeSymbolTables();
+      auto parameter=  semantic_analysis(nt);
+      nt->currentScope->parentScope = currentNodePtr->currentScope;
+      if(!parameter.isSuccess() )
+      {
+          errorsOutput.addError("This error in function paramters in line " +fn.name->lineNo);
+      }
+    }
+    auto statement = semantic_analysis(fn.statements);
+    if(!statement.isSuccess())
+    {
+      errorsOutput.addError("This error in function statements in line " +fn.statements->lineNo);
 
-      */ 
+    }
+    auto returnType= semantic_analysis(fn.return_type);
+    if(!returnType.isSuccess())
+    {
+      errorsOutput.addError("This error in function return type in line " +fn.return_type->lineNo);
+
+    }
+    if(startingSize != errorsOutput.sizeError)
+    {
+      return Result::Error("error");
+    }
       
-      return Result::Success("success");
+      return Result::Success("Success");
       
     } // TODO
     Result operator()(FunctionCall& fn) { 
