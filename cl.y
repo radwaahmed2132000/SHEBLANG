@@ -12,6 +12,8 @@
 /* prototypes */
 void freeNode(nodeType *p);
 Value ex(nodeType *p);
+void printSymbolTables();
+void appendSymbolTable(int i);
 
 int yylex(void);
 void yyerror(char *s);
@@ -79,6 +81,7 @@ program:
                     exit(1);
                 }
                 ex($1);
+                printSymbolTables();
                 freeNode($1);
                 exit(0);
             }

@@ -1,11 +1,57 @@
 #include <iostream>
+#include <fstream>
 #include <variant>
+#include <vector>
 #include "cl.h"
 #include "y.tab.h"
 
 int ScopeSymbolTables::tableCount = 0;
 
 bool startSymbolTable = true;
+
+std::vector<ScopeSymbolTables*> allSymbolTables; // Add all the 
+
+void printSymbolTables(){
+
+    std::ofstream outfile;
+    outfile.open("symtbl.log"); // open the file
+    if (outfile.is_open()){
+        /* Loop on all the SymbolTables */
+        for (int i = 0; i < allSymbolTables.size(); i++) {
+            outfile<<"Tables of Scope "+std::to_string(i)<<std::endl;
+            outfile<<"Identifiers Symbol Table"<<std::endl;
+            // /* Loop on all the 3 symbol tables: the sym, functionNode & enumNode tables*/
+            outfile<<"sym_key, sym_val, declaration_line, type, isConstant"<<std::endl;
+            /* Identifier Symbol Table */
+            for (auto iter = allSymbolTables[i]->sym2.begin(); iter != allSymbolTables[i]->sym2.end(); ++iter)
+            {
+                outfile<<iter->first<<", "<<iter->second.getValue()<<", "<<iter->second.declaredAtLine;
+                outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
+            }
+            // outfile<<"Functions Symbol Table"<<std::endl;
+            // outfile<<"sym_key, sym_val, declaration_line, type, isConstant"<<std::endl;
+            // /* Identifier Symbol Table */
+            // for (auto iter = allSymbolTables[i]->functions.begin(); iter != allSymbolTables[i]->functions.end(); ++iter)
+            // {
+            //     outfile<<iter->first<<", "<<iter->second.getValue()<<", "<<iter->second.declaredAtLine;
+            //     outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
+            // }
+            // outfile<<"Enums Symbol Table"<<std::endl;
+            // /* Identifier Symbol Table */
+            // for (auto iter = allSymbolTables[i]->sym2.begin(); iter != allSymbolTables[i]->sym2.end(); ++iter)
+            // {
+            //     outfile<<iter->first<<", "<<iter->second.getValue()<<", "<<iter->second.declaredAtLine;
+            //     outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
+            // }
+        }
+        outfile<<"===="<<std::endl;
+        outfile.close();
+    }
+}
+
+void appendSymbolTable(int i){
+
+}
 
 struct setup_scopes_visitor {
     nodeType* currentNodePtr;
@@ -44,6 +90,7 @@ struct setup_scopes_visitor {
             auto temp = currentNodePtr->currentScope;
             currentNodePtr->currentScope = new ScopeSymbolTables();
             currentNodePtr->currentScope->parentScope = temp;
+            allSymbolTables.push_back(currentNodePtr->currentScope);
         }
         auto cases = cs.toVec(); 
         for(auto* c: cases) {
@@ -78,6 +125,7 @@ struct setup_scopes_visitor {
         {
             currentNodePtr->currentScope = new ScopeSymbolTables();
             // This new global symbol table has parentTable = nullptr
+            allSymbolTables.push_back(currentNodePtr->currentScope);
             startSymbolTable = false;
         }
         if(currentNodePtr->addNewScope)
@@ -85,6 +133,7 @@ struct setup_scopes_visitor {
             auto temp = currentNodePtr->currentScope;
             currentNodePtr->currentScope = new ScopeSymbolTables();
             currentNodePtr->currentScope->parentScope = temp;
+            allSymbolTables.push_back(currentNodePtr->currentScope);
         }
         for(auto& c: sl.toVec()) {
             c->statementCode->currentScope = currentNodePtr->currentScope;
@@ -117,6 +166,7 @@ struct setup_scopes_visitor {
             dw.condition->currentScope = currentNodePtr->currentScope;
             dw.loop_body->currentScope = new ScopeSymbolTables();
             dw.loop_body->currentScope->parentScope = currentNodePtr->currentScope;
+            allSymbolTables.push_back(dw.loop_body->currentScope);
         }
         setup_scopes(dw.condition);
         setup_scopes(dw.loop_body);
@@ -133,6 +183,7 @@ struct setup_scopes_visitor {
             w.condition->currentScope = currentNodePtr->currentScope;
             w.loop_body->currentScope = new ScopeSymbolTables();
             w.loop_body->currentScope->parentScope = currentNodePtr->currentScope;
+            allSymbolTables.push_back(w.loop_body->currentScope);
         }
         setup_scopes(w.condition);
         setup_scopes(w.loop_body);
@@ -150,6 +201,7 @@ struct setup_scopes_visitor {
         {
             auto newTable = new ScopeSymbolTables();
             newTable->parentScope = currentNodePtr->currentScope;
+            allSymbolTables.push_back(newTable);
             f.init_statement->currentScope = newTable;
             f.loop_condition->currentScope = newTable;
             f.post_loop_statement->currentScope = newTable;
@@ -163,24 +215,6 @@ struct setup_scopes_visitor {
 
     void operator()(oprNodeType& opr) {
         switch(opr.oper) {
-            // case IF: {
-            //     if(opr.op.size() > 2)
-            //     {
-            //         opr.op[0]->currentScope = currentNodePtr->currentScope;
-            //         opr.op[1]->currentScope = currentNodePtr->currentScope;
-            //         opr.op[2]->currentScope = currentNodePtr->currentScope;
-            //         setup_scopes(opr.op[0]);
-            //         setup_scopes(opr.op[1]);
-            //         setup_scopes(opr.op[2]);
-            //     }
-            //     else if(opr.op.size() > 1)
-            //     {
-            //         opr.op[0]->currentScope = currentNodePtr->currentScope;
-            //         opr.op[1]->currentScope = currentNodePtr->currentScope;
-            //         setup_scopes(opr.op[0]);
-            //         setup_scopes(opr.op[1]);
-            //     }
-            // }
             case RETURN:
                 opr.op[0]->currentScope = currentNodePtr->currentScope;
             default: {

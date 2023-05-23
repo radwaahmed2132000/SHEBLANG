@@ -1,3 +1,8 @@
 
 a.exe
 .vscode/settings.json
+shbl_interpreter
+lex.yy.c
+lex.yy.c
+y.tab.c
+y.tab.h
