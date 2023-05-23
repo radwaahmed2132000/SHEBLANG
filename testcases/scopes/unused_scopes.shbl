@@ -12,3 +12,7 @@ if (x) {
 if (x) {
     int x = 3;
 }
+===
+Warning in line number: 5 .Variable y is declared but never used
+Warning in line number: 9 .Variable z is declared but never used
+Warning in line number: 13 .Variable x is declared but never used

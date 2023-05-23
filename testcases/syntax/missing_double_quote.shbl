@@ -1,0 +1,5 @@
+char i = '1';
+string s = Hello World";
+print s;
+===
+Syntax Error! Missing Double Quote (") at line 2!Error in line number: 2 .Identifier s is not declared

@@ -17,16 +17,27 @@ nodeType *id(const char* id);
             }
 
 [']([^']?|[\\][nt'])*['] {
-                yyerror("Cannot use single quotes for strings. Instead use \"\"");
+                std::string mes = "Syntax Error at line "+std::to_string(yylineno)+"!\nCannot use single quotes for strings. Instead use \"\" ";
+                printf("%s",mes.c_str());
             }
 
-["]([^"]|[,\\][nt"])*["] {
+[']([^']?|[\\][nt'])[^'] {
+                std::string mes = "Syntax Error! Missing Single Quote (\') at line "+std::to_string(yylineno)+"!\n";
+                printf("%s",mes.c_str());
+            }
+
+["]([^"]|[\\][nt"])*["] {
                 yylval.lineNo = yylineno;
                 std::string temp = std::string(yytext);
                 temp = temp.substr(1,temp.size()-2);
                 yylval.sValue = new char[temp.length()];
                 strcpy(yylval.sValue, temp.c_str());
                 return STR;
+            }
+
+["]([^"]|[\\][nt"])*[^"] {
+                std::string mes = "Syntax Error! Missing Double Quote (\") at line "+std::to_string(yylineno)+"!\n";
+                printf("%s",mes.c_str());
             }
 
 0           {
