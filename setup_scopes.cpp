@@ -1,6 +1,7 @@
 #include <iostream>
 #include <variant>
 #include "cl.h"
+#include "y.tab.h"
 
 int ScopeSymbolTables::tableCount = 0;
 
@@ -23,7 +24,9 @@ struct setup_scopes_visitor {
         // std::cerr << "defn"; 
     }
 
-    void operator()(enumUseNode& eu) { }
+    void operator()(enumUseNode& eu) {
+
+    }
 
     void operator()(caseNodeType &cs) { 
         auto cases = cs.toVec(); 
@@ -72,16 +75,75 @@ struct setup_scopes_visitor {
     }
 
     void operator()(doWhileNodeType& dw) {
+        if(std::holds_alternative<StatementList>(dw.loop_body->un))
+        {
+            dw.condition->currentScope = currentNodePtr->currentScope;
+            dw.loop_body->currentScope = currentNodePtr->currentScope;
+        }
+        else
+        {
+            dw.condition->currentScope = currentNodePtr->currentScope;
+            dw.loop_body->currentScope = new ScopeSymbolTables();
+            dw.loop_body->currentScope->parentScope = currentNodePtr->currentScope;
+        }
+        setup_scopes(dw.loop_body);
     }
 
     void operator()(whileNodeType& w) {
+        if(std::holds_alternative<StatementList>(w.loop_body->un))
+        {
+            w.condition->currentScope = currentNodePtr->currentScope;
+            w.loop_body->currentScope = currentNodePtr->currentScope;
+        }
+        else
+        {
+            w.condition->currentScope = currentNodePtr->currentScope;
+            w.loop_body->currentScope = new ScopeSymbolTables();
+            w.loop_body->currentScope->parentScope = currentNodePtr->currentScope;
+        }
+        setup_scopes(w.loop_body);
     }
 
     void operator()(forNodeType& f) {
+        if(std::holds_alternative<StatementList>(f.loop_body->un))
+        {
+            f.init_statement->currentScope = currentNodePtr->currentScope;
+            f.loop_condition->currentScope = currentNodePtr->currentScope;
+            f.post_loop_statement->currentScope = currentNodePtr->currentScope;
+            f.loop_body->currentScope = currentNodePtr->currentScope;
+        }
+        else
+        {
+            auto newTable = new ScopeSymbolTables();
+            newTable->parentScope = currentNodePtr->currentScope;
+            f.init_statement->currentScope = newTable;
+            f.loop_condition->currentScope = newTable;
+            f.post_loop_statement->currentScope = newTable;
+            f.loop_body->currentScope = newTable;
+        }
+        setup_scopes(f.loop_body);
     }
 
     void operator()(oprNodeType& opr) {
-        // std::cerr << "opr";
+        switch(opr.oper) {
+            case IF: {
+                if(opr.op.size() > 2)
+                {
+                    opr.op[0]->currentScope = currentNodePtr->currentScope;
+                    opr.op[1]->currentScope = currentNodePtr->currentScope;
+                    opr.op[2]->currentScope = currentNodePtr->currentScope;
+                    setup_scopes(opr.op[1]);
+                    setup_scopes(opr.op[2]);
+                }
+                else if(opr.op.size() > 1)
+                {
+                    opr.op[0]->currentScope = currentNodePtr->currentScope;
+                    opr.op[1]->currentScope = currentNodePtr->currentScope;
+                    setup_scopes(opr.op[1]);
+                }
+            }
+            default: return;
+        }
     }
 
     // the default case:
