@@ -705,7 +705,7 @@ struct semantic_analysis_visitor {
 
     Result operator()(functionNodeType& fn) { 
       
-      int startingSize =errorsOutput.sizeError;
+      int startingSize = errorsOutput.sizeError;
 
       /* Function Declaration code */
       auto functionName = std::get<idNodeType>(fn.name->un).id;
@@ -713,13 +713,12 @@ struct semantic_analysis_visitor {
       auto symTable = currentNodePtr->currentScope;
 
       /* Check if the function was already declared before */
-      
       if (symTable->functions.find(functionName) != symTable->functions.end()) {
             errorsOutput.addError("Error in line number: " +
                                   std::to_string(fn.name->lineNo) + " .Function " +
                                   functionName + " is already declared in this scope");
         }
-        auto functionScope = new ScopeSymbolTables();
+      auto functionScope = new ScopeSymbolTables();
 
       /* Check if the function parameters are valid */
       for(int i = 0; i < fn.parameters.size(); i++) {
@@ -759,54 +758,72 @@ struct semantic_analysis_visitor {
       {
         return Result::Error("error");
       }
-      
+
+      /* Add the new function to the functions table */
+      currentNodePtr->currentScope->functions[std::get<idNodeType>(fn.name->un).id] = fn;
+
       return Result::Success(returnType);
     } 
 
     Result operator()(FunctionCall& fn) { 
-      // TODO line number of this
-      int startingSize =errorsOutput.sizeError;
-      auto& functions = fnSymTable(fn.functionName, currentNodePtr->currentScope);
-      auto function = functions.find(fn.functionName);
+      // TODO: Check if the return type of the expression is the same as the function return type.
+      int startingSize = errorsOutput.sizeError;
 
-      std::string type=" ";
-      if(function!= functions.end())
-      {
-        functionNodeType  currentFunction=function->second;
-        if(fn.parameterExpressions.size() !=currentFunction.parameters.size())
+      auto symTable = currentNodePtr->currentScope;
+
+      functionNodeType *function = nullptr;
+
+      /* Check if the function exists in the functions table or not */
+      if (symTable->functions.find(fn.functionName) != symTable->functions.end()) {
+        function = &symTable->functions[fn.functionName];
+      } else {
+        auto parentTable = symTable->parentScope;
+        while (parentTable != nullptr)
         {
-          errorsOutput.addError("The paramaters length doesn't match paramters of functions, you have"+std::to_string(fn.parameterExpressions.size())+"but it expected to be "+std::to_string(currentFunction.parameters.size()));
+          if (parentTable->functions.find(fn.functionName) != parentTable->functions.end()) {
+            function = &symTable->functions[fn.functionName];
+            break;
+          } else {
+            parentTable = parentTable->parentScope;
+          }
         }
-        int min_size = std::min(currentFunction.parameters.size(),fn.parameterExpressions.size());
-        for(int i=0;i< min_size;i++)
-        {
-          type = std::get<idNodeType>(currentFunction.parameters[i]->type->un).id;
-          EXISTING_TYPE(type, currentFunction.parameters[i]->type->lineNo);
-          auto functionParamter = semantic_analysis(fn.parameterExpressions[i]->exprCode);
-          if(!functionParamter.isSuccess())
-          {
-            errorsOutput.addError("This error in "+std::to_string(i)+" experssion which provided in function call in line");
-          }
-          auto functionParamterType =std::get<SuccessType>(functionParamter);
-          
-          if(type!=functionParamterType)
-          {
-            errorsOutput.addError("This error in "+std::to_string(i)+" experssion which provided in function call in line , the types doesn't match");
-          }
-          
+        /* If not, then it's not in any scope. */
+        errorsOutput.addError("Error in line number: " + 
+        std::to_string(fn.lineNo) + " .The function "
+        + fn.functionName + " is not declared");
+      }
+
+      /* Check if the Expression List is valid */
+      for(int i = 0; i < fn.parameterExpressions.size(); i++) {
+        auto param = fn.parameterExpressions[i];
+        /* Check if the Expression list is emtpy */
+        if (param->exprCode == nullptr) {
+          break;
+        } 
+        /* Check that the parameter types match with the function types */
+        auto expression = semantic_analysis(param->exprCode);
+        if (!expression.isSuccess()) {
+          errorsOutput.addError("Error in line number: " +
+                                std::to_string(param->exprCode->lineNo) + 
+                                " .The function parameter number: " + std::to_string(i) + " is not valid");
+        } else {
+          if (function != nullptr) {
+            if (std::get<idNodeType>(function->parameters[i]->type->un).id
+                != std::get<SuccessType>(expression)) {
+              errorsOutput.addError("Error in line number: " +
+                                    std::to_string(param->exprCode->lineNo) + 
+                                    " . The function parameter number: " + std::to_string(i) +
+                                    " type does not match");
+            }
+          }   
         }
       }
-      else{
-        errorsOutput.addError("This function doesn't exist , error in line" );
-      }
-      
-      if(startingSize != errorsOutput.sizeError)
-      {
-       
+
+      if (startingSize != errorsOutput.sizeError) {
         return Result::Error("error");
       }
-      return Result::Success(type);
-      
+
+      return Result::Success("success");
     } 
     /* 
       Entry point, we get a list of statements & iterate over each of them & make sure they are

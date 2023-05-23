@@ -197,5 +197,5 @@ nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
     auto exprList = std::get<ExprListNode>(exprListTail->un).toVec();
     auto fnName = std::get<idNodeType>(fnIdentifier->un).id;
 
-    return new nodeType(FunctionCall{fnName, exprList}, currentLineNo);
+    return new nodeType(FunctionCall{fnName, exprList, currentLineNo}, currentLineNo);
 }

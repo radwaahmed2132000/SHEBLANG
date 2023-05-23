@@ -138,6 +138,7 @@ typedef struct ExprListNode: LinkedListNode<ExprListNode> {
 typedef struct FunctionCall {
     std::string functionName;
     std::vector<ExprListNode*> parameterExpressions;    
+    int lineNo;
 } FunctionCall;
 
 typedef struct VarDecl : LinkedListNode<VarDecl>{
