@@ -22,12 +22,15 @@ static int lbl;
 #define PUSH_BIN_OPR_PARAMS                                                    \
     auto lhs = ex(opr.op[0]);                                                  \
     STACK_HACK(lhs);                                                           \
+    convPushedVar(opr.op[0]);                                                  \
     auto rhs = ex(opr.op[1]);                                                  \
-    STACK_HACK(rhs);
+    STACK_HACK(rhs);                                                           \
+    convPushedVar(opr.op[1]);                                                  
 
 #define UN_OP(OP_CODE)                                                         \
     auto var = ex(opr.op[0]);                                                  \
     printf("\tpush %s\n", var.toString().c_str());                             \
+    convPushedVar(opr.op[0]);                                                  \
     OP_CODE                                                                    \
     if (!var.isLiteral()) {                                                    \
         printf("\tpop %s\n", var.toString().c_str());                          \
@@ -132,19 +135,29 @@ int compile_switch(switchNodeType &sw) {
     return 0;
 }
 
+void convPushedVar(nodeType* nodePtr) {
+    auto nodeType = std::visit(
+        Visitor {
+            [&](idNodeType& id) {    return varSymTableEntry(id.id, nodePtr->currentScope).type; },
+            [](conNodeType& con) { return con.getType(); },
+            [](auto _default) { return std::string(""); }
+        },
+        nodePtr->un
+    );
+
+    auto convType = nodePtr->conversionType;
+
+    if(!nodeType.empty() && !convType.empty() && nodeType != convType) {
+        auto convTypeCamelCase = convType;
+        convTypeCamelCase[0] = std::toupper(convTypeCamelCase[0]);
+        printf("\t%sTo%s\n", nodeType.c_str(), convTypeCamelCase.c_str());
+    }
+}
+
 struct compiler_visitor {
     nodeType* p;
 
     Value operator()(idNodeType &identifier) {
-        auto identifierType = varSymTableEntry(identifier.id, p->currentScope).type;
-        auto convType = identifier.scopeNodePtr->conversionType;
-
-        if(!identifierType.empty() && !convType.empty() && identifierType != convType) {
-            auto idTypeCamelCase = identifierType;
-            idTypeCamelCase[0] = std::toupper(idTypeCamelCase[0]);
-            printf("\t%sTo%s\n", convType.c_str(), idTypeCamelCase.c_str());
-        }
-
         return Value(identifier.id);
     }
 
@@ -159,6 +172,7 @@ struct compiler_visitor {
     Value operator()(VarDefn& vd) {
         auto ret = ex(vd.initExpr);
         STACK_HACK(ret);
+        convPushedVar(vd.initExpr);
         printf("\tpop %s\n", ex(vd.decl->var_name).toString().c_str());
         return Value(0);
     }

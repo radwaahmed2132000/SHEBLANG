@@ -14,6 +14,7 @@ x is less than 5
     push 5.500000
     pop y
     push x
+    intToFloat
     push y
     compLE
     jz L000

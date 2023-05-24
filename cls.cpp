@@ -74,143 +74,174 @@ Result castToTarget(std::string currentType, std::string targetType,
   }
 }
 
-Result cast_opr(const std::string& leftType, const std::string& rightType, oprNodeType& opr) {
-  int startingSize = errorsOutput.sizeError;
+int getTypePriority(const std::string& type, nodeType* nodePtr) {
+    static std::unordered_map<std::string, int> typesPriority = {
+        {"string", 0}, {"bool", 1}, {"char", 2}, {"int", 3}, {"float", 5}
+    };
+
+    // If the given type is builtin
+    if(typesPriority.find(type) != typesPriority.end()) { return typesPriority[type]; }
+
+    // If it's not built in, might be an enum type
+    return typesPriority["int"];
+}
+
+Result cast_opr(const std::string &leftType, const std::string &rightType,
+                oprNodeType &opr) {
+    int startingSize = errorsOutput.sizeError;
     if (leftType == "string" && rightType == "string") {
         if (opr.oper == '=') {
             return Result::Success("string");
         } else if (opr.oper == EQ or opr.oper == NE) {
             return Result::Success("bool");
         } else {
-          errorsOutput.addError("Error in line number: " +
-                                std::to_string(opr.op[0]->lineNo) +
-                                " .Cannot perform this operation on strings");
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
+                " .Cannot perform this operation on strings");
         }
-    } else if (leftType == "string" || rightType == "string")  {
-          errorsOutput.addError("Error in line number: " +
-                                std::to_string((opr.op[0]->lineNo)) +
-                                " .Cannot cast to or from string");
-      }
+    } else if (leftType == "string" || rightType == "string") {
+        errorsOutput.addError(
+            "Error in line number: " + std::to_string((opr.op[0]->lineNo)) +
+            " .Cannot cast to or from string");
+    }
     switch (opr.oper) {
-        case '=': {
-          std::string castResult = leftType;
-          if (startingSize == errorsOutput.sizeError) {
+    case '=': {
+        std::string castResult = leftType;
+        if (startingSize == errorsOutput.sizeError) {
             if (rightType != castResult) {
                 opr.op[1]->conversionType = castResult;
             }
-          } else {
+        } else {
             return Result::Error("Error");
-          }
+        }
 
-          return Result::Success(castResult);
-        }
-        break;
-        case '+': case '-': case '*': case '/': {
-          std::string castResult = leftType == "float" || rightType == "float" ? "float" : "int";
-          if (startingSize == errorsOutput.sizeError) {
+        return Result::Success(castResult);
+    } break;
+    case '+':
+    case '-':
+    case '*':
+    case '/': {
+        std::string castResult =
+            leftType == "float" || rightType == "float" ? "float" : "int";
+        if (startingSize == errorsOutput.sizeError) {
             if (leftType != castResult) {
-              opr.op[0]->conversionType = castResult;
-            } 
-            if (rightType != castResult){
-              opr.op[1]->conversionType = castResult;
+                opr.op[0]->conversionType = castResult;
             }
-          } else {
-            return Result::Error("Error");
-          }
-
-          return Result::Success(castResult);
-        }
-        break;
-        case '%': {
-          std::string castResult = "int";
-          if (leftType == "float" || leftType == "string") {
-              errorsOutput.addError("Error in line number: " +
-                                    std::to_string(opr.op[0]->lineNo) +
-                                    " .The LHS in a modulo operation can't be " + leftType);
-          } 
-          if (rightType == "float" || rightType == "string") {
-              errorsOutput.addError("Error in line number: " +
-                                    std::to_string(opr.op[1]->lineNo) +
-                                    " .The RHS in a modulo operation can't be " + rightType);
-          } 
-          if (startingSize == errorsOutput.sizeError) {
-            if (leftType != castResult) {
-              opr.op[0]->conversionType = castResult;
-            } 
-            if ( rightType != castResult) {
-              opr.op[1]->conversionType = castResult;
-            }
-          } else {
-            return Result::Error("Error");
-          }
-          
-          return Result::Success(castResult);
-        }
-        break;
-        case '&': case '|': case '^': case LS: case RS: {
-          std::string castResult = "int";
-          if (leftType == "float" || leftType == "string") {
-              errorsOutput.addError("Error in line number: " +
-                                    std::to_string(opr.op[0]->lineNo) +
-                                    " .The LHS in a bitwise operation can't be " + leftType);
-          } 
-          if (rightType == "float" || rightType == "string") {
-              errorsOutput.addError("Error in line number: " +
-                                    std::to_string(opr.op[1]->lineNo) +
-                                    " .The RHS in bitwise operation can't be " + rightType);
-          } 
-          if (startingSize == errorsOutput.sizeError) {
-              if (leftType != castResult) {
-                  opr.op[0]->conversionType = castResult;
-              } 
-              if (rightType != castResult) {
-                opr.op[1]->conversionType = castResult;
-              }
-          } else {
-            return Result::Error("Error");
-          }
-          
-          return Result::Success(castResult);
-        }
-        break;
-        case AND: case OR: {
-          std::string castResult = "bool";
-          if (startingSize == errorsOutput.sizeError) {
-            if (leftType != castResult) {
-              opr.op[0]->conversionType = castResult;
-            } 
             if (rightType != castResult) {
-              opr.op[1]->conversionType = castResult;
+                opr.op[1]->conversionType = castResult;
             }
-          } else {
+        } else {
             return Result::Error("Error");
-          }
-          return Result::Success(castResult);
         }
-        break;
-        case GE: case LE: case '>': case '<': case EQ: case NE: {
-          std::string castResult = "bool";
-          if (startingSize == errorsOutput.sizeError) {
-            if (leftType != "int" && leftType != "float") {
-              if (rightType == "int" || rightType == "float") {
-                  opr.op[0]->conversionType = rightType;
-              } else {
-                  opr.op[0]->conversionType = "int";
-                  opr.op[1]->conversionType = "int";
-              }
-            } else if (rightType != "int" && rightType != "float") {
-                opr.op[1]->conversionType = leftType;
-            } else {/* Do nothing */}
-          } else {
+
+        return Result::Success(castResult);
+    } break;
+    case '%': {
+        std::string castResult = "int";
+        if (leftType == "float" || leftType == "string") {
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
+                " .The LHS in a modulo operation can't be " + leftType);
+        }
+        if (rightType == "float" || rightType == "string") {
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(opr.op[1]->lineNo) +
+                " .The RHS in a modulo operation can't be " + rightType);
+        }
+        if (startingSize == errorsOutput.sizeError) {
+            if (leftType != castResult) {
+                opr.op[0]->conversionType = castResult;
+            }
+            if (rightType != castResult) {
+                opr.op[1]->conversionType = castResult;
+            }
+        } else {
             return Result::Error("Error");
-          }
-          return Result::Success(castResult);
         }
-        break;
-        default : {
-            return Result::Error("Error in line number: " +
-            std::to_string(opr.op[0]->lineNo) + " .Invalid operator");
+
+        return Result::Success(castResult);
+    } break;
+    case '&':
+    case '|':
+    case '^':
+    case LS:
+    case RS: {
+        std::string castResult = "int";
+        if (leftType == "float" || leftType == "string") {
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
+                " .The LHS in a bitwise operation can't be " + leftType);
         }
+        if (rightType == "float" || rightType == "string") {
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(opr.op[1]->lineNo) +
+                " .The RHS in bitwise operation can't be " + rightType);
+        }
+        if (startingSize == errorsOutput.sizeError) {
+            if (leftType != castResult) {
+                opr.op[0]->conversionType = castResult;
+            }
+            if (rightType != castResult) {
+                opr.op[1]->conversionType = castResult;
+            }
+        } else {
+            return Result::Error("Error");
+        }
+
+        return Result::Success(castResult);
+    } break;
+    case AND:
+    case OR: {
+        std::string castResult = "bool";
+        if (startingSize == errorsOutput.sizeError) {
+            if (leftType != castResult) {
+                opr.op[0]->conversionType = castResult;
+            }
+            if (rightType != castResult) {
+                opr.op[1]->conversionType = castResult;
+            }
+        } else {
+            return Result::Error("Error");
+        }
+        return Result::Success(castResult);
+    } break;
+    case GE:
+    case LE:
+    case '>':
+    case '<':
+    case EQ:
+    case NE: {
+        std::string castResult = "bool";
+
+        if (startingSize == errorsOutput.sizeError) {
+            // ASSUMES  that left is op[0], right is op[1]
+            auto& lOpr = opr.op[0];
+            auto& rOpr = opr.op[1];
+
+            int leftPriority = getTypePriority(leftType, lOpr);
+            int rightPriority = getTypePriority(rightType, rOpr);
+
+            // Note that when a node's conversionType is different from it's
+            // type (for idNodes for example), we emit a convTypeToVarType
+            // instruction.
+            // for example, if a node has a type of `int` and a convType of
+            // `float`, it will emit `floatToInt`
+            if(leftPriority > rightPriority) {
+                rOpr->conversionType = leftType;
+            } else {
+                lOpr->conversionType = rightType;
+            }
+
+        } else {
+            return Result::Error("Error");
+        }
+        return Result::Success(castResult);
+    } break;
+    default: {
+        return Result::Error(
+            "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
+            " .Invalid operator");
+    }
     }
 }
 
@@ -481,17 +512,7 @@ Result ex_const_kak_TM(nodeType *p) {
 struct semantic_analysis_visitor {
     nodeType* currentNodePtr;
     Result operator()(conNodeType& con) { 
-        auto type = std::visit(
-            Visitor {
-                    [](int iValue)         { return "int"; },
-                    [](float fValue)       { return "float"; },
-                    [](bool bValue)        { return "bool"; },
-                    [](char cValue)        { return "char"; },
-                    [](std::string sValue) { return "string"; },
-            },
-            con
-        );
-        return Result::Success(type);
+        return Result::Success(con.getType());
     }
 
     Result operator()(VarDecl& vd) {
@@ -553,8 +574,7 @@ struct semantic_analysis_visitor {
       }
 
       if(initResult.isSuccess()) {
-        auto initType = std::get<SuccessType>(initResult);
-        vd.decl->var_name->conversionType = initType;
+        vd.initExpr->conversionType = declType;
       }
 
       return Result::Success(declType);

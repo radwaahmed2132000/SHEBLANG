@@ -1,3 +1,6 @@
 int x = 10;
 x;
 ===
+===
+push 10
+pop x

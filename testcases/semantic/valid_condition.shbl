@@ -8,3 +8,21 @@ if (x>=y)
 }
 ===
 bye
+===
+    push 5
+    intToFloat
+    pop x
+    push z
+    pop y
+    push x
+    push y
+    charToFloat
+    compLT
+    jz L000
+    push hi
+    print
+    jmp L001
+L000:
+    push bye
+    print
+L001:

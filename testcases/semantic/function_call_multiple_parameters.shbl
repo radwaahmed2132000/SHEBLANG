@@ -11,8 +11,8 @@ test:
     pop a
     pop b
     push 2.300000
-    floatToInt
     push a
+    intToFloat
     mul
     push b
     add
@@ -22,7 +22,6 @@ push 1
 pop a
 push 2
 pop b
-floatToInt
 push b
 push a
 call test

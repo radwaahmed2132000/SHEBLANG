@@ -69,6 +69,19 @@ struct Value : ValueVariant {
             *this
         );
     }
+
+    std::string getType() const {
+        return std::visit(
+            Visitor {
+                    [](int iValue)         { return "int"; },
+                    [](float fValue)       { return "float"; },
+                    [](bool bValue)        { return "bool"; },
+                    [](char cValue)        { return "char"; },
+                    [](std::string sValue) { return "string"; },
+            },
+            *this
+        );
+    }
 };
 
 // Defined in `value_operators.cpp`
