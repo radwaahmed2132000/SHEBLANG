@@ -1,0 +1,40 @@
+a = 2;
+
+switch(a) {
+	case 1: {
+		print 1;
+	}
+	case 2: {
+		print 2;
+		b = 3;
+		switch(b) {
+			case 2: {
+				print 2;
+				break;
+			}
+			case 3: {
+				print b;
+				break;
+			}
+		}
+		c = 5;
+		if(c > 0) {
+			print c;
+		}
+	}
+}
+===
+Error in line number: 1 .Identifier a is not declared
+Error in line number: 3 .Identifier a is not declared
+Error in line number: 3 .The switch variable is not valid
+Error in line number: 9 .Identifier b is not declared
+Error in line number: 10 .Identifier b is not declared
+Error in line number: 10 .The switch variable is not valid
+Error in line number: 16 .Identifier b is not declared
+Error in line number: 17 .The case body of the case statement is not valid
+Error in line number: 2 .Identifier c is not declared
+Error in line number: 3 .Identifier c is not declared
+Error in line number: 3 .Condition in an if statement is invalid
+Error in line number: 4 .Identifier c is not declared
+Error in line number: 4 .Body of an if statement is invalid
+Error in line number: 6 .The case body of the case statement is not valid
