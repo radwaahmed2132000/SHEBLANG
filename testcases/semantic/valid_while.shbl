@@ -54,3 +54,22 @@ jj
 jj
 jj
 jj
+===
+    push 5
+    pop x
+    push 5
+    pop y
+L000:
+    push y
+    charToInt
+    push x
+    compGT
+    jnz L001
+    push jj
+    print
+    push x
+    push 1
+    add
+    pop x
+    jmp L000 
+L001:
