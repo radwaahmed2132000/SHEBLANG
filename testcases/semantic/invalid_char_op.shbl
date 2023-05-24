@@ -1,3 +1,9 @@
 char x='5';
 x++;
 ===
+===
+push 5
+pop x
+push x
+inc 
+pop x

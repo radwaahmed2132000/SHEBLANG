@@ -5,3 +5,20 @@ for(int i='5'; i<'7';i++)
 ===
 l
 l
+===
+    push 5
+    charToInt
+    pop i
+L000:
+    push i
+    push 7
+    charToInt
+    compLT
+    jnz L001
+    push l
+    print
+    push i
+    inc
+    pop i
+    jmp L000
+L001:

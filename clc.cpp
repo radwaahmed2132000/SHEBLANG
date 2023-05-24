@@ -8,6 +8,7 @@
 #include <variant>
 #include <optional>
 #include <vector>
+#include <unordered_set>
 
 #include "cl.h"
 #include "y.tab.h"
@@ -41,6 +42,15 @@ static int lbl;
     printf("\tpush true\n");                                                   \
     printf("\tcompEQ\n");
 
+void compileBoolExprs(nodeType* ptr) {
+    static std::unordered_set<int> boolOpers = { EQ, NE, GE, '>', LE, '<', AND, OR, '!' };
+    if (auto *opr = std::get_if<oprNodeType>(&ptr->un);
+        opr != nullptr && boolOpers.count(opr->oper) == 0) {
+            printf("\tpush true\n");
+            printf("\tcompEQ\n");
+    }
+}
+
 // To handle 
 // while(true), while(x) and so on ...
 #define BOOL_COMP_HACK_LOOPS_LOOPS(var)                                                    \
@@ -50,7 +60,10 @@ static int lbl;
         CONDITION_CHECK(id->id)                                                \
     } else {                                                                   \
         ex(var.condition);                                                     \
+        compileBoolExprs(var.condition);\
     }
+
+
 
 Value ex(nodeType *p);
 

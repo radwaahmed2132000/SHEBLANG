@@ -1,0 +1,65 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+%}
+
+%token NUMBER
+%token PLUS MINUS MULTIPLY DIVIDE
+
+%start expr
+
+%{
+    char *line_buffer = NULL;   // buffer for storing input lines
+    size_t line_buffer_size = 0;
+    size_t line_number = 1;
+    size_t line_start = 0;
+%}
+
+%%
+
+expr: NUMBER
+    | expr PLUS expr
+    | expr MINUS expr
+    | expr MULTIPLY expr
+    | expr DIVIDE expr
+    ;
+
+%%
+
+void yyerror(char *msg) {
+    fprintf(stderr, "Error on line %d: %s\n", yylineno, msg);
+    int i;
+    for (i = line_start; line_buffer[i] != '\n'; i++) {
+        fprintf(stderr, "%c", line_buffer[i]);
+    }
+    fprintf(stderr, "\n");
+    for(i = line_start; i < yytext - line_buffer; i++) {
+        fprintf(stderr, " ");
+    }
+    fprintf(stderr, "^\n");
+}
+
+int yylex() {
+    int c = getchar();
+    if (c == EOF) {
+        return 0;
+    }
+    if (c == '\n') {
+        line_buffer[line_buffer_size] = '\0';
+        line_buffer_size++;
+        line_start = line_buffer_size;
+        line_number++;
+    } else {
+        line_buffer[line_buffer_size] = c;
+        line_buffer_size++;
+    }
+    return c;
+}
+
+int main() {
+    line_buffer = (char *) malloc(1024);
+    yyparse();
+    free(line_buffer);
+    return 0;
+}

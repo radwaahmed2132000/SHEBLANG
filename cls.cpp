@@ -1307,5 +1307,3 @@ Result semantic_analysis(nodeType *p) {
     if (p == nullptr) return Result::Success("success");
     return std::visit(semantic_analysis_visitor{p}, p->un);
 }
-
-

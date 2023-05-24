@@ -7,3 +7,7 @@ for(int i=5; i<"5";i++)
 Warning in line number: 1 .Variable x is declared but never used
 Error in line number: 2 .Cannot cast to or from string
 Error in line number: 2 .The condition in the for loop is not valid
+===
+Warning in line number: 1 .Variable x is declared but never used
+Error in line number: 2 .Cannot cast to or from string
+Error in line number: 2 .The condition in the for loop is not valid
