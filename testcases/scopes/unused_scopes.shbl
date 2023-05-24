@@ -16,3 +16,32 @@ if (x) {
 Warning in line number: 5 .Variable y is declared but never used
 Warning in line number: 9 .Variable z is declared but never used
 Warning in line number: 13 .Variable x is declared but never used
+===
+Warning in line number: 5 .Variable y is declared but never used
+Warning in line number: 9 .Variable z is declared but never used
+Warning in line number: 13 .Variable x is declared but never used
+    push 10
+    pop x
+    push x
+    push 1
+    add
+    pop x
+    push x
+    push true 
+    comp NE
+    jz L000
+L000:
+    push x
+    push true
+    compNE
+    jz L001
+    push c
+    pop z
+L001:
+    push x
+    push true
+    compNE
+    jz L002
+    push 3
+    pop x
+L002:

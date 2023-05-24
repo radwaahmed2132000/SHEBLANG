@@ -2,3 +2,7 @@ fn test() int {
 	return 1;
 }
 ===
+===
+test:
+    push 1
+    ret

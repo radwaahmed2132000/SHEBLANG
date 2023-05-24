@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/syntax/enum_empty.shbl", null, null]
+            "stdio": ["testcases/logical/fib.shbl", null, null]
         },
         {
             "name": "Launch Compiler",
@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_compiler",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/logical/enum_use_switch.shbl", null, null]
+            "stdio": ["testcases/semantic/function_call_multiple_parameters.shbl", null, null]
         },
         {
             "name": "Python: Current File",

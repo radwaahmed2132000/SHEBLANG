@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <iostream>
 #include <fstream>
 #include <variant>
@@ -74,8 +75,10 @@ struct setup_scopes_visitor {
 
     void operator()(VarDefn &vd) {
         nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
+
         nt->currentScope = currentNodePtr->currentScope;
         setup_scopes(nt); 
+
         vd.initExpr->currentScope = currentNodePtr->currentScope;
         setup_scopes(vd.initExpr);        
     }
@@ -123,15 +126,9 @@ struct setup_scopes_visitor {
     }
 
     void operator()(FunctionCall& fc) {
-        // auto currentScope = currentNodePtr->currentScope;
-        // currentNodePtr->currentScope = new ScopeSymbolTables(); 
-        // currentNodePtr->currentScope->parentScope = currentScope;
-
         /* Loop over all expressions & add scopes */
         for(auto& c: fc.parameterExpressions) {
-            if (c == nullptr || c->exprCode == nullptr) {
-                break;
-            }
+            if (c == nullptr || c->exprCode == nullptr) { continue; }
             c->exprCode->currentScope = currentNodePtr->currentScope;
             setup_scopes(c->exprCode);
         }  
@@ -145,6 +142,7 @@ struct setup_scopes_visitor {
             allSymbolTables.push_back(currentNodePtr->currentScope);
             startSymbolTable = false;
         }
+
         if(currentNodePtr->addNewScope)
         {
             auto temp = currentNodePtr->currentScope;
@@ -152,6 +150,7 @@ struct setup_scopes_visitor {
             currentNodePtr->currentScope->parentScope = temp;
             allSymbolTables.push_back(currentNodePtr->currentScope);
         }
+
         for(auto& c: sl.toVec()) {
             c->statementCode->currentScope = currentNodePtr->currentScope;
             setup_scopes(c->statementCode);
@@ -160,18 +159,21 @@ struct setup_scopes_visitor {
 
     void operator()(functionNodeType& fn) {
         // TODO: Revise this when doing the function logic. 
-        // fn.return_type->currentScope = currentNodePtr->currentScope;
-        // setup_scopes(fn.return_type);
-        // fn.name->currentScope = currentNodePtr->currentScope;
-        // setup_scopes(fn.name);
-        // fn.statements->currentScope = currentNodePtr->currentScope;
-        // setup_scopes(fn.statements);
-        // for (auto& p : fn.parameters) {
-        //     nodeType* nt = new nodeType(VarDecl(p->type, p->var_name), p->type->lineNo);
-        //     setup_scopes(nt);
-        // }
-        /* populate the function Table */
-        
+
+        auto prevScope = currentNodePtr->currentScope;
+        currentNodePtr->currentScope = fn.statements->currentScope = new ScopeSymbolTables();
+        fn.statements->currentScope->parentScope = currentNodePtr->currentScope->parentScope = prevScope;
+        // FIXME: If a function takes no parameters, the list will have one
+        // element (the last one) with null data.
+        for(auto* param: fn.parametersTail->toVec()) {
+            if(param->var_name == nullptr && param->type == nullptr) break;
+
+            param->var_name->currentScope = currentNodePtr->currentScope;
+            param->type->currentScope = currentNodePtr->currentScope;
+        }
+        fn.name->currentScope = currentNodePtr->currentScope;
+        fn.return_type->currentScope = currentNodePtr->currentScope;
+        setup_scopes(fn.statements);
     }
 
     void operator()(doWhileNodeType& dw) {
@@ -233,16 +235,9 @@ struct setup_scopes_visitor {
     }
 
     void operator()(oprNodeType& opr) {
-        switch(opr.oper) {
-            case RETURN:
-                opr.op[0]->currentScope = currentNodePtr->currentScope;
-            default: {
-                for(auto& c: opr.op) {
-                    c->currentScope = currentNodePtr->currentScope;
-                    setup_scopes(c);
-                }
-            } 
-            return;
+        for (auto *op : opr.op) {
+            op->currentScope = currentNodePtr->currentScope;
+            setup_scopes(op);
         }
     }
 

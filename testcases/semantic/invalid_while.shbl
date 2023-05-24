@@ -58,3 +58,18 @@ jj
 jj
 jj
 jj
+===
+    push 5
+    pop y
+L000:
+    push y
+    push true
+    compNE
+    jz L001
+    push jj
+    print
+    push y
+    dec
+    pop y
+    jmp L000
+L001:

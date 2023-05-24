@@ -56,6 +56,19 @@ struct Value : ValueVariant {
             *this
         );
     }
+
+    bool isLiteral() {
+        return std::visit(
+            Visitor {
+                    [](int iValue)         { return true; },
+                    [](float fValue)       { return true; },
+                    [](bool bValue)        { return true; },
+                    [](char cValue)        { return true; },
+                    [](std::string sValue) { return false; },
+            },
+            *this
+        );
+    }
 };
 
 // Defined in `value_operators.cpp`

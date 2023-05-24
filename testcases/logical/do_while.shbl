@@ -16,7 +16,7 @@ L000:
     push x
     print
     push x
-    dec1pre
+    dec
     pop x
     push x
     push 10.000000

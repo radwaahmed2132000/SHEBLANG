@@ -1,5 +1,28 @@
+fn test(int a, float b) {
+    print 2.3 * a + b;    
+}
 int a = 1;
 int b = 2;
 test(a, b);
 ===
-Error in line number: 3 .The function test is not declared
+4.300000
+===
+test:
+    pop a
+    pop b
+    push 2.300000
+    floatToInt
+    push a
+    mul
+    push b
+    add
+    print
+
+push 1
+pop a
+push 2
+pop b
+floatToInt
+push b
+push a
+call test

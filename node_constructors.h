@@ -23,7 +23,7 @@ nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
 nodeType* varDecl(nodeType* type, nodeType* name);
 nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant);
 
-nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements);
+nodeType* fn(nodeType* name, VarDecl* params, nodeType* return_type, nodeType* statements);
 
 nodeType* identifierListNode(nodeType* idNode, bool addNewScope);
 nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& members);

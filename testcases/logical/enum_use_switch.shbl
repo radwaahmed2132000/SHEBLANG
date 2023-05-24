@@ -28,18 +28,18 @@ AAA
     pop test
     push 1
     pop x 
-    push x
+    push test
     push 0
-    compNE
-    jnz L000
-    push x
+    compEQ
+    je L000
+    push test
     push 1
-    compNE
-    jnz L001
-    push x
+    compEQ
+    je L001
+    push test
     push 2
-    compNE
-    jnz L002
+    compEQ
+    je L002
     jmp L003
 L000:
     push AAA

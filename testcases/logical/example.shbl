@@ -1,13 +1,13 @@
+enum EnumTest { value1, value2, value3 };
+const float pi = 3.14;
+
 fn compute_area(float radius) float {
 	float r_squared = radius * radius;
 	return pi * r_squared;
 }
 
-enum EnumTest { value1, value2, value3 };
-const float pi = 3.14;
-
 fn main() {
-	EnumTest e1 = value1;
+	EnumTest e1 = EnumTest::value1;
 
 	int	a  = 1;
 	float c = 1.0;
@@ -41,8 +41,17 @@ fn main() {
 			accumulator = 0;
 		}
 		default: {
-			accumualtor = 10;
+			accumulator = 10;
 		}
 	}
 }
+===
+Warning in line number: 18 .Variable d is declared but never used
+Warning in line number: 16 .Variable area_c is declared but never used
+Warning in line number: 14 .Variable _underscored is declared but never used
+Warning in line number: 10 .Variable e1 is declared but never used
+Warning in line number: 18 .Variable d is declared but never used
+Warning in line number: 16 .Variable area_c is declared but never used
+Warning in line number: 14 .Variable _underscored is declared but never used
+Warning in line number: 10 .Variable e1 is declared but never used
 ===

@@ -6,3 +6,6 @@ print y;
 ===
 Syntax Error at line 2!
 Cannot use single quotes for strings. Instead use "" syntax error
+===
+Syntax Error at line 2!
+Cannot use single quotes for strings. Instead use "" syntax error

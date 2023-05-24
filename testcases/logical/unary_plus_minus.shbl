@@ -5,3 +5,25 @@ print b;
 ===
 -5
 5.550000
+===
+push 1
+push 2
+pos
+sub
+push 4
+neg
+add
+pop a
+push 0.300000
+push 0.250000
+neg 
+sub
+push 5.000000
+pos 
+add
+pop b
+
+push a
+print 
+push b
+print

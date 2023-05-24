@@ -1,3 +1,0 @@
-float x=5;
-===
-Warning in line number: 1 .Variable x is declared but never used

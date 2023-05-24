@@ -10,3 +10,27 @@ print x;
 3
 4
 50
+===
+push 10
+pop x
+push 4
+pop y
+push 1
+neg
+pop z
+push y
+inc
+push z
+add
+pop z
+push y
+dec
+push x
+mul
+pop x
+push z
+print
+push y
+print 
+push x
+print

@@ -3,3 +3,5 @@ int y=3;
 print x+y+z;
 ===
 Error in line number: 3 .Identifier z is not declared
+===
+Error in line number: 3 .Identifier z is not declared

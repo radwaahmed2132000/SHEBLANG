@@ -2,3 +2,10 @@ int x = 5+6;
 print x;
 ===
 11
+===
+push 5
+push 6
+add
+pop x
+push x
+print

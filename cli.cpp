@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <iterator>
 #include <stdio.h>
 #include <assert.h>
@@ -65,10 +66,6 @@ Value evaluate_switch(switchNodeType& sw) {
     return Value(0);
 }
 
-// TODO: Implement function logic.
-Value evaluate_function(functionNodeType& fn) {
-    return Value(0);
-}
 
 struct ex_visitor {
     // pointer to the node of the current variant
@@ -140,29 +137,58 @@ struct ex_visitor {
     Value operator()(FunctionCall& fc) {
         // TODO: Function calls
 
+        // For each argument, find the corresponding parameter in the symbol table,
+        // then insert the argument value. 
+
+        auto* currentScope = p->currentScope;
+        
+        using FnIter = std::unordered_map<std::string, functionNodeType>::iterator;
+        FnIter fnIter;
+        while(currentScope != nullptr) {
+            auto fns = currentScope->functions;
+            fnIter = fns.find(fc.functionName);
+            if(fnIter != fns.end()) {
+                break;
+            } else {
+                currentScope = currentScope->parentScope;
+            }
+        }
+
+        // We can dereference the iterator just fine because symantic analysis 
+        // succeed unless we can reach the function in its proper scope.
+        auto& fnRef = fnIter->second;
+        auto fnParams = fnRef.parametersTail->toVec();
+        auto* fnScope = fnRef.statements->currentScope;
+
+        for(int i = 0; i < fnParams.size(); i++) {
+            if(fnParams[i]->type == nullptr && fnParams[i]->var_name == nullptr) continue;
+            fnScope->sym2[fnParams[i]->getName()].setValue(ex(fc.parameterExpressions[i]->exprCode));
+        }
+
         // Print parameter list for debugging
         // for(const auto& expr: fc.parameterExpressions) {
         //     std::cout << ex(expr->exprCode) << '\n';
         // }
 
-        return Value(0);
+        return ex(fnRef.statements);
     }
 
     Value operator()(StatementList& sl) {
         auto statements = sl.toVec();
 
         for(const auto& statement: statements) {
-            ex(statement->statementCode);
+            auto ret = ex(statement->statementCode);
             if(std::holds_alternative<breakNodeType>(statement->statementCode->un)) {
-                break;
+                return Value(0);
+            } else if (
+                auto *opr = std::get_if<oprNodeType>( &(statement->statementCode->un));
+                opr != nullptr && opr->oper == RETURN
+            ) {
+                return ret;
             }
         }
 
         return Value(0);
-    }
-
-    Value operator()(functionNodeType& fn) {
-        return evaluate_function(fn);
     }
 
     Value operator()(doWhileNodeType& dw) {

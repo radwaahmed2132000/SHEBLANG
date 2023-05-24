@@ -1,27 +1,53 @@
 #include <algorithm>
 #include <assert.h>
+#include <cctype>
+#include <cstddef>
+#include <iterator>
 #include <stdio.h>
 #include <stdlib.h>
 #include <variant>
 #include <optional>
+#include <vector>
 
 #include "cl.h"
 #include "y.tab.h"
 
+// Meant to prevent `push 0` when an `ex()` call returns 0.
+#define STACK_HACK(var)\
+    if(!(std::holds_alternative<std::string>(var) && var.toString() == "0")) { \
+        printf("\tpush %s\n", var.toString().c_str()); \
+    }  
+
 static int lbl;
-#define PUSH_BIN_OPR_PARAMS              \
-    auto lhs = ex(opr.op[0]).toString(); \
-    auto rhs = ex(opr.op[1]).toString(); \
-    printf("\tpush %s\n", lhs.c_str());      \
-    printf("\tpush %s\n", rhs.c_str());
+#define PUSH_BIN_OPR_PARAMS                                                    \
+    auto lhs = ex(opr.op[0]);                                                  \
+    STACK_HACK(lhs);                                                           \
+    auto rhs = ex(opr.op[1]);                                                  \
+    STACK_HACK(rhs);
 
-#define UN_OP(OP_CODE)                  \
-    auto var = ex(opr.op[0]).toString();\
-    printf("\tpush %s\n", var.c_str());     \
-    OP_CODE                             \
-    printf("\tpop %s\n", var.c_str());      
+#define UN_OP(OP_CODE)                                                         \
+    auto var = ex(opr.op[0]);                                                  \
+    printf("\tpush %s\n", var.toString().c_str());                             \
+    OP_CODE                                                                    \
+    if (!var.isLiteral()) {                                                    \
+        printf("\tpop %s\n", var.toString().c_str());                          \
+    }
 
+#define CONDITION_CHECK(str)                                                   \
+    printf("\tpush %s\n", str.c_str());                                        \
+    printf("\tpush true\n");                                                   \
+    printf("\tcompNE\n");
 
+// To handle 
+// while(true), while(x) and so on ...
+#define BOOL_COMP_HACK_LOOPS_LOOPS(var)                                                    \
+    if (auto *con = std::get_if<conNodeType>(&var.condition->un); con) {       \
+        CONDITION_CHECK(con->toString())                                       \
+    } else if (auto *id = std::get_if<idNodeType>(&var.condition->un); id) {   \
+        CONDITION_CHECK(id->id)                                                \
+    } else {                                                                   \
+        ex(var.condition);                                                     \
+    }
 
 Value ex(nodeType *p);
 
@@ -89,8 +115,8 @@ int compile_switch(switchNodeType &sw) {
     // match. Otherwise, jump to the exit label (skip the whole swtich).
     if (default_case_index.has_value()) {
         ex(cases[default_case_index.value()]->caseBody);
-        printf("\tjmp\tL%03d\n", sw.exit_label);
     }
+    printf("\tjmp\tL%03d\n", sw.exit_label);
 
     // Emit the code that corresponds to each case.
     for(int i = 0; i < cases.size(); i++) {
@@ -107,8 +133,18 @@ int compile_switch(switchNodeType &sw) {
 }
 
 struct compiler_visitor {
+    nodeType* p;
 
     Value operator()(idNodeType &identifier) {
+        auto identifierType = varSymTableEntry(identifier.id, p->currentScope).type;
+        auto convType = identifier.scopeNodePtr->conversionType;
+
+        if(!identifierType.empty() && !convType.empty() && identifierType != convType) {
+            auto idTypeCamelCase = identifierType;
+            idTypeCamelCase[0] = std::toupper(idTypeCamelCase[0]);
+            printf("\t%sTo%s\n", convType.c_str(), idTypeCamelCase.c_str());
+        }
+
         return Value(identifier.id);
     }
 
@@ -121,7 +157,8 @@ struct compiler_visitor {
     }
 
     Value operator()(VarDefn& vd) {
-        printf("\tpush %s\n", ex(vd.initExpr).toString().c_str());
+        auto ret = ex(vd.initExpr);
+        STACK_HACK(ret);
         printf("\tpop %s\n", ex(vd.decl->var_name).toString().c_str());
         return Value(0);
     }
@@ -129,6 +166,12 @@ struct compiler_visitor {
     Value operator()(caseNodeType& c) {
         auto caseLabelValue = ex(c.labelExpr);
         return Value(0);
+    }
+
+    Value operator()(enumUseNode& eu) {
+        auto members =  enumSymTableEntry(eu.enumName, p->currentScope).enumMembers;
+        int memberValue = std::distance(members.begin(), std::find(members.begin(), members.end(), eu.memberName));
+        return Value(memberValue);
     }
 
     Value operator()(StatementList& sl) {
@@ -164,9 +207,37 @@ struct compiler_visitor {
         auto name = std::get<idNodeType>(fn.name->un).id;
 
         printf("%s:\n", name.c_str());
+        for(const auto& param: fn.parametersTail->toVec()) {
+            // See the fixme in this same overload (functionNodeType) setup_scopes.cpp
+            // for why we continue.
+            if(param->var_name == nullptr && param->type == nullptr) continue; 
+
+            printf("\tpop %s\n", param->getName().c_str());
+        }
         ex(fn.statements);
 
+        printf("\n");
+        
         return Value(0);
+    }
+
+    Value operator()(FunctionCall& fc) {
+        // ASSUMPTION: parameters are either conNodeType or idNodeType
+        // Not sure about other function calls..
+        
+        // Push the parameters in their reverse order
+        // So popping on the other side can be done in order.
+        std::vector<ExprListNode*> paramsReversed(fc.parameterExpressions.size());
+        std::reverse_copy(fc.parameterExpressions.begin(), fc.parameterExpressions.end(), paramsReversed.begin());
+
+        for(const auto& param: paramsReversed) {
+            auto exprResult = ex(param->exprCode);
+            printf("\tpush %s\n", exprResult.toString().c_str());
+        }
+        printf("\tcall %s\n", fc.functionName.c_str());
+
+        // HACK
+        return Value(std::string("0"));
     }
 
     Value operator()(doWhileNodeType &dw) {
@@ -180,14 +251,7 @@ struct compiler_visitor {
         //      code....
         ex(dw.loop_body);
 
-        if(auto* con = std::get_if<conNodeType>(&dw.condition->un); con) {
-            printf("\tpush %s\n", con->toString().c_str());
-            printf("\tpush true\n");
-            printf("\tcompNE\n");
-        } else {
-            //      check condition
-            ex(dw.condition);
-        }
+        BOOL_COMP_HACK_LOOPS_LOOPS(dw) 
 
         //      jump to label if condition holds
         printf("\tjnz\tL%03d\n", loopLabel);
@@ -207,14 +271,7 @@ struct compiler_visitor {
         // label1:
         printf("L%03d:\n", loopLabel);
 
-        if(auto* con = std::get_if<conNodeType>(&w.condition->un); con) {
-            printf("\tpush %s\n", con->toString().c_str());
-            printf("\tpush true\n");
-            printf("\tcompNE\n");
-        } else {
-            //      check condition
-            ex(w.condition);
-        }
+        BOOL_COMP_HACK_LOOPS_LOOPS(w)
 
         //      if condition doesn't hold, jump to label2
         printf("\tjz\tL%03d\n", exitLabel);
@@ -273,7 +330,17 @@ struct compiler_visitor {
 
         switch (opr.oper) {
         case IF: {
-            ex(opr.op[0]);
+            auto* cond = opr.op[0];
+
+            if (const auto *con = std::get_if<conNodeType>(&cond->un); con) {     
+                CONDITION_CHECK(con->toString())                                     
+            } else if (const auto *id = std::get_if<idNodeType>(&cond->un); id) { 
+                CONDITION_CHECK(id->id)                                              
+            } else {                                                                 
+                ex(cond);                                                   
+            }
+
+
             switch (opr.op.size()) {
             /* if op[0] { op[1] } else { op[2] } */
             case 3:
@@ -308,12 +375,8 @@ struct compiler_visitor {
         case PRINT: {
             // HACK
             auto ret = ex(opr.op[0]);
-            if(std::holds_alternative<std::string>(ret) && ret.toString() == "0") {
-                printf("\tprint \n");
-            } else {
-                printf("\tpush %s\n", ret.toString().c_str());
-                printf("\tprint \n");
-            }
+            STACK_HACK(ret);
+            printf("\tprint \n");
         } break;
         case '=': {
             std::string lhs = ex(opr.op[0]).toString();
@@ -323,8 +386,8 @@ struct compiler_visitor {
             return Value(lhs);
         } break;
 
-        case PP: { UN_OP(printf("\tinc1pre\n");) } break;
-        case MM: { UN_OP(printf("\tdec1pre\n");) } break;
+        case PP: { UN_OP(printf("\tinc\n");) } break;
+        case MM: { UN_OP(printf("\tdec\n");) } break;
         case UPLUS: { UN_OP(printf("\tpos\n");) } break;
         case UMINUS: { UN_OP(printf("\tneg\n");) } break;
         case '!': { UN_OP(printf("\tnot\n");) } break;
@@ -405,7 +468,8 @@ struct compiler_visitor {
         } break;
         case RETURN: {
             if(!opr.op.empty()) {
-                ex(opr.op[0]);
+                auto ret = ex(opr.op[0]);
+                STACK_HACK(ret);
             } 
             printf("\tret\n");
         }
@@ -422,5 +486,5 @@ struct compiler_visitor {
 
 Value ex(nodeType *p) {
     if (p == nullptr) return Value(0);
-    return std::visit(compiler_visitor(), p->un);
+    return std::visit(compiler_visitor{p}, p->un);
 }

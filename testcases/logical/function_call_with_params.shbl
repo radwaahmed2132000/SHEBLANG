@@ -5,3 +5,16 @@ fn foo(int a, int b) int {
 print foo(32, 10);
 ===
 42
+===
+foo:
+    pop a
+    pop b
+    push a
+    push b
+    add
+    ret
+
+push 10
+push 32
+call foo
+print

@@ -2,3 +2,5 @@ int x = 5;
 x % = 2;
 ===
 syntax error
+===
+syntax error

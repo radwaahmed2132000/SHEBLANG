@@ -82,7 +82,7 @@ typedef struct {
 typedef struct {
     struct nodeType* return_type;
     struct nodeType* name;
-    std::vector<struct VarDecl*> parameters;
+    struct VarDecl* parametersTail;
     struct nodeType* statements;
 } functionNodeType;
 

@@ -1,8 +1,15 @@
-test((a+b), test2());
+fn test(int x, int y) int {
+    return x * y;
+} 
+
+fn test2() float {
+    return 42.0;
+}
+
+int a = 4;
+int b = 5;
+
+int c = test((a+b), test2());
+print c;
 ===
-Error in line number: 1 .The function test is not declared
-Error in line number: 1 .Identifier a is not declared
-Error in line number: 1 .Identifier b is not declared
-Error in line number: 1 .The function parameter number: 0 is not valid
-Error in line number: 1 .The function test2 is not declared
-Error in line number: 1 .The function parameter number: 1 is not valid
+378.000000

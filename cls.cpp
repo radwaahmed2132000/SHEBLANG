@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <unordered_map>
 #include <variant>
 #include <algorithm>
 #include <iostream>
@@ -234,15 +236,27 @@ Result cast_opr(const std::string& leftType, const std::string& rightType, oprNo
 #define RIGHT_TYPE(right) \
     auto rightType = std::get<SuccessType>(right); \
 
-#define EXISTING_TYPE(type, lineNo) \
-     static std::unordered_set<std::string> builtinTypes = {"float", "int", "char", "string", "bool", "void"}; \
-     if (type == "<no type>") { \
-          \
-     } else if (builtinTypes.find(type) == builtinTypes.end()) { \
-          errorsOutput.addError ("Error in line number: " + \
-             std::to_string(lineNo) +" .The data type \"" \
-             + type + "\" is not valid"); \
-      } \
+void getEnumTypes(ScopeSymbolTables* p, std::unordered_set<std::string>& enumTypes) {
+    if (p == nullptr) return;
+
+    for(const auto& [enumName, _]: p->enums) {
+        enumTypes.insert(enumName);
+    }
+
+    getEnumTypes(p->parentScope, enumTypes);
+}
+
+#define EXISTING_TYPE(type, lineNo)                                            \
+    static std::unordered_set<std::string> builtinTypes = {                    \
+        "float", "int", "char", "string", "bool", "void"};                     \
+    std::unordered_set<std::string> enumTypes;                                 \
+    getEnumTypes(currentNodePtr->currentScope, enumTypes);                     \
+    if (type != "<no type>" &&builtinTypes.find(type) == builtinTypes.end() && \
+               enumTypes.find(type) == enumTypes.end()) {                      \
+        errorsOutput.addError(                                                 \
+            "Error in line number: " + std::to_string(lineNo) +                \
+            " .The data type \"" + type + "\" is not valid");                  \
+    }                                                                          
 
 Result ex_const_kak_TM(nodeType *p);
 
@@ -299,9 +313,10 @@ struct ex_const_visitor {
             auto parentScope = id.scopeNodePtr->currentScope->parentScope;
             while (parentScope != nullptr) {
                 if (parentScope->sym2.find(id.id) != parentScope->sym2.end()) {
-                    if (parentScope->sym2[id.id].isConstant && 
-                      parentScope->sym2[id.id].initExpr != nullptr &&
-                      std::holds_alternative<conNodeType>(parentScope->sym2[id.id].initExpr->un)) {
+                    auto isConstant = parentScope->sym2[id.id].isConstant;
+                    auto hasInit = parentScope->sym2[id.id].initExpr != nullptr;
+                    auto literalInit  = std::holds_alternative<conNodeType>(parentScope->sym2[id.id].initExpr->un);
+                    if (isConstant && hasInit && literalInit) {
                       Result result = Result::Success(parentScope->sym2[id.id].type);
                       result.value = &parentScope->sym2[id.id].value;
                       return result;
@@ -515,14 +530,17 @@ struct semantic_analysis_visitor {
     Result operator()(VarDefn& vd) {
       int startingSize = errorsOutput.sizeError;
       /* Check if the variable is declared */
+
       nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name, vd.initExpr, vd.isConstant), vd.decl->type->lineNo);
       nt->currentScope = currentNodePtr->currentScope;
       Result decl = semantic_analysis(nt); 
+
       std::string declType = decl.isSuccess() ? (std::string)std::get<SuccessType>(decl) : "<no type>";
 
       /* Check that the initial expression is valid if it exits */
+      Result initResult;
       if (vd.initExpr != nullptr) {
-        Result init = semantic_analysis(vd.initExpr);
+        initResult = semantic_analysis(vd.initExpr);
       } else {
         /* The initialization expression doesn't exist*/
         if (vd.isConstant) {
@@ -530,11 +548,15 @@ struct semantic_analysis_visitor {
               std::to_string(vd.decl->var_name->lineNo) + " .The constant variable " +
               std::get<idNodeType>(vd.decl->var_name->un).id + " has no value assigned to it");
         }
+
+        if(startingSize != errorsOutput.sizeError) { return Result::Error("error"); }
       }
-      if(startingSize != errorsOutput.sizeError)
-      {
-        return Result::Error("error");
+
+      if(initResult.isSuccess()) {
+        auto initType = std::get<SuccessType>(initResult);
+        vd.decl->var_name->conversionType = initType;
       }
+
       return Result::Success(declType);
     }
     
@@ -609,9 +631,10 @@ struct semantic_analysis_visitor {
               auto& labelName = std::get<idNodeType>(cases[i]->labelExpr->un).id;
               auto& labelSymTableEntry = varSymTableEntry(labelName, currentNodePtr->currentScope);
               constant = labelSymTableEntry.isConstant;
-            } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un)) {
+            } else if (std::holds_alternative<conNodeType>(cases[i]->labelExpr->un) || std::holds_alternative<enumUseNode>(cases[i]->labelExpr->un)) {
               literal = true;
-            }
+            } 
+
             if (!constant && !literal) {
               errorsOutput.addError("Error in line number: " + std::to_string(cases[i]->labelExpr->lineNo) +
                                     " .The label expression of the case statement must be a constant or a literal");
@@ -679,25 +702,30 @@ struct semantic_analysis_visitor {
       bool found = false;
       
       /* Check that the enum is declared */
-      if (currentNodePtr->currentScope->enums.find(eu.enumName) == currentNodePtr->currentScope->enums.end()) {
-        auto parentScope = currentNodePtr->currentScope->parentScope;
-        while (parentScope != nullptr) {
-          if (parentScope->enums.find(eu.enumName) != parentScope->enums.end()) {
+      std::vector<std::string> enumMembers;
+      auto* scope = currentNodePtr->currentScope;
+      ScopeSymbolTables* lastValidScope = nullptr;
+      if (scope->enums.find(eu.enumName) == scope->enums.end()) {
+        while (scope != nullptr) {
+          if (scope->enums.find(eu.enumName) != scope->enums.end()) {
             found = true;
             break;
           }
-          parentScope = parentScope->parentScope;
+          lastValidScope = scope;
+          scope = scope->parentScope;
         }
       } else {
         found = true;
       }
 
+      if (scope != nullptr) lastValidScope = scope;
+
       if (!found) {
         errorsOutput.addError("Error in line number: " + std::to_string(eu.lineNo) +
                               " .The enum " + eu.enumName + " is not declared");
       } else {
+        enumMembers = lastValidScope->enums[eu.enumName].enumMembers;
         /* Check that the member name is part of the enum members */
-        auto& enumMembers = currentNodePtr->currentScope->enums[eu.enumName].enumMembers;
         if (std::find(enumMembers.begin(), enumMembers.end(), eu.memberName) == enumMembers.end()) {
           errorsOutput.addError("Error in line number: " + std::to_string(eu.lineNo) +
                                 " .The enum member " + eu.memberName + " is not part of the enum " + eu.enumName);
@@ -708,7 +736,7 @@ struct semantic_analysis_visitor {
         return Result::Error("error");
       }
 
-      return Result::Success("success");
+      return Result::Success(eu.enumName);
     }
       
 
@@ -722,23 +750,43 @@ struct semantic_analysis_visitor {
       /* Function Declaration code */
       auto functionName = std::get<idNodeType>(fn.name->un).id;
       
-      auto symTable = currentNodePtr->currentScope;
+      // Check recursively in the current and previous (upper) scopes.
+      auto* currentCheckScope = currentNodePtr->currentScope;
+      while(currentCheckScope != nullptr) {
+          if (currentCheckScope->functions.find(functionName) !=
+              currentCheckScope->functions.end()) {
 
-      /* Check if the function was already declared before */
-      if (symTable->functions.find(functionName) != symTable->functions.end()) {
-            errorsOutput.addError("Error in line number: " +
-                                  std::to_string(fn.name->lineNo) + " .Function " +
-                                  functionName + " is already declared in this scope");
-        }
-      auto functionScope = new ScopeSymbolTables();
+              errorsOutput.addError(
+                  "Error in line number: " + std::to_string(fn.name->lineNo) +
+                  " .Function " + functionName +
+                  " is already declared in this scope");
+          }
+
+          if(currentCheckScope->parentScope != nullptr) {
+            currentCheckScope = currentCheckScope->parentScope;
+          } else {
+            break;
+          }
+      }
+
+
+      /* Add the new function to the functions table */
+      // Since functions create their own scope, need to add
+      // the function reference to the parent scope.
+      currentNodePtr->currentScope->parentScope->functions[std::get<idNodeType>(fn.name->un).id] = fn;
+
+      auto* functionScope = currentNodePtr->currentScope;
 
       /* Check if the function parameters are valid */
-      for(int i = 0; i < fn.parameters.size(); i++) {
-        auto param = fn.parameters[i];
+      auto parameters = fn.parametersTail->toVec();
+      for(int i = 0; i < parameters.size(); i++) {
+        auto* param = parameters[i];
+
         /* Check if the parameter list is emtpy */
         if (param->type == nullptr || param->var_name == nullptr) {
           break;
         } 
+
         nodeType *nt = new nodeType(VarDecl(param->type, param->var_name), param->type->lineNo);
         nt->currentScope = functionScope;
         //nt->currentScope->parentScope = currentNodePtr->currentScope;
@@ -748,6 +796,11 @@ struct semantic_analysis_visitor {
                                 std::to_string(param->type->lineNo) + " .The function parameter " +
                                 std::get<idNodeType>(param->var_name->un).id + " is not valid");
         }
+
+        // Add parameter to the function's symbol table.
+        auto paramName = std::get<idNodeType>(parameters[i]->var_name->un).id;
+        auto paramType = std::get<idNodeType>(parameters[i]->type->un).id;
+        currentNodePtr->currentScope->sym2[paramName] = SymbolTableEntry(parameters[i]->isConstant, paramType);
       }
 
       /* Check if the return type is valid */
@@ -771,9 +824,6 @@ struct semantic_analysis_visitor {
         return Result::Error("error");
       }
 
-      /* Add the new function to the functions table */
-      currentNodePtr->currentScope->functions[std::get<idNodeType>(fn.name->un).id] = fn;
-
       return Result::Success(returnType);
     } 
 
@@ -781,37 +831,38 @@ struct semantic_analysis_visitor {
       // TODO: Check if the return type of the expression is the same as the function return type.
       int startingSize = errorsOutput.sizeError;
 
-      auto symTable = currentNodePtr->currentScope;
-
-      functionNodeType *function = nullptr;
 
       /* Check if the function exists in the functions table or not */
-      if (symTable->functions.find(fn.functionName) != symTable->functions.end()) {
-        function = &symTable->functions[fn.functionName];
-      } else {
-        auto parentTable = symTable->parentScope;
-        while (parentTable != nullptr)
-        {
-          if (parentTable->functions.find(fn.functionName) != parentTable->functions.end()) {
-            function = &symTable->functions[fn.functionName];
-            break;
-          } else {
-            parentTable = parentTable->parentScope;
-          }
-        }
+      auto* parentTable = currentNodePtr->currentScope;
+      bool fnFound = false;
+
+      using FnIter = std::unordered_map<std::string, functionNodeType>::iterator;
+      FnIter fnIter;
+
+      while (parentTable != nullptr)
+      {
+        fnIter = parentTable->functions.find(fn.functionName);
+        if(fnIter != parentTable->functions.end()) { fnFound = true; break; } 
+
+        parentTable = parentTable->parentScope;
+      }
+
+      if(!fnFound) {
         /* If not, then it's not in any scope. */
         errorsOutput.addError("Error in line number: " + 
         std::to_string(fn.lineNo) + " .The function "
         + fn.functionName + " is not declared");
       }
 
+      auto& fnRef = fnIter->second;
+
       /* Check if the Expression List is valid */
       for(int i = 0; i < fn.parameterExpressions.size(); i++) {
-        auto param = fn.parameterExpressions[i];
+        auto* param = fn.parameterExpressions[i];
+
         /* Check if the Expression list is emtpy */
-        if (param->exprCode == nullptr) {
-          break;
-        } 
+        if (param->exprCode == nullptr) { continue; } 
+
         /* Check that the parameter types match with the function types */
         auto expression = semantic_analysis(param->exprCode);
         if (!expression.isSuccess()) {
@@ -819,13 +870,25 @@ struct semantic_analysis_visitor {
                                 std::to_string(param->exprCode->lineNo) + 
                                 " .The function parameter number: " + std::to_string(i) + " is not valid");
         } else {
-          if (function != nullptr) {
-            if (std::get<idNodeType>(function->parameters[i]->type->un).id
-                != std::get<SuccessType>(expression)) {
-              errorsOutput.addError("Error in line number: " +
-                                    std::to_string(param->exprCode->lineNo) + 
-                                    " . The function parameter number: " + std::to_string(i) +
-                                    " type does not match");
+          if (fnFound) {
+
+              // Might be wise to split ths into its own for loop to avoid 
+              // having to collect a vector for each parameter.
+              auto fnParams = fnRef.parametersTail->toVec();
+
+              // Check if the passed  expression matches the parameter's type
+              auto paramType = std::get<idNodeType>(fnParams[i]->type->un).id;
+              auto exprType = std::get<SuccessType>(expression);
+
+              auto paramExprTypeMatchesParamType = (paramType == exprType);
+              Result exprIsCastable = castToTarget(exprType, paramType, param->exprCode, fn.lineNo);
+
+              if (!exprIsCastable.isSuccess()) {
+                  errorsOutput.addError(
+                      "Error in line number: " +
+                      std::to_string(param->exprCode->lineNo) +
+                      " . The function parameter number: " + std::to_string(i) +
+                      " type does not match");
             }
           }   
         }
@@ -835,7 +898,7 @@ struct semantic_analysis_visitor {
         return Result::Error("error");
       }
 
-      return Result::Success("success");
+      return Result::Success(std::get<idNodeType>(fnRef.return_type->un).id);
     } 
     /* 
       Entry point, we get a list of statements & iterate over each of them & make sure they are
@@ -864,7 +927,7 @@ struct semantic_analysis_visitor {
 
         /* Check for unused variables in this scope */
         if (sl.statementCode->currentScope == nullptr || 
-            sl.statementCode->currentScope->sym2.size() == 0) {
+            sl.statementCode->currentScope->sym2.empty()) {
             return ret;
         }
         
@@ -1022,7 +1085,7 @@ struct semantic_analysis_visitor {
           if (startingSize != errorsOutput.sizeError) {
             return Result::Error("error");
           }
-          
+
           return Result::Success(finalType);
         }
         break;
@@ -1082,6 +1145,18 @@ struct semantic_analysis_visitor {
         /*  Check that the two expressions on the left & on the right are of the same type */
         LEFT_SAME_TYPE_AS_RIGHT(left, right, opr.op[0]->lineNo, opr); // * gives leftType & rightType & finalType
         /* Check that the left and right are either both integers or both float */
+        
+        opr.op[0]->currentScope = currentNodePtr->currentScope;
+        if(auto* lhsVar = std::get_if<idNodeType>(&opr.op[0]->un); lhsVar) {
+            auto lhsVarSymEntry = varSymTableEntry(lhsVar->id, opr.op[0]->currentScope);
+            lhsVarSymEntry.isUsed = true;
+        }
+
+        opr.op[1]->currentScope = currentNodePtr->currentScope;
+        if(auto* rhs = std::get_if<idNodeType>(&opr.op[1]->un); rhs) {
+            auto rhsVarSymEntry = varSymTableEntry(rhs->id, opr.op[1]->currentScope);
+            rhsVarSymEntry.isUsed = true;
+        }
 
         if (startingSize != errorsOutput.sizeError) {
           return Result::Error("error");
@@ -1182,8 +1257,16 @@ struct semantic_analysis_visitor {
         }
 
         return Result::Success(std::get<SuccessType>(condition));
-      }
-      break;
+      } break;
+      case RETURN: {
+        if(!opr.op.empty()) semantic_analysis(opr.op[0]);
+      } break;  
+
+      case UMINUS:
+      case UPLUS: {
+          return semantic_analysis(opr.op[0]);
+      } break;
+
       default:
           return Result::Success("success"); 
           break;

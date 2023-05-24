@@ -231,10 +231,8 @@ function_parameter_list:
                        ;
 function_defn:
              FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}' { 
-                     auto head = std::get<VarDecl>($4->un);
-                     auto paramsList = head.toVec();
-
-                     $$ = fn($2, paramsList, $6, $8);
+                     auto* head = std::get_if<VarDecl>(&($4->un));
+                     $$ = fn($2, head, $6, $8);
              } 
 
 %%

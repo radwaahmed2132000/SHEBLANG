@@ -4,3 +4,8 @@ Error in line number: 1 .The function test is not declared
 Error in line number: 1 .Identifier a is not declared
 Error in line number: 1 .Identifier b is not declared
 Error in line number: 1 .The function parameter number: 0 is not valid
+===
+Error in line number: 1 .The function test is not declared
+Error in line number: 1 .Identifier a is not declared
+Error in line number: 1 .Identifier b is not declared
+Error in line number: 1 .The function parameter number: 0 is not valid

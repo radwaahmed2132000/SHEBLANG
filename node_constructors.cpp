@@ -93,7 +93,7 @@ std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id;
 std::string VarDecl::getName() const { return std::get<idNodeType>(var_name->un).id; } 
 
 
-nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_type, nodeType* statements) {
+nodeType* fn(nodeType* name, VarDecl* paramsTail, nodeType* return_type, nodeType* statements) {
     assert(std::holds_alternative<idNodeType>(name->un));
     assert(std::holds_alternative<idNodeType>(return_type->un));
     assert(std::holds_alternative<StatementList>(statements->un));
@@ -114,7 +114,7 @@ nodeType* fn(nodeType* name, std::vector<VarDecl*>& params, nodeType* return_typ
         assert(containsReturn);
     }
 
-    return new nodeType(functionNodeType{return_type, name, params, statements}, currentLineNo);
+    return new nodeType(functionNodeType{return_type, name, paramsTail, statements}, currentLineNo);
 }
 
 nodeType* fn_call(nodeType* name) {

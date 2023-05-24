@@ -8,3 +8,19 @@ if(x > y)
 }
 ===
 x is less than 5
+===
+    push 5
+    pop x
+    push 5.500000
+    pop y
+    push x
+    push y
+    compLE
+    jz L000
+    push x is greater than y
+    print
+    jmp L001
+L000:
+    push x is less than 5
+    print
+L001:
