@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_compiler",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/semantic/valid_oper_constant.shbl", null, null]
+            "stdio": ["testcases/semantic/function_call_multiple_expressions.shbl", null, null]
         },
         {
             "name": "Python: Current File",

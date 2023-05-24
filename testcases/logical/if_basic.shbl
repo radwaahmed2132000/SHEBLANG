@@ -11,8 +11,8 @@ if(a > 0){
     pop a
     push a
     push 0
-    compLE
-    jz L000
+    compGT
+    jnz L000
     push 0
     print 
     jmp L001

@@ -15,8 +15,8 @@ while(x>0) {
 L000:
     push x
     push 0
-    compLE
-    jz L001
+    compGT
+    jnz L001
     push x
     print
     push x

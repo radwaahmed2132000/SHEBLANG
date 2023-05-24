@@ -28,8 +28,8 @@ L000:
         pop x
         push x
         push 0
-        compGE
-        jz      L002
+        compLT
+        jnz      L002
         push About to break!
         print 
         jmp     L001
@@ -40,6 +40,6 @@ L000:
 L002:
         push true
         push true
-        compNE
-        jnz      L000
+        compEQ
+        jz      L000
 L001:

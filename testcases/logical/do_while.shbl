@@ -20,6 +20,6 @@ L000:
     pop x
     push x
     push 10.000000
-    compLE
-    jnz  L000
+    compGT
+    jz  L000
 L001:

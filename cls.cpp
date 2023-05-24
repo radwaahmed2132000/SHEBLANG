@@ -1095,7 +1095,7 @@ struct semantic_analysis_visitor {
           /* Check that the left expression is valid (identifier is declared) */
           LEFT_VALID(opr.op[0]); // * gives left
           /* Check that the left identifier is not a constant */
-          auto symTable = opr.op[0]->currentScope;
+          auto* symTable = opr.op[0]->currentScope;
           NOT_CONST(opr.op[0], opr.op[0]->lineNo, symTable->sym2); 
           /* Check that the right expression is semantically valid */
           RIGHT_VALID(opr.op[1]); // * gives right

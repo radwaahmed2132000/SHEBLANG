@@ -17,8 +17,8 @@ bye
     push x
     push y
     charToFloat
-    compLT
-    jz L000
+    compGE
+    jnz L000
     push hi
     print
     jmp L001

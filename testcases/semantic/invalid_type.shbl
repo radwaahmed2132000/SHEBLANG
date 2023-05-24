@@ -2,3 +2,6 @@ kak x;
 ===
 Warning in line number: 1 .Variable x is declared but never used
 Error in line number: 1 .The data type "kak" is not valid
+===
+Warning in line number: 1 .Variable x is declared but never used
+Error in line number: 1 .The data type "kak" is not valid

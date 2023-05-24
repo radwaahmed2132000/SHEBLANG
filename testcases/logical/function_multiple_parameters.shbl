@@ -2,4 +2,11 @@ fn test(int a, int b) int {
 	return a + b;
 }
 ===
-
+===
+test:
+    pop a
+    pop b
+    push a
+    push b
+    add
+    ret

@@ -16,8 +16,8 @@ x is less than 5
     push x
     intToFloat
     push y
-    compLE
-    jz L000
+    compGT
+    jnz L000
     push x is greater than y
     print
     jmp L001

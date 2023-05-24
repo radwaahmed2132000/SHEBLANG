@@ -5,3 +5,6 @@ for(int i=5; i<3;i+="5")
 ====
 Error in line number: 1 .Cannot cast to or from string
 Error in line number: 1 .The post body statement in the for loop is not valid
+====
+Error in line number: 1 .Cannot cast to or from string
+Error in line number: 1 .The post body statement in the for loop is not valid

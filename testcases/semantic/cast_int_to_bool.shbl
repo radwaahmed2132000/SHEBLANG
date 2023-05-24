@@ -3,3 +3,13 @@ x = 3;
 print x > 3 || 4;
 ===
 true
+===
+push 3
+pop x
+push x
+push 3
+compGT
+push 4
+intToBool
+or
+print

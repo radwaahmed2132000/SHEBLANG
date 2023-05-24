@@ -11,12 +11,12 @@ Greater than both 4 and 6
         pop x
         push x
         push 4
-        compLE
-        jz      L000
+        compGT
+        jnz      L000
         push x
         push 6
-        compGE
-        jz      L001
+        compLT
+        jnz      L001
         push Smaller than 6 and bigger than 4
         print 
         jmp     L002

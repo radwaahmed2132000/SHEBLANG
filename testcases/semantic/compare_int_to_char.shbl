@@ -6,3 +6,16 @@ if(x==z)
 }
 ===
 equals
+===
+    push 53
+    pop x
+    push 5
+    pop z
+    push x
+    push z
+    charToInt
+    compEQ
+    jnz L000
+    push equals
+    print
+L000:

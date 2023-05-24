@@ -64,8 +64,8 @@ jj
 L000:
     push y
     push true
-    compNE
-    jz L001
+    compEQ
+    jnz L001
     push jj
     print
     push y

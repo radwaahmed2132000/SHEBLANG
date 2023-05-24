@@ -18,8 +18,8 @@ while(true) {
 L000:
         push true
         push true
-        compNE
-        jz      L001
+        compEQ
+        jnz     L001
         push x
         print 
         push x
@@ -27,8 +27,8 @@ L000:
         pop x
         push x
         push 0
-        compGE
-        jz      L002
+        compLT
+        jnz     L002
         jmp     L001
 L002:
         jmp     L000

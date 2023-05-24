@@ -13,3 +13,28 @@ int c = test((a+b), test2());
 print c;
 ===
 378.000000
+===
+test:
+    pop x
+    pop y
+    push x
+    push y
+    mul
+    ret
+
+test2:
+    push 42.000000
+    ret
+
+push 4
+pop a
+push 5
+pop b
+call test2
+push a
+push b
+add
+call test
+pop c
+push c
+print

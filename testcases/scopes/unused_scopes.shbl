@@ -28,20 +28,20 @@ Warning in line number: 13 .Variable x is declared but never used
     pop x
     push x
     push true 
-    comp NE
-    jz L000
+    compEQ
+    jnz L000
 L000:
     push x
     push true
-    compNE
-    jz L001
+    compEQ
+    jnz L001
     push c
     pop z
 L001:
     push x
     push true
-    compNE
-    jz L002
+    compEQ
+    jnz L002
     push 3
     pop x
 L002:

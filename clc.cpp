@@ -39,7 +39,7 @@ static int lbl;
 #define CONDITION_CHECK(str)                                                   \
     printf("\tpush %s\n", str.c_str());                                        \
     printf("\tpush true\n");                                                   \
-    printf("\tcompNE\n");
+    printf("\tcompEQ\n");
 
 // To handle 
 // while(true), while(x) and so on ...
@@ -245,8 +245,10 @@ struct compiler_visitor {
         std::reverse_copy(fc.parameterExpressions.begin(), fc.parameterExpressions.end(), paramsReversed.begin());
 
         for(const auto& param: paramsReversed) {
+            if(param->exprCode == nullptr) continue;
+
             auto exprResult = ex(param->exprCode);
-            printf("\tpush %s\n", exprResult.toString().c_str());
+            STACK_HACK(exprResult);
         }
         printf("\tcall %s\n", fc.functionName.c_str());
 
@@ -268,7 +270,7 @@ struct compiler_visitor {
         BOOL_COMP_HACK_LOOPS_LOOPS(dw) 
 
         //      jump to label if condition holds
-        printf("\tjnz\tL%03d\n", loopLabel);
+        printf("\tjz\tL%03d\n", loopLabel);
 
         // exit label
         printf("L%03d:\n", exitLabel);
@@ -288,7 +290,7 @@ struct compiler_visitor {
         BOOL_COMP_HACK_LOOPS_LOOPS(w)
 
         //      if condition doesn't hold, jump to label2
-        printf("\tjz\tL%03d\n", exitLabel);
+        printf("\tjnz\tL%03d\n", exitLabel);
 
         //      code ...
         ex(w.loop_body);
@@ -325,7 +327,7 @@ struct compiler_visitor {
 
         ex(f.loop_condition);
 
-        printf("\tjz\tL%03d\n", exitLabel = lbl++);
+        printf("\tjnz\tL%03d\n", exitLabel = lbl++);
 
         ex(f.loop_body);
 
@@ -358,7 +360,7 @@ struct compiler_visitor {
             switch (opr.op.size()) {
             /* if op[0] { op[1] } else { op[2] } */
             case 3:
-                printf("\tjz\tL%03d\n", lbl1 = lbl++);
+                printf("\tjnz\tL%03d\n", lbl1 = lbl++);
                 ex(opr.op[1]);
                 printf("\tjmp\tL%03d\n", lbl2 = lbl++);
                 printf("L%03d:\n", lbl1);
@@ -369,7 +371,7 @@ struct compiler_visitor {
             /* if op[0] { op[1] } */
             case 2:
                 /* if */
-                printf("\tjz\tL%03d\n", lbl1 = lbl++);
+                printf("\tjnz\tL%03d\n", lbl1 = lbl++);
                 ex(opr.op[1]);
                 printf("L%03d:\n", lbl1);
                 break;
@@ -394,8 +396,8 @@ struct compiler_visitor {
         } break;
         case '=': {
             std::string lhs = ex(opr.op[0]).toString();
-            ex(opr.op[1]);
-
+            auto rhs = ex(opr.op[1]);
+            STACK_HACK(rhs);
             printf("\tpop %s\n", lhs.c_str());
             return Value(lhs);
         } break;
@@ -431,6 +433,7 @@ struct compiler_visitor {
         case '+': {
             PUSH_BIN_OPR_PARAMS
             printf("\tadd\n");
+            convPushedVar(p);
         } break;
         case '-': {
             PUSH_BIN_OPR_PARAMS
@@ -458,27 +461,27 @@ struct compiler_visitor {
         } break;
         case '<': {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompGE\n");
+            printf("\tcompLT\n");
         } break;
         case '>': {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompLE\n");
+            printf("\tcompGT\n");
         } break;
         case GE: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompLT\n");
+            printf("\tcompGE\n");
         } break;
         case LE: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompGT\n");
+            printf("\tcompLE\n");
         } break;
         case NE: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompEQ\n");
+            printf("\tcompNE\n");
         } break;
         case EQ: {
             PUSH_BIN_OPR_PARAMS
-            printf("\tcompNE\n");
+            printf("\tcompEQ\n");
         } break;
         case RETURN: {
             if(!opr.op.empty()) {

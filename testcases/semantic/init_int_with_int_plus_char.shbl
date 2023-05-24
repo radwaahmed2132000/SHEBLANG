@@ -2,3 +2,11 @@ int x=5+'5';
 print x;
 ===
 58
+===
+push 5
+push 5
+charToInt
+add
+pop x
+push x
+print

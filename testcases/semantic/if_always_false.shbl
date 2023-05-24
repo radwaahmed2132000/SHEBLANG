@@ -1,3 +1,10 @@
 if (false) { ; }
 ===
 Warning in line number: 1 .Condition in an if statement is always false
+===
+Warning in line number: 1 .Condition in an if statement is always false
+    push false
+    push true
+    compEQ
+    jnz L000:
+L000:
