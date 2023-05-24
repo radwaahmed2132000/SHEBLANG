@@ -100,7 +100,6 @@ Value ex(nodeType *p);
 // Check cli.cpp for the reference interpreter implementation of this function.
 // The compiler function should follow a similar structure.
 // TODO: Update this to work with registers.
-// TODO: Make sure the output is correct.
 int compile_switch(switchNodeType &sw) {
 
     std::optional<int> matching_case_index = {};

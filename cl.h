@@ -48,14 +48,14 @@ using conNodeType = Value;
 
 /* identifiers */
 typedef struct {
-    std::string id;                 /* key/index to sym array */
+    std::string id;                         /* key/index to sym array */
     int lineNo;
-    struct nodeType* scopeNodePtr;         /* Used purely for scoping purposes */
+    struct nodeType* scopeNodePtr;          /* Used purely for scoping purposes */
 } idNodeType;
 
 /* operators */
 typedef struct {
-    int oper;                   /* operator */
+    int oper;                               /* operator */
     std::vector<struct nodeType*> op;
 } oprNodeType;
 

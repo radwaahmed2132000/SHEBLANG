@@ -10,9 +10,6 @@
 #include "cl.h"
 #include "y.tab.h"
 #include "result.h"
-/*
-  TODO: return line number along with error message
-*/
 
 #define LEFT_VALID(oper) \
     Result left = semantic_analysis(oper); \
@@ -20,7 +17,6 @@
 #define RIGHT_VALID(oper) \
     Result right = semantic_analysis(oper); \
 
-// TODO: Make sure sym2 works properly
 #define NOT_CONST(oper, lineNo, sym2) \
     auto lhsName = std::get<idNodeType>(oper->un).id; \
       if (sym2.find(lhsName) != sym2.end()) { \
@@ -809,7 +805,6 @@ struct semantic_analysis_visitor {
 
         nodeType *nt = new nodeType(VarDecl(param->type, param->var_name), param->type->lineNo);
         nt->currentScope = functionScope;
-        //nt->currentScope->parentScope = currentNodePtr->currentScope;
         auto parameter = semantic_analysis(nt);
         if (!parameter.isSuccess()) {
           errorsOutput.addError("Error in line number: " +

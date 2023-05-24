@@ -100,7 +100,6 @@ nodeType* fn(nodeType* name, VarDecl* paramsTail, nodeType* return_type, nodeTyp
 
     auto returnType = std::get<idNodeType>(return_type->un).id;
 
-    // TODO: probably move this to semantic analysis
     if(returnType != "void") {
         auto stmts = std::get<StatementList>(statements->un).toVec();
         auto isReturn = [](const StatementList* s) {
@@ -161,11 +160,9 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
     memberNames.reserve(members.size());
     for(const auto& node: members) { memberNames.emplace_back(node->identifierName->id); }
 
-    // TODO: move to semantic analysis
     // Needed now so the interpreter works correctly..
     auto e = enumNode{enumIdentifier, memberNames};
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
-    // enums[enumName] = e;
 
     return new nodeType(e, currentLineNo);
 }

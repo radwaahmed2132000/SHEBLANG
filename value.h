@@ -15,6 +15,7 @@
 //      );
 // Note that this style of subtype resolution doesn't play well with
 // recursive functions (see set_break_parent or ex_visitor for a workaround).
+
 template<class... Ts>
 struct Visitor : Ts... { using Ts::operator()...; };
 template<class... Ts>
