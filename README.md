@@ -10,9 +10,10 @@
 - You should get a binary called `shbl_interpreter` or `shbl_compiler` if everything goes well.
 
 - You can then run `test.py` with with the arguments `interpreter` or `compiler` to test either.
-- You can also choose to run only the test cases in a certain file by running `test.py interpreter symantic` for example.
+- You can also choose to run only the test cases in a certain file by running `./test.py interpreter symantic` for example.
 - There are four files to choose from: `logical`, `semantic`, `scopes` and `syntax`. 
-- You can also run `shb_interpreter < path/to/testcase.shbl` to run a specific testcase.
+- You can also run `./shbl_interpreter < path/to/testcase.shbl` to run a specific testcase.
+- Similarly, you can run `./shbl_compiler < path/to/testcase.shbl`.
 
 ## How to debug with VSCode
 - Download the [CodeLLDB extension](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
