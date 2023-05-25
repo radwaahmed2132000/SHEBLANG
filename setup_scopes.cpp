@@ -19,7 +19,7 @@ void printSymbolTables(){
     if (outfile.is_open()){
         /* Loop on all the SymbolTables */
         for (int i = 0; i < allSymbolTables.size(); i++) {
-            outfile<<"Tables of Scope "+std::to_string(i)<<std::endl;
+            outfile<<"Tables of Scope "+std::to_string(allSymbolTables[i]->tableId)<<std::endl;
             outfile<<"Identifiers Symbol Table"<<std::endl;
             // /* Loop on all the 3 symbol tables: the sym, functionNode & enumNode tables*/
             outfile<<"sym_key, sym_val, declaration_line, type, isConstant"<<std::endl;
@@ -30,12 +30,18 @@ void printSymbolTables(){
                 outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
             }
             // outfile<<"Functions Symbol Table"<<std::endl;
-            // outfile<<"sym_key, sym_val, declaration_line, type, isConstant"<<std::endl;
-            // /* Identifier Symbol Table */
+            // outfile<<"function_name, return_type, parameter_list"<<std::endl;
+            // /* Function Symbol Table */
             // for (auto iter = allSymbolTables[i]->functions.begin(); iter != allSymbolTables[i]->functions.end(); ++iter)
             // {
-            //     outfile<<iter->first<<", "<<iter->second.getValue()<<", "<<iter->second.declaredAtLine;
-            //     outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
+                // auto function_name = iter->first;
+                // outfile<<function_name<<", ";
+                // auto return_type = std::get<idNodeType>(iter->second.return_type->un).id;
+                // outfile<<return_type<<", "<<std::endl;
+                // auto parameter_list = iter->second.parametersTail
+                // std::get<caseNodeType>(head->un).toVec();
+                // outfile<<iter->first<<", "<<iter->second.getValue()<<", "<<iter->second.declaredAtLine;
+                // outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
             // }
             // outfile<<"Enums Symbol Table"<<std::endl;
             // /* Identifier Symbol Table */

@@ -145,11 +145,9 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
     memberNames.reserve(members.size());
     for(const auto& node: members) { memberNames.emplace_back(node->identifierName->id); }
 
-    // TODO: move to semantic analysis
     // Needed now so the interpreter works correctly..
     auto e = enumNode{enumIdentifier, memberNames};
     auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
-    // enums[enumName] = e;
 
     return new nodeType(e, currentLineNo);
 }

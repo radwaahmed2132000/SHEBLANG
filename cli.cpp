@@ -138,7 +138,6 @@ struct ex_visitor {
 
         // For each argument, find the corresponding parameter in the symbol table,
         // then insert the argument value. 
-
         
         // We can dereference the iterator just fine because symantic analysis 
         // succeed unless we can reach the function in its proper scope.
@@ -150,11 +149,6 @@ struct ex_visitor {
             if(fnParams[i]->type == nullptr && fnParams[i]->var_name == nullptr) continue;
             fnScope->sym2[fnParams[i]->getName()].setValue(ex(fc.parameterExpressions[i]->exprCode));
         }
-
-        // Print parameter list for debugging
-        // for(const auto& expr: fc.parameterExpressions) {
-        //     std::cout << ex(expr->exprCode) << '\n';
-        // }
 
         return ex(fnRef.statements);
     }
@@ -262,7 +256,6 @@ struct ex_visitor {
                 );
             }
 
-            // TODO: figure out how to return values in the interpreter
             case RETURN:
                 return ex(opr.op[0]);
 

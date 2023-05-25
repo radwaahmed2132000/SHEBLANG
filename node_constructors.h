@@ -55,7 +55,7 @@ nodeType* linkedListStump(nodeType* end) {
     if(end != nullptr) {
         assert(stump != nullptr);
     } else {
-        // Stump
+        // In case of Stump:
         stump = new LinkedListNode();
     }
 

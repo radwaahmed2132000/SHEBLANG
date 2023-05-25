@@ -54,7 +54,6 @@ extern int yylineno;            /* from lexer */
 %left '+' '-'
 %left '*' '/' '%'
 %right UPLUS UMINUS '!' '~' PP MM
-/* left a++   a--	Suffix/postfix increment and decrement */
 
 %type <nPtr> stmt expr stmt_list case case_list function_call function_return_type 
  function_defn var_defn function_parameter_list var_decl return_statement 
@@ -63,16 +62,18 @@ extern int yylineno;            /* from lexer */
 
 program:
         stmt_list { 
+                /* First, create all the Symbol Tables. */
                 setup_scopes($1);
-
+                /* Perform Semantic Analysis on the code. */
                 auto result = semantic_analysis($1);
-                
+                /* Print warnings if exist. */
                 if (warningsOutput.sizeError == 0) {
                 } else {
                     for (auto& warning : std::get<ErrorType>(warningsOutput)) {
                         printf("%s\n", warning.c_str());
                     }
                 }
+                /* Print semantic errors if exist. */
                 if (errorsOutput.sizeError == 0) {
                 } else {
                     for (auto& error : std::get<ErrorType>(errorsOutput)) {
@@ -80,8 +81,11 @@ program:
                     }
                     exit(1);
                 }
+                /* Excute the code using the interpreter. */
                 ex($1);
+                /* Print the final version of the symbol tables. */
                 printSymbolTables();
+                /* Free Memory used. */
                 freeNode($1);
                 exit(0);
             }
