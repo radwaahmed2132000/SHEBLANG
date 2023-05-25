@@ -41,3 +41,10 @@ fn foo() {
 }
 
 foo();
+===
+Running!
+Just did a cool thing!
+I just did an even cooler thing!
+Stopped
+Done doing cool things
+===

@@ -10,11 +10,9 @@ switch(a) {
 		switch(b) {
 			case 2: {
 				print 2;
-				break;
 			}
 			case 3: {
 				print b;
-				break;
 			}
 		}
 		c = 5;
@@ -30,8 +28,8 @@ Error in line number: 3 .The switch variable is not valid
 Error in line number: 9 .Identifier b is not declared
 Error in line number: 10 .Identifier b is not declared
 Error in line number: 10 .The switch variable is not valid
-Error in line number: 16 .Identifier b is not declared
-Error in line number: 17 .The case body of the case statement is not valid
+Error in line number: 15 .Identifier b is not declared
+Error in line number: 15 .The case body of the case statement is not valid
 Error in line number: 2 .Identifier c is not declared
 Error in line number: 3 .Identifier c is not declared
 Error in line number: 3 .Condition in an if statement is invalid

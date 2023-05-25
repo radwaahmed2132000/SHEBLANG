@@ -660,7 +660,6 @@ struct semantic_analysis_visitor {
             );
         }
 
-        auto varType = std::get<SuccessType>(var);
         auto cases = sw.caseListTail->as<caseNodeType>().toVec();
 
         for (int i = 0; i < cases.size(); i++) {
@@ -685,13 +684,18 @@ struct semantic_analysis_visitor {
                 std::string labelExprType =
                     std::get<SuccessType>(labelExprResult);
 
-                if (varType != "<no type>" && labelExprType != varType) {
-                    auto lineNo = std::to_string(cases[i]->labelExpr->lineNo);
-                    errorsOutput.addError(
-                        "Error in line number: " + lineNo +
-                        " .The label expression of the case statement is not "
-                        "of the same type as the switch variable"
-                    );
+                if(var.isSuccess()) {
+                    auto varType = std::get<SuccessType>(var);
+                    if (varType != "<no type>" && labelExprType != varType) {
+                        auto lineNo =
+                            std::to_string(cases[i]->labelExpr->lineNo);
+                        errorsOutput.addError(
+                            "Error in line number: " + lineNo +
+                            " .The label expression of the case statement is "
+                            "not "
+                            "of the same type as the switch variable"
+                        );
+                    }
                 }
 
                 bool isConstant = false;
@@ -733,6 +737,7 @@ struct semantic_analysis_visitor {
             return Result::Error("error");
         }
 
+        auto varType = std::get<SuccessType>(var);
         return Result::Success(varType);
     }
 

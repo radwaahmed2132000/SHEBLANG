@@ -8,3 +8,6 @@ fn printTheAnswerOfLife() {
 }
 
 printTheAnswerOfLife();
+===
+42
+===

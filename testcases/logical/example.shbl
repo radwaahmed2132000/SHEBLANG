@@ -55,12 +55,11 @@ fn main() {
 #! Main is just a function like any other, you must call it 
 main();
 ===
-Warning in line number: 18 .Variable d is declared but never used
-Warning in line number: 16 .Variable area_c is declared but never used
-Warning in line number: 14 .Variable _underscored is declared but never used
-Warning in line number: 10 .Variable e1 is declared but never used
-Warning in line number: 18 .Variable d is declared but never used
-Warning in line number: 16 .Variable area_c is declared but never used
-Warning in line number: 14 .Variable _underscored is declared but never used
-Warning in line number: 10 .Variable e1 is declared but never used
+Warning in line number: 19 .Variable d is declared but never used
+Warning in line number: 15 .Variable _underscored is declared but never used
+Warning in line number: 11 .Variable e1 is declared but never used
+0
+1
+area_c = 
+3.140000
 ===
