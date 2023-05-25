@@ -6,6 +6,7 @@ fn compute_area(float radius) float {
 	return pi * r_squared;
 }
 
+#! Comments are written like this
 fn main() {
 	EnumTest e1 = EnumTest::value1;
 
@@ -44,7 +45,15 @@ fn main() {
 			accumulator = 10;
 		}
 	}
+
+    print accumulator;
+    print flag;
+    print "area_c = ";
+    print area_c;
 }
+
+#! Main is just a function like any other, you must call it 
+main();
 ===
 Warning in line number: 18 .Variable d is declared but never used
 Warning in line number: 16 .Variable area_c is declared but never used

@@ -1,0 +1,10 @@
+fn printTheAnswerOfLife() {
+    fn print42() {
+        fn return42() int { return 42; }
+        print return42();
+    }
+
+    print42();
+}
+
+printTheAnswerOfLife();

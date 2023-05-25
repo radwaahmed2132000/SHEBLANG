@@ -1,4 +1,68 @@
-# Compiler-Project
+# SHEBLANG
+
+<div><img src="SHEBLANG.png" style="margin:auto"></div>
+
+SHEBLANG is a prototype interpretered language built for CMP23's fourth year compiler project. It can be interpretered and compiled to instructions for a stack machine. Its syntax is similar to C but it has some niceties like being able to define functions/enums inside of inner scopes. `testcases` contains our example/testcases. 
+
+## Example 
+```
+enum EnumTest { value1, value2, value3 };
+const float pi = 3.14;
+
+fn compute_area(float radius) float {
+	float r_squared = radius * radius;
+	return pi * r_squared;
+}
+
+#! Comments are written like this
+fn main() {
+	EnumTest e1 = EnumTest::value1;
+
+	int	a  = 1;
+	float c = 1.0;
+	int _underscored = 0;
+
+	float area_c = compute_area(c);
+
+	float d = a * c;
+
+	int accumulator = 0;
+	for(int i = 0; i < 10; i += 1) {
+		if (accumulator % 2 == 0) {
+			accumulator *= 7;
+		} else {
+			accumulator += i;
+		}
+	}
+
+	while(accumulator > 0) {
+		accumulator -= i;
+	}
+
+	do {
+		accumulator += 1;
+	} while(accumulator < 10);
+
+	bool flag = 0;
+	switch(accumulator) {
+		case 10: {
+			flag = 1;
+			accumulator = 0;
+		}
+		default: {
+			accumulator = 10;
+		}
+	}
+
+    print accumulator;
+    print flag;
+    print "area_c = ";
+    print area_c;
+}
+
+#! Main is just a function like any other, you must call it 
+main();
+```
 
 ## Prerequisites:
 - Have Flex/Lex and Yacc/Bison installed.

@@ -1,0 +1,43 @@
+enum State { Running, Stopped };
+
+#! Perhaps it'd be a good idea to make this a language feature?
+fn printState(State state) {
+    switch(state) {
+        case State::Running: {
+            print "Running!";
+        }
+        case State::Stopped: {
+            print "Stopped";
+        }
+    }
+}
+
+fn foo() {
+    enum ThingsToDo { CoolThing, CoolerThing, GoHome };
+
+    ThingsToDo bar = ThingsToDo::CoolThing;
+    State currentState = State::Running;
+    bool stillGoing = true;
+
+    printState(currentState);
+    while(stillGoing) {
+        switch(bar) {
+            case ThingsToDo::CoolThing: {
+                print "Just did a cool thing!";
+                bar = ThingsToDo::CoolerThing;
+            } 
+            case ThingsToDo::CoolerThing: {
+                print "I just did an even cooler thing!";
+                bar = ThingsToDo::GoHome;
+            } case ThingsToDo::GoHome: {
+                currentState = State::Stopped;
+                stillGoing = false;
+            }
+        }
+    }
+
+    printState(currentState);
+    print "Done doing cool things";
+}
+
+foo();
