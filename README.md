@@ -68,6 +68,15 @@ main();
 - Have Flex/Lex and Yacc/Bison installed.
 - Have Clang installed with support for C++20 (tested with clang 16).
   -   If you don't have clang installed, you can run `install_clang.sh`
+  
+## Project Architecture:
+- Lexical Analysis which identifies tokens for our language.
+- Syntax Analysis which is used to check if the written code for our language has correct syntax.
+- Parsing Analysis.
+- Semantic Analysis which is used to check if the written code for our language is semantically correct:
+    - Undeclared variables, length of parameters of functions when calling, assigning variables with their defined type.
+- Interpreter for executing the code.
+- Compiler for generating machine code language.
 
 ### How to run:
 - Run `./build.sh` with the arguments `interpreter` or `compiler` (or `i`/`c`) for short.
