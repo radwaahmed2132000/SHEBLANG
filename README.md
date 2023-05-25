@@ -68,6 +68,15 @@ main();
 - Have Flex/Lex and Yacc/Bison installed.
 - Have Clang installed with support for C++20 (tested with clang 16).
   -   If you don't have clang installed, you can run `install_clang.sh`
+  
+## Project Architecture:
+- Lexical Analysis which identifies tokens for our language.
+- Syntax Analysis which is used to check if the written code for our language has correct syntax.
+- Parsing Analysis.
+- Semantic Analysis which is used to check if the written code for our language is semantically correct:
+    - Undeclared variables, length of parameters of functions when calling, assigning variables with their defined type.
+- Interpreter for executing the code.
+- Compiler for generating machine code language.
 
 ### How to run:
 - Run `./build.sh` with the arguments `interpreter` or `compiler` (or `i`/`c`) for short.
@@ -83,3 +92,38 @@ main();
 - Download the [CodeLLDB extension](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
 - Build the interpreter or compiler using the instructions from the previous 
 - Modify `launch.json` to fit your use case. You'll mostly change `stdio`, which controls the files stdin, stdout, and stderr write to respectively. null means that the program will write to the default file/stream (usually the terminal).
+
+## Collaborators
+<!-- readme: collaborators -start -->
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/Hero2323">
+            <img src="https://avatars.githubusercontent.com/u/58619697?v=4" width="100;" alt="Abdelrahman Jamal"/>
+            <br />
+            <sub><b>Abdelrahman Jamal</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Iten-No-404">
+            <img src="https://avatars.githubusercontent.com/u/56697800?v=4" width="100;" alt="Iten-No-404"/>
+            <br />
+            <sub><b>Iten Elhak</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/radwaahmed2132000">
+            <img src="https://avatars.githubusercontent.com/u/56734728?v=4" width="100;" alt="radwaahmed2132000"/>
+            <br />
+            <sub><b>Radwa Ahmed</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/KnockerPulsar">
+            <img src="https://avatars.githubusercontent.com/u/12754772?v=4" width="100;" alt="Tarek Yasser"/>
+            <br />
+            <sub><b>Tarek Yasser</b></sub>
+        </a>
+    </td></tr>
+</table>
+<!-- readme: collaborators -end -->
