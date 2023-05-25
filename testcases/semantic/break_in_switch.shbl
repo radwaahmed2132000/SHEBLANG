@@ -1,0 +1,19 @@
+int x = 1;
+
+switch(x) {
+	default: {
+		print x;
+	} 
+
+	case 1: {
+		int i = x * 2 + 3;
+		print i;
+		break;
+	}
+}
+===
+Error at line: 11. Break statements are valid inside for loops, while loops, or do while loops only.
+Error in line number: 11 .The case body of the case statement is not valid
+===
+Error at line: 11. Break statements are valid inside for loops, while loops, or do while loops only.
+Error in line number: 11 .The case body of the case statement is not valid

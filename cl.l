@@ -122,7 +122,7 @@ nodeType *id(const char* id);
             }
 
 [ \t]+        ;       /* ignore whitespace */
-
+"#!".*        ;       /* Ignore comments `#! this is a comment!` */
 [\n]            currentLineNo++;  
 .               yyerror("Unknown character");
 %%

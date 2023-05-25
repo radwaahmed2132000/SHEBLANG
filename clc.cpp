@@ -109,14 +109,12 @@ int compile_switch(switchNodeType &sw) {
     Value var_name = ex(sw.var);
 
     // Check cli.cpp for an explanation of why we're collecting and reversing.
-    nodeType* head = sw.case_list_head;
-
-    auto cases = std::get<caseNodeType>(head->un).toVec();
+    auto cases = sw.caseListTail->as<caseNodeType>().toVec();
     std::vector<int> labels; 
     labels.reserve(cases.size());
     for(int i = 0; i < cases.size(); i++) { labels.push_back(lbl++); }
 
-    sw.exit_label = lbl++;
+    sw.exitLabel = lbl++;
 
     for (int i = 0; i < cases.size(); i++) {
         if(cases[i]->isDefault()) { default_case_index = i; continue; }
@@ -132,7 +130,7 @@ int compile_switch(switchNodeType &sw) {
     if (default_case_index.has_value()) {
         ex(cases[default_case_index.value()]->caseBody);
     }
-    printf("\tjmp\tL%03d\n", sw.exit_label);
+    printf("\tjmp\tL%03d\n", sw.exitLabel);
 
     // Emit the code that corresponds to each case.
     for(int i = 0; i < cases.size(); i++) {
@@ -140,10 +138,10 @@ int compile_switch(switchNodeType &sw) {
 
         printf("L%03d:\n", labels[i]);
         ex(cases[i]->caseBody);
-        printf("\tjmp\tL%03d\n", sw.exit_label);
+        printf("\tjmp\tL%03d\n", sw.exitLabel);
     }
 
-    printf("L%03d:\n", sw.exit_label);
+    printf("L%03d:\n", sw.exitLabel);
 
     return 0;
 }
@@ -151,7 +149,7 @@ int compile_switch(switchNodeType &sw) {
 void convPushedVar(nodeType* nodePtr) {
     auto nodeType = std::visit(
         Visitor {
-            [&](idNodeType& id) {    return varSymTableEntry(id.id, nodePtr->currentScope).type; },
+            [&](idNodeType& id) {    return getSymEntry(id.id, nodePtr->currentScope).type; },
             [](conNodeType& con) { return con.getType(); },
             [](auto _default) { return std::string(""); }
         },
@@ -195,8 +193,8 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(enumUseNode& eu) {
-        auto members =  enumSymTableEntry(eu.enumName, p->currentScope).enumMembers;
+    Value operator()(enumUseNode& eu) const {
+        auto members =  getEnumEntry(eu.enumName, p->currentScope).enumMembers;
         int memberValue = std::distance(members.begin(), std::find(members.begin(), members.end(), eu.memberName));
         return Value(memberValue);
     }
@@ -353,7 +351,7 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(oprNodeType &opr) {
+    Value operator()(oprNodeType &opr) const {
         int lbl1;
         int lbl2;
 

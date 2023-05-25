@@ -10,11 +10,9 @@ switch(a) {
 		switch(b) {
 			case 2: {
 				print 2;
-				break;
 			}
 			case 3: {
 				print b;
-				break;
 			}
 		}
 		int c = 5;

@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/shbl_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["test.shbl", null, null]
+            "stdio": ["testcases/logical/fib.shbl", null, null]
         },
         {
             "name": "Launch Compiler",

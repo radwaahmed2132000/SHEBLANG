@@ -15,7 +15,12 @@ generate_code() {
 }
 
 build() {
-	clang++-16 -ggdb -stdlib=libc++ -std=c++17 setup_scopes.cpp value_operators.cpp node_constructors.cpp cls.cpp lex.yy.c y.tab.c $1 -o $2 -Wno-write-strings 		# compile/link
+    # Make sure no backslash is followed by a space!
+	clang++-16 \
+        -ggdb -stdlib=libc++ -std=c++17 \
+        -Wno-write-strings -Wno-format-security \
+        semantic_utils.cpp setup_scopes.cpp value_operators.cpp node_constructors.cpp cls.cpp lex.yy.c y.tab.c \
+        $1 -o $2
 }
 
 interpreter() {
@@ -42,5 +47,3 @@ case $1 in
 	clean) clean;;
 	*) help ;;
 esac 
-
-

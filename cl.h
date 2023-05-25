@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <memory>
+#include <sstream>
 #include <vector>
 #include <variant>
 #include <string>
@@ -42,20 +43,17 @@ struct LinkedListNode {
 	}
 };
 
-/* constants */
-// Operators needed: +, -, *, /, %, &, |, ^, &&, ||, !
+/* For constants and literals. */
 using conNodeType = Value;
 
 /* identifiers */
 typedef struct {
     std::string id;                 /* key/index to sym array */
-    int lineNo;
-    struct nodeType* scopeNodePtr;         /* Used purely for scoping purposes */
 } idNodeType;
 
 /* operators */
 typedef struct {
-    int oper;                   /* operator */
+    int oper;                       /* operator id, can be one of '=', '+', NE, etc... */
     std::vector<struct nodeType*> op;
 } oprNodeType;
 
@@ -69,10 +67,9 @@ typedef struct caseNodeType: LinkedListNode<caseNodeType> {
 } caseNodeType;
 
 typedef struct {
-    int exit_label;
-    // TODO: remove break_encountered since switches break automatically on case completion.
-    bool break_encountered;
-    struct nodeType* var, *case_list_head;
+    int exitLabel;             // Needed for code generation, stores the label that cases jump to on completion 
+    struct nodeType* var;       // The variable we're switching on
+    struct nodeType* caseListTail; // The last case, it contains a pointer the the previous ones.
 } switchNodeType;
 
 typedef struct {
@@ -205,6 +202,15 @@ struct ScopeSymbolTables {
     std::unordered_map<std::string, functionNodeType> functions;
     std::unordered_map<std::string, enumNode> enums;
     ScopeSymbolTables* parentScope;
+
+    std::string symbolsToString() const {
+        std::stringstream ss;
+        for(const auto& [symbol, entry]: sym2) {
+            ss << symbol << '\t' << entry.type <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' <<entry.isConstant;
+        }
+
+        return ss.str();
+    }
 };
 
 #define NODE_TYPES                                                      \
@@ -219,8 +225,18 @@ typedef struct nodeType {
     std::string conversionType = ""; 
     bool addNewScope;
     ScopeSymbolTables* currentScope;
-    nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo), currentScope(nullptr) {}
-	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope) : un(inner_union), lineNo(lineNo), addNewScope(addNewScope), currentScope(nullptr) {}
+
+    nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
+	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope) : un(inner_union), lineNo(lineNo), addNewScope(addNewScope) {}
+
+    template<typename T> 
+    bool is() const { return std::holds_alternative<T>(un); }
+
+    template<typename T>
+    T* asPtr() { return std::get_if<T>(&un); }
+
+    template<typename T>
+    T& as() { return std::get<T>(un); }
 } nodeType;
 
 inline Result errorsOutput;
@@ -239,40 +255,41 @@ inline int currentLineNo = 1;
 
 
 // Scope analysis should guarantee that we can find the variable in some parent scope.
-static SymbolTableEntry& varSymTableEntry(std::string variableName, ScopeSymbolTables* scope) {
-    auto& symbols = scope->sym2;
+static ScopeSymbolTables* getSymbolScope(const std::string& symbol, ScopeSymbolTables* scope) {
+    if(scope == nullptr) return nullptr;
 
-    if(symbols.find(variableName) != symbols.end()) {
-        return symbols[variableName];
+    auto sym = scope->sym2;
+    auto fn = scope->functions;
+    auto en = scope->enums;
+
+    auto symFound = sym.find(symbol) != sym.end();
+    auto fnFound = fn.find(symbol) != fn.end();
+    auto enFound = en.find(symbol) != en.end();
+
+    if(symFound || fnFound || enFound) {
+        return scope;
     } 
 
-    return varSymTableEntry(variableName, scope->parentScope);
+    return getSymbolScope(symbol, scope->parentScope);
 }
 
-static auto& enumSymTable(std::string enumName, ScopeSymbolTables* scope) {
-    auto& enums = scope->enums;
 
-    if(enums.find(enumName) != enums.end()) {
-        return enums;
-    } 
-
-    return enumSymTable(enumName, scope->parentScope);
+// Used to get the symbol table entry for a specific variable.
+// For use in the compiler and interpereter only.
+static SymbolTableEntry& getSymEntry(const std::string& symbol, ScopeSymbolTables* scope) {
+    auto* symbolScope = getSymbolScope(symbol, scope);
+    assert(symbolScope);
+    return symbolScope->sym2[symbol];
 }
 
-static auto& fnSymTable(std::string fnName, ScopeSymbolTables* scope) {
-    auto& functions = scope->functions;
-
-    if(functions.find(fnName) != functions.end()) {
-        return functions;
-    } 
-
-    return fnSymTable(fnName, scope->parentScope);
+static functionNodeType& getFnEntry(const std::string& symbol, ScopeSymbolTables* scope) {
+    auto* fnScope = getSymbolScope(symbol, scope);
+    assert(fnScope);
+    return fnScope->functions[symbol];
 }
 
-static enumNode& enumSymTableEntry(std::string enumName, ScopeSymbolTables* scope) {
-    return enumSymTable(enumName, scope)[enumName];
-}
-
-static functionNodeType& fnSymTableEntry(std::string enumName, ScopeSymbolTables* scope) {
-    return fnSymTable(enumName, scope)[enumName];
+static enumNode& getEnumEntry(const std::string& symbol, ScopeSymbolTables* scope) {
+    auto* enumScope = getSymbolScope(symbol, scope);
+    assert(enumScope);
+    return enumScope->enums[symbol];
 }

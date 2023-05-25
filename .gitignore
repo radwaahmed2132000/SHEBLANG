@@ -1,11 +1,15 @@
 
-a.exe
 .vscode/settings.json
+.cache/
+
+compiler_commands.json
+
 shbl_interpreter
+shbl_compiler
+
 lex.yy.c
-lex.yy.c
+
 y.tab.c
 y.tab.h
-shbl_interpreter
-y.tab.c
-y.tab.h
+
+symtbl.log

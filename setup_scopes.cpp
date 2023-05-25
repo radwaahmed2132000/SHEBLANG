@@ -50,9 +50,6 @@ void printSymbolTables(){
     }
 }
 
-void appendSymbolTable(int i){
-
-}
 
 struct setup_scopes_visitor {
     nodeType* currentNodePtr;
@@ -61,11 +58,7 @@ struct setup_scopes_visitor {
         // Nothing needed here.
     }
 
-    void operator()(idNodeType& identifier) {
-        identifier.scopeNodePtr = currentNodePtr;
-    }
-
-    void operator()(VarDecl& vd) { 
+    void operator()(VarDecl& vd) const { 
         vd.type->currentScope = currentNodePtr->currentScope;
         vd.var_name->currentScope = currentNodePtr->currentScope;
 
@@ -73,7 +66,7 @@ struct setup_scopes_visitor {
         setup_scopes(vd.var_name);
     }
 
-    void operator()(VarDefn &vd) {
+    void operator()(VarDefn &vd) const {
         nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
 
         nt->currentScope = currentNodePtr->currentScope;
@@ -83,20 +76,16 @@ struct setup_scopes_visitor {
         setup_scopes(vd.initExpr);        
     }
 
-    void operator()(enumNode& en) {
+    void operator()(enumNode& en) const {
         // Nothing needed here.
         en.name->currentScope = currentNodePtr->currentScope;
         setup_scopes(en.name);
     }
 
-    void operator()(enumUseNode& eu) {
-        // Nothing needed here.
-    }
-
-    void operator()(caseNodeType &cs) {
+    void operator()(caseNodeType &cs) const {
         if(currentNodePtr->addNewScope)
         {
-            auto temp = currentNodePtr->currentScope;
+            auto* temp = currentNodePtr->currentScope;
             currentNodePtr->currentScope = new ScopeSymbolTables();
             currentNodePtr->currentScope->parentScope = temp;
             allSymbolTables.push_back(currentNodePtr->currentScope);
@@ -113,19 +102,14 @@ struct setup_scopes_visitor {
         }
     }
 
-    void operator()(switchNodeType& sw) {
+    void operator()(switchNodeType& sw) const {
         sw.var->currentScope = currentNodePtr->currentScope;
         setup_scopes(sw.var);
-        sw.case_list_head->currentScope = currentNodePtr->currentScope;
-        setup_scopes(sw.case_list_head);
+        sw.caseListTail->currentScope = currentNodePtr->currentScope;
+        setup_scopes(sw.caseListTail);
     }
 
-    void operator()(breakNodeType& br) {
-        //br.parent_switch->currentScope = currentNodePtr->currentScope;
-        //setup_scopes(br.parent_switch); /*FIXME: This might cause issues. Unsure as I'm not even sure breaks are needed*/
-    }
-
-    void operator()(FunctionCall& fc) {
+    void operator()(FunctionCall& fc) const {
         /* Loop over all expressions & add scopes */
         for(auto& c: fc.parameterExpressions) {
             if (c == nullptr || c->exprCode == nullptr) { continue; }
@@ -134,7 +118,7 @@ struct setup_scopes_visitor {
         }  
     }
 
-    void operator()(StatementList& sl) {
+    void operator()(StatementList& sl) const {
         if(startSymbolTable)
         {
             currentNodePtr->currentScope = new ScopeSymbolTables();
@@ -145,7 +129,7 @@ struct setup_scopes_visitor {
 
         if(currentNodePtr->addNewScope)
         {
-            auto temp = currentNodePtr->currentScope;
+            auto* temp = currentNodePtr->currentScope;
             currentNodePtr->currentScope = new ScopeSymbolTables();
             currentNodePtr->currentScope->parentScope = temp;
             allSymbolTables.push_back(currentNodePtr->currentScope);
@@ -157,10 +141,10 @@ struct setup_scopes_visitor {
         }
     }
 
-    void operator()(functionNodeType& fn) {
+    void operator()(functionNodeType& fn) const {
         // TODO: Revise this when doing the function logic. 
 
-        auto prevScope = currentNodePtr->currentScope;
+        auto* prevScope = currentNodePtr->currentScope;
         currentNodePtr->currentScope = fn.statements->currentScope = new ScopeSymbolTables();
         fn.statements->currentScope->parentScope = currentNodePtr->currentScope->parentScope = prevScope;
         // FIXME: If a function takes no parameters, the list will have one
@@ -176,7 +160,7 @@ struct setup_scopes_visitor {
         setup_scopes(fn.statements);
     }
 
-    void operator()(doWhileNodeType& dw) {
+    void operator()(doWhileNodeType& dw) const {
         if(std::holds_alternative<StatementList>(dw.loop_body->un))
         {
             dw.condition->currentScope = currentNodePtr->currentScope;
@@ -193,7 +177,7 @@ struct setup_scopes_visitor {
         setup_scopes(dw.loop_body);
     }
 
-    void operator()(whileNodeType& w) {
+    void operator()(whileNodeType& w) const {
         if(std::holds_alternative<StatementList>(w.loop_body->un))
         {
             w.condition->currentScope = currentNodePtr->currentScope;
@@ -210,7 +194,7 @@ struct setup_scopes_visitor {
         setup_scopes(w.loop_body);
     }
 
-    void operator()(forNodeType& f) {
+    void operator()(forNodeType& f) const {
         if(std::holds_alternative<StatementList>(f.loop_body->un))
         {
             f.init_statement->currentScope = currentNodePtr->currentScope;
@@ -220,7 +204,7 @@ struct setup_scopes_visitor {
         }
         else
         {
-            auto newTable = new ScopeSymbolTables();
+            auto* newTable = new ScopeSymbolTables();
             newTable->parentScope = currentNodePtr->currentScope;
             allSymbolTables.push_back(newTable);
             f.init_statement->currentScope = newTable;
@@ -234,7 +218,7 @@ struct setup_scopes_visitor {
         setup_scopes(f.loop_body);
     }
 
-    void operator()(oprNodeType& opr) {
+    void operator()(oprNodeType& opr) const {
         for (auto *op : opr.op) {
             op->currentScope = currentNodePtr->currentScope;
             setup_scopes(op);

@@ -1,7 +1,10 @@
 fn test() int {
    return 42; 
 }
+
+#! Look at this cool trick I can do!
 int x = 10 + test();
+
 print x;
 ===
 52

@@ -105,7 +105,7 @@ stmt:
         | IF '(' ')' stmt                         { $$ = $4; printf("%s",std::string("Syntax Error at line "+std::to_string(yylineno)+". If's condition can\'t be empty.\n").c_str()); }
         | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
-        | SWITCH '(' expr ')' case                {  currentLineNo = @1.first_line; $$ = sw($3, $5); set_break_parent($5, $$); }
+        | SWITCH '(' expr ')' case                {  currentLineNo = @1.first_line; $$ = sw($3, $5); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }

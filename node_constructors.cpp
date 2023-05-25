@@ -11,9 +11,6 @@
 #include "cl.h"
 #include "node_constructors.h"
 
-#include "y.tab.h"
-
-extern int yylineno;  
 
 #define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}), currentLineNo)
 
@@ -44,12 +41,15 @@ nodeType *opr(int oper, int nops, ...) {
 // Create an identifier node.
 nodeType *id(const char* id) {
     /* copy information */
-    auto idNode = idNodeType{std::string(id), currentLineNo};
+    auto idNode = idNodeType{std::string(id)};
     return new nodeType(idNode, currentLineNo);
 }
 
-nodeType *sw(nodeType* var, nodeType* case_list_head) {
-    auto switchNode = std::variant<NODE_TYPES>(switchNodeType{ 0, false, var, case_list_head });
+nodeType *sw(nodeType* var, nodeType* caseListTail) {
+    assert(caseListTail->is<caseNodeType>());
+
+    auto switchNode = std::variant<NODE_TYPES>(switchNodeType{ 0, var, caseListTail });
+
     return new nodeType(switchNode, currentLineNo);
 }
 
@@ -97,22 +97,6 @@ nodeType* fn(nodeType* name, VarDecl* paramsTail, nodeType* return_type, nodeTyp
     assert(std::holds_alternative<idNodeType>(name->un));
     assert(std::holds_alternative<idNodeType>(return_type->un));
     assert(std::holds_alternative<StatementList>(statements->un));
-
-    auto returnType = std::get<idNodeType>(return_type->un).id;
-
-    // TODO: probably move this to semantic analysis
-    if(returnType != "void") {
-        auto stmts = std::get<StatementList>(statements->un).toVec();
-        auto isReturn = [](const StatementList* s) {
-            if (const auto *opr = std::get_if<oprNodeType>(&s->statementCode->un); opr) {
-                return opr->oper == RETURN;
-            }
-            return false;
-        };
-        bool containsReturn = std::any_of(stmts.begin(), stmts.end(), isReturn);
-
-        assert(containsReturn);
-    }
 
     return new nodeType(functionNodeType{return_type, name, paramsTail, statements}, currentLineNo);
 }

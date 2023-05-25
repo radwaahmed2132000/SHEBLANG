@@ -26,7 +26,7 @@
 
 #define POST_OP(oper) {                                                \
         auto nameStr = std ::get<idNodeType>(opr.op[0]->un).id;        \
-        auto& varEntry = varSymTableEntry(nameStr, p->currentScope);   \
+        auto& varEntry = getSymEntry(nameStr, p->currentScope);        \
         auto &varRef = varEntry.getRef();                              \
         Value temp = varRef;                                           \
         varRef = varRef oper Value(1);                                 \
@@ -40,9 +40,9 @@ Value evaluate_switch(switchNodeType& sw) {
     std::optional<int> default_case_index = {};
     Value var_value = ex(sw.var);
 
-    assert(std::holds_alternative<caseNodeType>(sw.case_list_head->un));
+    assert(std::holds_alternative<caseNodeType>(sw.caseListTail->un));
 
-    nodeType* head = sw.case_list_head;
+    nodeType* head = sw.caseListTail;
     auto cases = std::get<caseNodeType>(head->un).toVec();
 
     bool foundCase = false;
@@ -86,13 +86,13 @@ struct ex_visitor {
     }
 
     Value operator()(idNodeType& identifier) const {
-        auto& varSymbolTableEntry = varSymTableEntry(identifier.id, p->currentScope);
+        auto& varSymbolTableEntry = getSymEntry(identifier.id, p->currentScope);
         return varSymbolTableEntry.getValue();
     }
 
     Value operator()(VarDecl& vd) const {
         auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
-        auto& varSymbolTableEntry = varSymTableEntry(nameStr, p->currentScope);
+        auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
 
         varSymbolTableEntry.setValue(ex(varSymbolTableEntry.initExpr));
 
@@ -103,14 +103,14 @@ struct ex_visitor {
         auto nameStr = std::get<idNodeType>(vd.decl->var_name->un).id;
         auto val = ex(vd.initExpr);
 
-        auto& varSymbolTableEntry = varSymTableEntry(nameStr, p->currentScope);
+        auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
         varSymbolTableEntry.setValue(val);
 
         return Value(0);
     }
 
     Value operator()(enumUseNode& eu) const {
-        auto& e = enumSymTableEntry(eu.enumName, p->currentScope);
+        auto& e = getEnumEntry(eu.enumName, p->currentScope);
         auto memberIter = std::find(e.enumMembers.begin(), e.enumMembers.end(), eu.memberName);
         int enumMemberValue = std::distance(e.enumMembers.begin(), memberIter);
         return Value(enumMemberValue);
@@ -123,7 +123,6 @@ struct ex_visitor {
     Value operator()(breakNodeType& br) {
         std::visit(
                 Visitor {
-                    [](switchNodeType& sw) { sw.break_encountered = true; },
                     [](whileNodeType& w) { w.break_encountered = true; },
                     [](forNodeType& f) { f.break_encountered = true; },
                     [](doWhileNodeType& dw) { dw.break_encountered = true; },
@@ -134,29 +133,16 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(FunctionCall& fc) {
+    Value operator()(FunctionCall& fc) const {
         // TODO: Function calls
 
         // For each argument, find the corresponding parameter in the symbol table,
         // then insert the argument value. 
 
-        auto* currentScope = p->currentScope;
         
-        using FnIter = std::unordered_map<std::string, functionNodeType>::iterator;
-        FnIter fnIter;
-        while(currentScope != nullptr) {
-            auto fns = currentScope->functions;
-            fnIter = fns.find(fc.functionName);
-            if(fnIter != fns.end()) {
-                break;
-            } else {
-                currentScope = currentScope->parentScope;
-            }
-        }
-
         // We can dereference the iterator just fine because symantic analysis 
         // succeed unless we can reach the function in its proper scope.
-        auto& fnRef = fnIter->second;
+        auto& fnRef = getFnEntry(fc.functionName, p->currentScope);
         auto fnParams = fnRef.parametersTail->toVec();
         auto* fnScope = fnRef.statements->currentScope;
 
@@ -178,14 +164,14 @@ struct ex_visitor {
 
         for(const auto& statement: statements) {
             auto ret = ex(statement->statementCode);
-            if(std::holds_alternative<breakNodeType>(statement->statementCode->un)) {
-                return Value(0);
-            } else if (
-                auto *opr = std::get_if<oprNodeType>( &(statement->statementCode->un));
-                opr != nullptr && opr->oper == RETURN
-            ) {
-                return ret;
-            }
+
+            bool isBreak = statement->statementCode->is<breakNodeType>();
+
+            const auto *opr = std::get_if<oprNodeType>(&statement->statementCode->un);
+            bool isReturn = (opr != nullptr && opr->oper == RETURN);
+
+            if(isBreak) { return Value(0); } 
+            if(isReturn) { return ret; }
         }
 
         return Value(0);
@@ -262,7 +248,7 @@ struct ex_visitor {
                 auto varName = varNameOpt.value();
 
                 // Get the symbol table entry of the scope containing the variable.
-                auto& symTable = varSymTableEntry(varName, p->currentScope);
+                auto& symTable = getSymEntry(varName, p->currentScope);
 
                 // Assign the value in the scope table.
                 return visit(

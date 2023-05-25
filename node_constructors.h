@@ -12,7 +12,7 @@ nodeType *con(char* sValue);
 nodeType *opr(int oper, int nops, ...);
 nodeType *id(const char* id);
 
-nodeType *sw(nodeType* var, nodeType* case_list_head);
+nodeType *sw(nodeType* var, nodeType* caseListTail);
 nodeType *cs(nodeType* labelExpr, nodeType* caseBody);
 nodeType *br();
 
