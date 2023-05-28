@@ -14,7 +14,7 @@
 #include <format>
 
 #include "cl.h"
-#include "y.tab.h"
+#include "parser.h"
 #include "result.h"
 #include "semantic_utils.h"
 #include "template_utils.h"

@@ -1,15 +1,17 @@
 
 .vscode/settings.json
 .cache/
+build/
 
 compiler_commands.json
 
 shbl_interpreter
 shbl_compiler
 
-lex.yy.c
-
-y.tab.c
-y.tab.h
-
 symtbl.log
+
+lexer.h
+lexer.cc
+
+parser.h
+parser.cc

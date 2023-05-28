@@ -5,12 +5,12 @@ help() {
 }
 
 clean() {
-	rm y.tab.c y.tab.h lex.yy.c shbl_interpreter shbl_compiler shbl_graph
+	rm y.tab.c parser.h lex.yy.c shbl_interpreter shbl_compiler shbl_graph
 }
 
 generate_code() {
 	set -xe
-	bison -y -d $debug cl.y            # create y.tab.h, y.tab.c
+	bison -y -d $debug cl.y            # create parser.h, y.tab.c
 	lex cl.l                           # create lex.yy.c
 }
 

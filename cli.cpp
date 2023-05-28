@@ -10,7 +10,7 @@
 
 #include "cl.h"
 #include "result.h"
-#include "y.tab.h"
+#include "parser.h"
 
 #define BOP_CASE(case_value, oper) \
             case case_value: return ex(opr.op[0]) oper ex(opr.op[1]);

@@ -61,7 +61,7 @@ arg_parser.add_argument("category", help="The category of test cases to run", ch
 arg_parser._optionals
 args = arg_parser.parse_args()
 
-binary = f"./shbl_{args.shbl_binary_type}"
+binary = f"./SHEBLANG_{args.shbl_binary_type}"
 
 if not os.path.exists(binary):
     print(f"Binary {binary} does not exist")

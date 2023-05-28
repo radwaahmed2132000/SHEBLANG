@@ -1,5 +1,5 @@
 #include "cl.h"
-#include "y.tab.h"
+#include "parser.h"
 
 std::string getReturnType(nodeType* returnStatement);
 

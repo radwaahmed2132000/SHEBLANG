@@ -4,7 +4,7 @@
 #include <variant>
 #include <vector>
 #include "cl.h"
-#include "y.tab.h"
+#include "parser.h"
 
 int ScopeSymbolTables::tableCount = 0;
 

@@ -11,7 +11,7 @@
 #include <unordered_set>
 
 #include "cl.h"
-#include "y.tab.h"
+#include "parser.h"
 
 // Meant to prevent `push 0` when an `ex()` call returns 0.
 #define STACK_HACK(var)\

@@ -3,7 +3,7 @@
 #include <cstring>
 #include <string>
 #include "cl.h"
-#include "y.tab.h"
+#include "parser.h"
 void yyerror(char *);
 nodeType *id(const char* id);
 %}

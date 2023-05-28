@@ -21,7 +21,7 @@ nodeType *con(char cValue)  { return CON_INIT(p, cValue); }
 nodeType *con(char* sValue) { return CON_INIT(p, std::string(sValue)); }
 
 // Create an operator node with a variable number of inputs (usually 2)
-// Note that `oper` is an enum value (or #ifdef), you can find the definintions in `y.tab.h`.
+// Note that `oper` is an enum value (or #ifdef), you can find the definintions in `parser.h`.
 nodeType *opr(int oper, int nops, ...) {
     va_list ap;
     int i;
