@@ -1,3 +1,9 @@
+# mkdir build
+# cd build
+# cmake ../ -DBISON_DEBUG:STRING="--debug" # For debugging Bison
+# cmake ../ -DBISON_DEBUG:STRING="" # To disable Bison debugging
+# make -j$(nproc) SHEBLANG_compiler # Or SHEBLANG_interpreter
+
 cmake_minimum_required(VERSION 3.0.0)
 project(SHEBLANG VERSION 0.1.0)
 
@@ -11,7 +17,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG -Wall -pedantic-errors")
 set(CMAKE_CXX_FLAGS "-stdlib=libc++ -Wno-write-strings -Wno-format-security")
 
 set(CMAKE_CXX_COMPILER "clang++-16")
-
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY          ${PROJECT_SOURCE_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG    ${PROJECT_SOURCE_DIR}/debug)
@@ -27,7 +32,7 @@ set(LEXER_OUT "${PARSER_DIR}/lexer.cc")
 set(PARSER_OUT "${PARSER_DIR}/parser.cc")
 
 flex_target(LEXER "${SRC_DIR}/lexer.l" "${LEXER_OUT}" DEFINES_FILE "${PARSER_DIR}/lexer.h")
-bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h")
+bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h" COMPILE_FLAGS ${BISON_DEBUG})
 
 add_flex_bison_dependency(LEXER PARSER)
 
