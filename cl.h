@@ -60,7 +60,7 @@ typedef struct caseNodeType: LinkedListNode<caseNodeType> {
     struct  nodeType* labelExpr, * caseBody;
 
     caseNodeType(): caseBody(nullptr), LinkedListNode(nullptr) {}
-    caseNodeType(nodeType* labelExpr, nodeType* caseBody): labelExpr(labelExpr), caseBody(caseBody) {}
+    caseNodeType(nodeType* labelExpr, nodeType* caseBody): labelExpr(labelExpr), caseBody(caseBody) { }
 
     bool isDefault() const { return (labelExpr == nullptr); }
 } caseNodeType;

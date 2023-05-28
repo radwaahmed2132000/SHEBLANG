@@ -109,7 +109,8 @@ for test_case in test_cases:
     else:
         failed += 1
         print(f"FAILED: {test_case.filename}")
-        print(f"Expected output:\n{expected_output}")
+        print(f"\nExpected output:\n{expected_output}")
+        print("=" * 80)
         print(f"Actual output:\n{actual_output}")
 
 print(f"\n PASSED: {passed}, FAILED: {failed}, SKIPPED: {skipped}")

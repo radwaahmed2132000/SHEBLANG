@@ -1,8 +1,8 @@
 char myChar = 'c;
 print myChar;
 ===
-Syntax Error! Missing Single Quote (') at line 1!
+Syntax error at line 1: Missing closing quote (')
 syntax error
 ===
-Syntax Error! Missing Single Quote (') at line 1!
+Syntax error at line 1: Missing closing quote (')
 syntax error

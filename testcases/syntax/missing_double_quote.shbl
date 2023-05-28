@@ -2,8 +2,8 @@ char i = '1';
 string s = "Hello World;
 print s;
 ===
-Syntax Error! Missing Double Quote (") at line 2!
+Syntax error at line 3: Missing closing double quote (")!
 syntax error
 ===
-Syntax Error! Missing Double Quote (") at line 2!
+Syntax error at line 3: Missing closing double quote (")!
 syntax error

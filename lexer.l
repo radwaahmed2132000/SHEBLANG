@@ -1,83 +1,112 @@
 %{
-#include <stdlib.h>
-#include <cstring>
-#include <string>
+#include <iostream>
+
 #include "cl.h"
 #include "parser.h"
-void yyerror(char *);
-nodeType *id(const char* id);
 %}
+
 %option yylineno
+%option noyywrap
+
+CHAR_OR_ESCAPE [^']?|\\[nt']
+STRING_OR_ESCAPE [^"]|\\[nt\\"]
+
+/* Matches single quotes `''` containing `\n`, `\t`, `\'`, or any character other than
+ * `'` (`'''` is illegal, but `'\''` is not) */ 
+CHAR                '({CHAR_OR_ESCAPE})'
+
+/* Same as a character, but contains multiple ones (illegal). For example `'bad char'` */
+SINGLE_QUOTE_STRING '({CHAR_OR_ESCAPE})*'
+
+/* Matches strings like the following: `'unclosed char` (note the missing closing `'`) */
+UNCLOSED_CHAR       '({CHAR_OR_ESCAPE})[^'] 
+
+/* Like characters, but uses `""` and can contain 0 or more characters. Note
+ * that the outer double quotes must be surrounded by [] `["]`*/
+STRING              ["]({STRING_OR_ESCAPE})*["]
+
+/* Same as normal strings, but missing the closing string */
+UNCLOSED_STRING     ["]({STRING_OR_ESCAPE})*[^"] 
+
+DIGIT               [0-9]
+
+INTEGER_NUMBER      {DIGIT}{DIGIT}*
+
+/* Matches floats like `.9`, `0.2`, `1.0` */
+FLOAT_NUMBER        {DIGIT}*\.{DIGIT}+
+
+
+SCIENTIFIC_EXPONENTIAL ([eE][+-]?[0-9]+)
+
+/* Constists of two rules, the first matches `2.e+9` or `2.1e-3` for example.
+ * While the second matches .9e12 */
+SCIENTIFIC_NOTATION ({DIGIT}+(\.{DIGIT}*)?{SCIENTIFIC_EXPONENTIAL}?|\.{DIGIT}+{SCIENTIFIC_EXPONENTIAL}?)
+
+IDENT [a-zA-Z_][a-zA-Z_0-9]* 
+
+COMMENT "#!".*
 %%
 
-[']([^']?|[\\][nt'])['] {
-                yylval.lineNo = yylineno;
-                yylval.cValue = std::string(yytext)[1];
-                return CHARACTER;
-            }
+{CHAR} {
+    yylval.lineNo = yylineno;
+    yylval.cValue = yytext[1]; // yytext[0] seems to contain nothing?
+    return CHARACTER;
+}
 
-[']([^']?|[\\][nt'])*['] {
-                std::string mes = "Syntax Error at line "+std::to_string(yylineno)+"!\nCannot use single quotes for strings. Instead use \"\" ";
-                printf("%s",mes.c_str());
-            }
+{SINGLE_QUOTE_STRING} {
+    std::cerr << "Syntax error at line " << yylineno  << ": "
+              << "Cannot use single quotes for strings. Instead use \"\"\n";
+}
 
-[']([^']?|[\\][nt'])[^'] {
-                std::string mes = "Syntax Error! Missing Single Quote (\') at line "+std::to_string(yylineno)+"!\n";
-                printf("%s",mes.c_str());
-            }
+{UNCLOSED_CHAR} {
+    std::cerr << "Syntax error at line " << yylineno << ": " 
+              << "Missing closing quote (\')\n";
+}
 
-["]([^"]|[\\][nt"])*["] {
-                yylval.lineNo = yylineno;
-                std::string temp = std::string(yytext);
-                temp = temp.substr(1,temp.size()-2);
-                yylval.sValue = new char[temp.length()];
-                strcpy(yylval.sValue, temp.c_str());
-                return STR;
-            }
+{STRING} {
+    yylval.lineNo = yylineno;
 
-["]([^"]|[\\][nt"])*[^"] {
-                std::string mes = "Syntax Error! Missing Double Quote (\") at line "+std::to_string(yylineno-1)+"!\n";
-                printf("%s",mes.c_str());
-            }
+    int stringLength = std::strlen(yytext);
+    yylval.sValue = new char[stringLength];
 
-0           {
-                yylval.lineNo = yylineno;
-                yylval.iValue = atoi(yytext);
-                return INTEGER;
-            }
+    std::strcpy(yylval.sValue, yytext);
 
-[1-9][0-9]* {
-                yylval.iValue = atoi(yytext);
-                return INTEGER;
-            }
+    return STR;
+}
 
-[0-9]+[.][0-9]+ {
-                yylval.lineNo = yylineno;
-                yylval.fValue = atof(yytext);
-                return REAL;
-            }
+{UNCLOSED_STRING} {
+    std::cerr << "Syntax error at line " << yylineno << ": "
+              << "Missing closing double quote (\")!\n";
+}
 
-([0-9]+([.][0-9]*)?([eE][+-]?[0-9]+)?|[.][0-9]+([eE][+-]?[0-9]+)?) {
-                yylval.fValue = atof(yytext);
-                return REAL;
-            }
+{INTEGER_NUMBER} {
+    yylval.iValue = std::atoi(yytext);
+    return INTEGER;
+}
+
+
+{FLOAT_NUMBER}|{SCIENTIFIC_NOTATION} {
+    yylval.lineNo = yylineno;
+    yylval.fValue = std::atof(yytext);
+    return REAL;
+}
 
 [-()<>=+*/%!~&|^;{}.,:] {
-                yylval.lineNo = yylineno;
-                return *yytext;
-             }
+    yylval.lineNo = yylineno;
+    return *yytext;
+}
 
 "true"      {
-                yylval.lineNo = yylineno;
-                yylval.bValue = true;
-                return BOOLEAN;
-            }
+    yylval.lineNo = yylineno;
+    yylval.bValue = true;
+    return BOOLEAN;
+}
 
 "false"     {
-                yylval.lineNo = yylineno;
-                yylval.bValue = false;
-                return BOOLEAN;
-            }        
+    yylval.lineNo = yylineno;
+    yylval.bValue = false;
+    return BOOLEAN;
+}        
 
 "++"            return PP;
 "--"            return MM;
@@ -115,17 +144,15 @@ nodeType *id(const char* id);
 "return"        return RETURN;
 "::"            return SCOPE_RES;
 
-[a-zA-Z_][a-zA-Z_0-9]* { 
-                yylval.lineNo = yylineno;
-                yylval.nPtr = id(yytext);
-                return IDENTIFIER;
-            }
+{IDENT} { 
+    yylval.lineNo = yylineno;
+    yylval.nPtr = id(yytext);
+    return IDENTIFIER;
+}
 
-[ \t]+        ;       /* ignore whitespace */
-"#!".*        ;       /* Ignore comments `#! this is a comment!` */
+[ \t]+          ;       /* ignore whitespace */
+{COMMENT}       ;       /* Ignore comments `#! this is a comment!` */
 [\n]            currentLineNo++;  
 .               yyerror("Unknown character");
+
 %%
-int yywrap(void) {
-    return 1;
-}
