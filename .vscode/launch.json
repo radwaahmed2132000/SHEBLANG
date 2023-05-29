@@ -8,9 +8,9 @@
             "name": "Launch Interpreter",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/debug/SHEBLANG_interpreter",
+            "program": "${workspaceFolder}/SHEBLANG_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/semantic/undeclared_switch_case_nested.shbl", null, null],
+            "stdio": ["testcases/logical/while_basic.shbl", null, null],
         },
         {
             "name": "Launch Compiler",

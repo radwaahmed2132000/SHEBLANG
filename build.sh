@@ -16,8 +16,6 @@ cmake_prep() {
 interpreter() {
 	cmake_prep
 	make -j$(nproc) SHEBLANG_interpreter 
-    cd ../
-    cp ./debug/SHEBLANG_interpreter ./
 }
 
 compiler() { 

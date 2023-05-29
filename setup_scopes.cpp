@@ -4,6 +4,7 @@
 #include <variant>
 #include <vector>
 #include "cl.h"
+#include "nodes.h"
 #include "parser.h"
 
 int ScopeSymbolTables::tableCount = 0;
@@ -229,6 +230,13 @@ struct setup_scopes_visitor {
             op->currentScope = currentNodePtr->currentScope;
             setup_scopes(op);
         }
+    }
+
+    void operator()(BinOp& bin) const {
+        bin.lOperand->currentScope = currentNodePtr->currentScope;
+        bin.rOperand->currentScope = currentNodePtr->currentScope;
+        setup_scopes(bin.lOperand);
+        setup_scopes(bin.rOperand);
     }
 
     // the default case:

@@ -9,17 +9,18 @@
 #include <optional>
 
 #include "cl.h"
+#include "nodes.h"
 #include "result.h"
 #include "parser.h"
 
 #define BOP_CASE(case_value, oper) \
-            case case_value: return ex(opr.op[0]) oper ex(opr.op[1]);
+            case case_value: return ex(bop.lOperand) oper ex(bop.rOperand);
                              
 #define UOP_CASE(case_value, oper) \
             case case_value: return oper(ex(opr.op[0]));
 
 #define BOOL_BOP_CASE(case_value, oper) \
-            case case_value: return Value(ex(opr.op[0]) oper ex(opr.op[1]));
+            case case_value: return Value(ex(bop.lOperand) oper ex(bop.rOperand));
                              
 #define BOOL_UOP_CASE(case_value, oper) \
             case case_value: return Value(oper (ex(opr.op[0])));
@@ -34,6 +35,43 @@
     }
 
 Value ex(nodeType* p);
+
+Value assignToVar(BinOp& bop, nodeType* p) {
+    using std::optional, std::string, std::make_optional, std::visit;
+    using namespace std::string_literals;
+
+    // Get the variable name based on the LHS's type.
+    optional<string> varNameOpt = visit(
+            Visitor {
+                [](VarDecl& varDecl)              { return make_optional(varDecl.var_name->as<idNodeType>().id); },
+                [](VarDefn& varDefn)              { return make_optional(varDefn.decl->var_name->as<idNodeType>().id); },
+                [](idNodeType& idNode)            { return make_optional(idNode.id); },
+                [](auto _default) -> optional<string> {  return std::nullopt; }
+            } ,
+            *bop.lOperand
+        );
+
+    if(!varNameOpt.has_value()) { std::cout << "Invalid assignment expression"; }
+    auto varName = varNameOpt.value();
+
+    // Get the symbol table entry of the scope containing the variable.
+    auto& symTable = getSymEntry(varName, p->currentScope);
+
+    // Assign the value in the scope table.
+    auto ret = visit(
+        Visitor{
+            [&](VarDecl &varDecl) { return ex(bop.rOperand); },
+            [&](VarDefn &varDefn) { return ex(varDefn.initExpr); },
+            [&](idNodeType &idNode) { return ex(bop.rOperand); },
+            [](auto _default) { return Value(0); } // Should never reach here
+        },
+        *bop.lOperand
+    );
+
+    symTable.setValue(ret);
+
+    return ret;
+}
 
 Value evaluate_switch(switchNodeType& sw) {
     std::optional<int> matching_case_index = {};
@@ -73,16 +111,7 @@ struct ex_visitor {
     nodeType* p;
 
     Value operator()(conNodeType& con) {
-        return std::visit(
-                Visitor {
-                    [](int iValue)         { return Value(iValue); },
-                    [](bool bValue)        { return Value(bValue); },
-                    [](char cValue)        { return Value(cValue); },
-                    [](float fValue)       { return Value(fValue); },
-                    [](std::string sValue) { return Value(sValue); },
-                },
-                con
-        );
+        return con;
     }
 
     Value operator()(idNodeType& identifier) const {
@@ -209,80 +238,14 @@ struct ex_visitor {
             case PRINT:  
             {
                 Value exprValue = ex(opr.op[0]);
-                std::visit(
-                    Visitor {
-                        [](int iValue)         { printf("%d\n", iValue); },
-                        [](bool bValue)        { printf("%s\n", bValue? "true": "false"); },
-                        [](char cValue)        { printf("%c\n", cValue); },
-                        [](float fValue)       { printf("%f\n", fValue); },
-                        [](std::string sValue) { printf("%s\n", sValue.c_str()); },
-                    },
-                    exprValue
-                );
-                std::cout << std::flush;
+                std::cout << exprValue.toString() << std::flush;
                 return Value(0);
             }
-            case '=':       {
-
-                using std::optional, std::string, std::make_optional, std::visit;
-                using namespace std::string_literals;
-
-                // Get the variable name based on the LHS's type.
-                optional<string> varNameOpt = visit(
-                    Visitor {
-                        [&opr](VarDecl& varDecl)              { return make_optional(varDecl.var_name->as<idNodeType>().id); },
-                        [&opr](VarDefn& varDefn)              { return make_optional(varDefn.decl->var_name->as<idNodeType>().id); },
-                        [&opr](idNodeType& idNode)            { return make_optional(idNode.id); },
-                        [](auto _default) -> optional<string> {  return std::nullopt; }
-                    } ,
-                    *opr.op[0]
-                );
-
-                if(!varNameOpt.has_value()) { std::cout << "Invalid assignment expression"; }
-                auto varName = varNameOpt.value();
-
-                // Get the symbol table entry of the scope containing the variable.
-                auto& symTable = getSymEntry(varName, p->currentScope);
-
-                // Assign the value in the scope table.
-                return visit(
-                    Visitor {
-                        [&](VarDecl& varDecl) { return symTable.setValue(ex(opr.op[1])).getValue(); },
-                        [&](VarDefn& varDefn) { return symTable.setValue(ex(varDefn.initExpr)).getValue(); },
-                        [&](idNodeType& idNode) { return symTable.setValue(ex(opr.op[1])).getValue(); },
-                        [](auto _default) { return Value(0); }  // Should never reach here
-                    } ,
-                    *opr.op[0]
-                );
-            }
-
             case RETURN:
                 return ex(opr.op[0]);
 
-            BOP_CASE('+',+)
-            BOP_CASE('-',-)
-            BOP_CASE('*',*) 
-            BOP_CASE('/',/) 
-
-            BOP_CASE('&',&) 
-            BOP_CASE('|',|) 
-            BOP_CASE('^',^)
-            UOP_CASE('~',~) 
-
-            BOP_CASE(LS,<<)
-            BOP_CASE(RS,>>)
-            BOP_CASE('%',%) 
-
-            BOOL_BOP_CASE('<',<) 
-            BOOL_BOP_CASE('>',>) 
-            BOOL_BOP_CASE(AND, &&)
-            BOOL_BOP_CASE(OR, ||)
-            BOOL_BOP_CASE(GE,>=)        
-            BOOL_BOP_CASE(LE,<=)        
-            BOOL_BOP_CASE(NE,!=)        
-            BOOL_BOP_CASE(EQ,==)        
             BOOL_UOP_CASE('!',!) 
-
+            UOP_CASE('~',~) 
             UOP_CASE(UPLUS,+)     
             UOP_CASE(UMINUS,-)
 
@@ -292,6 +255,38 @@ struct ex_visitor {
         }
 
         return Value(0);
+    }
+
+    Value operator()(BinOp& bop) const {
+        using enum BinOper;
+
+        switch(bop.op) {
+            case Assign: return assignToVar(bop, p);
+
+            BOP_CASE(Add,+)
+            BOP_CASE(Sub,-)
+            BOP_CASE(Mul,*) 
+            BOP_CASE(Div,/) 
+            BOP_CASE(BitAnd,&) 
+            BOP_CASE(BitOr,|) 
+            BOP_CASE(BitXor,^)
+            BOP_CASE(LShift,<<)
+            BOP_CASE(RShift,>>)
+            BOP_CASE(Mod,%) 
+            BOOL_BOP_CASE(LessThan,<)
+            case GreaterThan: {
+                auto l = ex(bop.lOperand);
+                auto r = ex(bop.rOperand);
+                auto comp = l > r;
+                return Value(comp);
+            }
+            BOOL_BOP_CASE(And, &&)
+            BOOL_BOP_CASE(Or, ||)
+            BOOL_BOP_CASE(GreaterEqual,>=)        
+            BOOL_BOP_CASE(LessEqual,<=)        
+            BOOL_BOP_CASE(NotEqual,!=)        
+            BOOL_BOP_CASE(Equal,==)        
+        }
     }
 
     // the default case:

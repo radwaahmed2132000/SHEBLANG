@@ -43,11 +43,10 @@ extern int yylineno;            /* from lexer */
 %left '*' '/' '%'
 %right UPLUS UMINUS '!' '~' PP MM
 
-%token <node> IDENTIFIER
-%token <node> INTEGER REAL BOOLEAN CHARACTER STR
+%token <node> IDENTIFIER INTEGER REAL BOOLEAN CHARACTER STR
 
 %type <node> stmt stmt_list function_defn enum_defn return_statement
-%type <node> expr enum_use
+%type <node> expr literal enum_use
 %type <node> case case_list
 %type <node> function_call
 %type <node> function_return_type 
@@ -141,48 +140,50 @@ case_list:
          | case_list case         { $$ = appendToLinkedList<caseNodeType>($1, $2); }
          ;
 
+literal:
+       INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER 
+
 stmt_list:
           stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); }
         | stmt_list stmt        { $$ = appendToLinkedList<StatementList>($1, statementList($2)); };
 
-        expr : INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER {
-            $$ = $1;
-        }
-        | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
-        | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }
-        | IDENTIFIER SA expr            { $$ = opr('=', 2, $1, opr('-', 2, $1, $3)); }
-        | IDENTIFIER MA expr            { $$ = opr('=', 2, $1, opr('*', 2, $1, $3)); }
-        | IDENTIFIER DA expr            { $$ = opr('=', 2, $1, opr('/', 2, $1, $3)); }
-        | IDENTIFIER RA expr            { $$ = opr('=', 2, $1, opr('%', 2, $1, $3)); }
-        | IDENTIFIER LSA expr           { $$ = opr('=', 2, $1, opr(LS,  2, $1, $3)); }
-        | IDENTIFIER RSA expr           { $$ = opr('=', 2, $1, opr(RS,  2, $1, $3)); }
-        | IDENTIFIER ANDA expr          { $$ = opr('=', 2, $1, opr('&', 2, $1, $3)); }
-        | IDENTIFIER EORA expr          { $$ = opr('=', 2, $1, opr('^', 2, $1, $3)); }
-        | IDENTIFIER IORA expr          { $$ = opr('=', 2, $1, opr('|', 2, $1, $3)); }
+expr : 
+        literal                         { $$ = $1; }
         | expr PP                       { $$ = opr(PP, 1, $1); }
         | expr MM                       { $$ = opr(MM, 1, $1); }
         | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
         | '-' expr %prec UMINUS         { $$ = opr(UMINUS, 1, $2); }
         | '!' expr                      { $$ = opr('!', 1, $2); }
         | '~' expr                      { $$ = opr('~', 1, $2); }
-        | expr '&' expr                 { $$ = opr('&', 2, $1, $3); }
-        | expr '|' expr                 { $$ = opr('|', 2, $1, $3); }
-        | expr '^' expr                 { $$ = opr('^', 2, $1, $3); }
-        | expr LS expr                  { $$ = opr(LS, 2, $1, $3); }
-        | expr RS expr                  { $$ = opr(RS, 2, $1, $3); }
-        | expr '+' expr                 { $$ = opr('+', 2, $1, $3); }
-        | expr '-' expr                 { $$ = opr('-', 2, $1, $3); }
-        | expr '*' expr                 { $$ = opr('*', 2, $1, $3); }
-        | expr '/' expr                 { $$ = opr('/', 2, $1, $3); }
-        | expr '%' expr                 { $$ = opr('%', 2, $1, $3); }
-        | expr '<' expr                 { $$ = opr('<', 2, $1, $3); }
-        | expr '>' expr                 { currentLineNo = @1.first_line; $$ = opr('>', 2, $1, $3); }
-        | expr AND expr                 { $$ = opr(AND, 2, $1, $3); }
-        | expr OR expr                  { $$ = opr(OR, 2, $1, $3); }
-        | expr GE expr                  { $$ = opr(GE, 2, $1, $3); }
-        | expr LE expr                  { $$ = opr(LE, 2, $1, $3); }
-        | expr NE expr                  { $$ = opr(NE, 2, $1, $3); }
-        | expr EQ expr                  { $$ = opr(EQ, 2, $1, $3); }
+        | IDENTIFIER '=' expr           { $$ = BinOp::assign($1, $3); }
+        | IDENTIFIER PA expr            { $$ = BinOp::opAssign(BinOper::Add, $1, $3); }
+        | IDENTIFIER SA expr            { $$ = BinOp::opAssign(BinOper::Sub, $1, $3); }
+        | IDENTIFIER MA expr            { $$ = BinOp::opAssign(BinOper::Mul, $1, $3); }
+        | IDENTIFIER DA expr            { $$ = BinOp::opAssign(BinOper::Div, $1, $3); }
+        | IDENTIFIER RA expr            { $$ = BinOp::opAssign(BinOper::Mod, $1, $3); }
+        | IDENTIFIER LSA expr           { $$ = BinOp::opAssign(BinOper::LShift,  $1, $3); }
+        | IDENTIFIER RSA expr           { $$ = BinOp::opAssign(BinOper::RShift,  $1, $3); }
+        | IDENTIFIER ANDA expr          { $$ = BinOp::opAssign(BinOper::BitAnd, $1, $3); }
+        | IDENTIFIER EORA expr          { $$ = BinOp::opAssign(BinOper::BitXor, $1, $3); }
+        | IDENTIFIER IORA expr          { $$ = BinOp::opAssign(BinOper::BitOr, $1, $3); }
+        | expr '&' expr                 { $$ = BinOp::node(BinOper::BitAnd, $1, $3); }
+        | expr '|' expr                 { $$ = BinOp::node(BinOper::BitOr, $1, $3); }
+        | expr '^' expr                 { $$ = BinOp::node(BinOper::BitXor, $1, $3); }
+        | expr LS expr                  { $$ = BinOp::node(BinOper::LShift, $1, $3); }
+        | expr RS expr                  { $$ = BinOp::node(BinOper::RShift, $1, $3); }
+        | expr '+' expr                 { $$ = BinOp::node(BinOper::Add, $1, $3); }
+        | expr '-' expr                 { $$ = BinOp::node(BinOper::Sub, $1, $3); }
+        | expr '*' expr                 { $$ = BinOp::node(BinOper::Mul, $1, $3); }
+        | expr '/' expr                 { $$ = BinOp::node(BinOper::Div, $1, $3); }
+        | expr '%' expr                 { $$ = BinOp::node(BinOper::Mod, $1, $3); }
+        | expr '<' expr                 { $$ = BinOp::node(BinOper::LessThan, $1, $3); }
+        | expr '>' expr                 { $$ = BinOp::node(BinOper::GreaterThan, $1, $3); }
+        | expr AND expr                 { $$ = BinOp::node(BinOper::And, $1, $3); }
+        | expr OR expr                  { $$ = BinOp::node(BinOper::Or, $1, $3); }
+        | expr GE expr                  { $$ = BinOp::node(BinOper::GreaterEqual, $1, $3); }
+        | expr LE expr                  { $$ = BinOp::node(BinOper::LessEqual, $1, $3); }
+        | expr NE expr                  { $$ = BinOp::node(BinOper::NotEqual, $1, $3); }
+        | expr EQ expr                  { $$ = BinOp::node(BinOper::Equal, $1, $3); }
         | '(' expr ')'                  { $$ = $2; }
         | function_call                 { $$ = $1; }
         | enum_use

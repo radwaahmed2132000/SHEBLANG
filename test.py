@@ -90,7 +90,12 @@ for test_case in test_cases:
         print(f"SKIPPED: {test_case.filename}, no test case output.")
         continue
 
-    proc = subprocess.run([binary], input=test_case.code.encode(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        proc = subprocess.run([binary], input=test_case.code.encode(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5)
+    except subprocess.TimeoutExpired:
+        print(f"TIMEOUT: {test_case.filename}")
+        continue
+
     actual_output = proc.stdout.decode().strip()
 
     # Removes all whitespace
