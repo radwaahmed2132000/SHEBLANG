@@ -18,13 +18,13 @@ std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements) {
     if(auto* statements = fnStatements->asPtr<StatementList>(); statements) {
         std::vector<nodeType*> ret;
 
-        for (const auto *statement : statements->toVec()) {
-            auto *opr = statement->statementCode->asPtr<oprNodeType>();
+        for (auto *statement : statements->statements) {
+            auto *opr = statement->asPtr<oprNodeType>();
             if (opr != nullptr && opr->oper == RETURN) {
-                return {statement->statementCode};
+                return {statement};
             }
 
-            auto statementRet = getFnReturnStatements(statement->statementCode);
+            auto statementRet = getFnReturnStatements(statement);
             ret.insert(ret.end(), statementRet.begin(), statementRet.end());
         }
 

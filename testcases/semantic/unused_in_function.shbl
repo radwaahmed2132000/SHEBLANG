@@ -1,0 +1,18 @@
+fn foo() {
+    int bar = 2;
+    float baz;
+}
+
+print "Hmmm...";
+===
+Warning in line number: 3 .Variable baz is declared but never used
+Warning in line number: 2 .Variable bar is declared but never used
+Hmmm...
+===
+foo:
+    push 2
+    pop bar
+    ret
+
+push Hmmm...
+print

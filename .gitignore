@@ -8,10 +8,13 @@ compiler_commands.json
 shbl_interpreter
 shbl_compiler
 
+SHEBLANG_interpreter
+SHEBLANG_compiler
+
 symtbl.log
 
 lexer.h
-lexer.cc
+lexer.cpp
 
 parser.h
-parser.cc
+parser.cpp

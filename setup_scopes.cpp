@@ -142,9 +142,9 @@ struct setup_scopes_visitor {
             allSymbolTables.push_back(currentNodePtr->currentScope);
         }
 
-        for(auto& c: sl.toVec()) {
-            c->statementCode->currentScope = currentNodePtr->currentScope;
-            setup_scopes(c->statementCode);
+        for(auto& c: sl.statements) {
+            c->currentScope = currentNodePtr->currentScope;
+            setup_scopes(c);
         }
     }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "value.h"
 #include <variant>
 #include <iostream>
 #include <vector>
@@ -12,6 +13,7 @@ struct SuccessType: std::string {};
 struct Result: std::variant<ErrorType, SuccessType> {
     int sizeError=0;
     Value * value = nullptr;
+
     bool isSuccess() const {
         return std::holds_alternative<SuccessType>(*this);
     }
@@ -22,6 +24,10 @@ struct Result: std::variant<ErrorType, SuccessType> {
 
     static Result Error(std::string error) {
         return Result{std::variant<ErrorType, SuccessType>(ErrorType{{error}})};
+    }
+
+    static Result Error() {
+        return Result{std::variant<ErrorType, SuccessType>(ErrorType{})};
     }
 
     Result& addError(std::string newError) {
@@ -41,5 +47,15 @@ struct Result: std::variant<ErrorType, SuccessType> {
         }
 
         return *this;
+    }
+
+    void print() {
+        if(auto *s = std::get_if<SuccessType>(this); s != nullptr) {
+            std::cout << *s;
+        } else if (auto *e = std::get_if<ErrorType>(this); e != nullptr) {
+            for(auto& innerErr: *e) {
+                std::cerr << innerErr << "\n";
+            }
+        }
     }
 };

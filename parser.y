@@ -1,3 +1,5 @@
+%locations
+
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,11 +23,10 @@ extern int yylineno;            /* from lexer */
 
 %}
 
-%locations
 
 %union { nodeType* node; }
 
-%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM FN RETURN
+%token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT BREAK ENUM FN RETURN
 %token CONST INT FLOAT BOOL CHAR STRING SCOPE_RES
 %nonassoc IFX
 %nonassoc ELSE
@@ -61,27 +62,27 @@ program:
         stmt_list { 
                 /* First, create all the Symbol Tables. */
                 setup_scopes($1);
-                /* Perform Semantic Analysis on the code. */
+
                 auto result = semantic_analysis($1);
-                /* Print warnings if exist. */
+
                 if (warningsOutput.sizeError > 0) {
-                    for (auto& warning : std::get<ErrorType>(warningsOutput)) {
-                        printf("%s\n", warning.c_str());
-                    }
+                    warningsOutput.print();
                 }
-                /* Print semantic errors if exist. */
+
                 if (errorsOutput.sizeError > 0) {
-                    for (auto& error : std::get<ErrorType>(errorsOutput)) {
-                        printf("%s\n", error.c_str());
-                    }
+                    errorsOutput.print();
                     exit(1);
                 }
-                /* Excute the code using the interpreter. */
+
+                /* Excute the code using the interpreter / compiler. */
                 ex($1);
+
                 /* Print the final version of the symbol tables. */
                 printSymbolTables();
+
                 /* Free Memory used. */
                 freeNode($1);
+
                 exit(0);
             }
         | /* NULL */
@@ -102,9 +103,9 @@ stmt:
                 set_break_parent($8, $$);
         }
         | IF '(' ')' stmt                         { $$ = $4; printf("%s",std::string("Syntax Error at line "+std::to_string(yylineno)+". If's condition can\'t be empty.\n").c_str()); }
-        | IF '(' expr ')' stmt %prec IFX          { currentLineNo = (@1).first_line; $$ = opr(IF, 2, $3, $5); }
+        | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
-        | SWITCH '(' expr ')' case                { currentLineNo = @1.first_line; $$ = sw($3, $5); }
+        | SWITCH '(' expr ')' case                { $$ = sw($3, $5); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
@@ -144,8 +145,8 @@ literal:
        INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER 
 
 stmt_list:
-          stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); }
-        | stmt_list stmt        { $$ = appendToLinkedList<StatementList>($1, statementList($2)); };
+          stmt                  { $$ = statementList($1); }
+        | stmt_list stmt        { $$ = $1; ($1)->asPtr<StatementList>()->addStatement($2); } 
 
 expr : 
         literal                         { $$ = $1; }

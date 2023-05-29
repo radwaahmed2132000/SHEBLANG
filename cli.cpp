@@ -183,14 +183,12 @@ struct ex_visitor {
     }
 
     Value operator()(StatementList& sl) {
-        auto statements = sl.toVec();
+        for(const auto& statement: sl.statements) {
+            auto ret = ex(statement);
 
-        for(const auto& statement: statements) {
-            auto ret = ex(statement->statementCode);
+            bool isBreak = statement->is<breakNodeType>();
 
-            bool isBreak = statement->statementCode->is<breakNodeType>();
-
-            const auto *opr = statement->statementCode->asPtr<oprNodeType>();
+            const auto *opr = statement->asPtr<oprNodeType>();
             bool isReturn = (opr != nullptr && opr->oper == RETURN);
 
             if(isBreak) { return Value(0); } 
@@ -238,7 +236,7 @@ struct ex_visitor {
             case PRINT:  
             {
                 Value exprValue = ex(opr.op[0]);
-                std::cout << exprValue.toString() << std::flush;
+                std::cout << exprValue.toString() << '\n';
                 return Value(0);
             }
             case RETURN:

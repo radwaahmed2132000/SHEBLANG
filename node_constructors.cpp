@@ -118,8 +118,8 @@ struct set_break_parent_visitor {
     }
 
     void operator()(StatementList& sl) const {
-        for(const auto* statement: sl.toVec()) {
-            set_break_parent(statement->statementCode, parent_switch);
+        for(auto* statement: sl.statements) {
+            set_break_parent(statement, parent_switch);
         }
     }
 

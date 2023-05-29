@@ -666,7 +666,7 @@ struct semantic_analysis_visitor {
             if (!caseBody.isSuccess()) {
                 errorsOutput.addError(
                     "Error in line number: " +
-                    std::to_string(cases[i]->caseBody->lineNo) +
+                    std::to_string(cases[i]->labelExpr->lineNo) +
                     " .The case body of the case statement is not valid"
                 );
             }
@@ -762,8 +762,7 @@ struct semantic_analysis_visitor {
         /* Add the new function to the functions table */
         // Since functions create their own scope, need to add
         // the function reference to the parent scope.
-        currentNodePtr->currentScope->parentScope
-            ->functions[fn.name->as<idNodeType>().id] = fn;
+        currentNodePtr->currentScope->parentScope->functions[fn.name->as<idNodeType>().id] = fn;
 
         /* Check if the function parameters are valid */
         auto parameters = fn.parametersTail->toVec();
@@ -971,11 +970,9 @@ struct semantic_analysis_visitor {
       Semantically correct
     */
     Result operator()(StatementList& sl) {
-        auto statements = sl.toVec();
-
         Result ret = Result::Success("");
-        for(const auto& statement: statements) {
-            auto statementError = semantic_analysis(statement->statementCode);
+        for(const auto& statement: sl.statements) {
+            auto statementError = semantic_analysis(statement);
 
             /* 
               If the child statement returned an error, convert the result
@@ -990,8 +987,10 @@ struct semantic_analysis_visitor {
                 ret.mergeErrors(*e);
             }
         }
-        
-        for(const auto& [name, entry]: sl.statementCode->currentScope->sym2) {
+
+        int x = 12 + 1.2f;
+
+        for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
             if(!entry.isUsed) {
                 warningsOutput.addError("Warning in line number: " + std::to_string(entry.declaredAtLine) +
                         " .Variable " + name + " is declared but never used");

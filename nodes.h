@@ -117,12 +117,13 @@ typedef struct enumUseNode {
     int lineNo;
 } enumUseNode;
 
-typedef struct StatementList: LinkedListNode<StatementList> {
-    struct nodeType* statementCode;
+typedef struct StatementList {
+    std::vector<struct nodeType*> statements;
 
-    StatementList(): statementCode(nullptr) {}
+    StatementList(): statements({}) {}
+    StatementList(nodeType* statementCode): statements({statementCode}) {}
+    void addStatement(nodeType* statement) { statements.push_back(statement); }
 
-    StatementList(nodeType* statementCode): statementCode(statementCode) {}
 } StatementList;
 
 typedef struct ExprListNode: LinkedListNode<ExprListNode> {

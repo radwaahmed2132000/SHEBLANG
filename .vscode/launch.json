@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/SHEBLANG_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/logical/while_basic.shbl", null, null],
+            "stdio": ["testcases/logical/example.shbl", null, null],
         },
         {
             "name": "Launch Compiler",
