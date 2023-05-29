@@ -8,15 +8,15 @@
             "name": "Launch Interpreter",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/shbl_interpreter",
+            "program": "${workspaceFolder}/debug/SHEBLANG_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/logical/fib.shbl", null, null]
+            "stdio": ["testcases/semantic/undeclared_switch_case_nested.shbl", null, null],
         },
         {
             "name": "Launch Compiler",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/shbl_compiler",
+            "program": "${workspaceFolder}/SHEBLANG_compiler",
             "cwd": "${workspaceFolder}",
             "stdio": ["test.shbl", null, null]
         },

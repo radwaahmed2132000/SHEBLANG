@@ -10,12 +10,14 @@ help() {
 cmake_prep() {
 	mkdir -p build
 	cd build
-	cmake ../ -DBISON_DEBUG:STRING="$debug"
+	cmake ../ -DBISON_DEBUG:STRING="$debug" -DCMAKE_BUILD_TYPE=Debug
 }
 
 interpreter() {
 	cmake_prep
 	make -j$(nproc) SHEBLANG_interpreter 
+    cd ../
+    cp ./debug/SHEBLANG_interpreter ./
 }
 
 compiler() { 

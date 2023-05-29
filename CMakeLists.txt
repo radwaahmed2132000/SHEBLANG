@@ -12,10 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS FALSE)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG -Wall -pedantic-errors")
-
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -DDEBUG")
 set(CMAKE_CXX_FLAGS "-stdlib=libc++ -Wno-write-strings -Wno-format-security")
-
 set(CMAKE_CXX_COMPILER "clang++-16")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY          ${PROJECT_SOURCE_DIR})
@@ -28,8 +26,8 @@ find_package(BISON REQUIRED)
 
 set(SRC_DIR "./")
 set(PARSER_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(LEXER_OUT "${PARSER_DIR}/lexer.cc")
-set(PARSER_OUT "${PARSER_DIR}/parser.cc")
+set(LEXER_OUT "${PARSER_DIR}/lexer.cpp")
+set(PARSER_OUT "${PARSER_DIR}/parser.cpp")
 
 flex_target(LEXER "${SRC_DIR}/lexer.l" "${LEXER_OUT}" DEFINES_FILE "${PARSER_DIR}/lexer.h")
 bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h" COMPILE_FLAGS ${BISON_DEBUG})

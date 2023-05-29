@@ -36,10 +36,10 @@ nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListHeader);
 
 template<typename LinkedListNode>
 nodeType* appendToLinkedList(nodeType* prev, nodeType* next) { 
-	auto* prevNode = std::get_if<LinkedListNode>(&prev->un);
+	auto* prevNode = prev->asPtr<LinkedListNode>();
 	assert(prevNode != nullptr);
 
-	auto* currNode = std::get_if<LinkedListNode>(&next->un);
+	auto* currNode = next->asPtr<LinkedListNode>();
 	assert(currNode != nullptr);
 
     currNode->prev = prevNode;
@@ -48,7 +48,7 @@ nodeType* appendToLinkedList(nodeType* prev, nodeType* next) {
 
 template<typename LinkedListNode> 
 nodeType* linkedListStump(nodeType* end) {
-    auto* stump = std::get_if<LinkedListNode>(&end->un);
+    auto* stump = end->asPtr<LinkedListNode>();
 
     // assert only if `end` is not null
     // `end` should only be null for empty parameter lists.

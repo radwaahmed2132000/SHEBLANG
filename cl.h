@@ -218,24 +218,24 @@ struct ScopeSymbolTables {
     doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode,    \
     enumUseNode, StatementList, FunctionCall, ExprListNode              
 
-typedef struct nodeType {
-    std::variant<NODE_TYPES> un;
+typedef struct nodeType : std::variant<NODE_TYPES> {
     int lineNo;
     std::string conversionType = ""; 
     bool addNewScope;
     ScopeSymbolTables* currentScope;
 
-    nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : un(inner_union), lineNo(lineNo) {}
-	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope) : un(inner_union), lineNo(lineNo), addNewScope(addNewScope) {}
+    nodeType() = default;
+    nodeType(std::variant<NODE_TYPES> inner_union, int lineNo) : std::variant<NODE_TYPES>(inner_union), lineNo(lineNo) {}
+	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope) : std::variant<NODE_TYPES>(inner_union), lineNo(lineNo), addNewScope(addNewScope) {}
 
     template<typename T> 
-    bool is() const { return std::holds_alternative<T>(un); }
+    bool is() const { return std::holds_alternative<T>(*this); }
 
     template<typename T>
-    T* asPtr() { return std::get_if<T>(&un); }
+    T* asPtr() { return std::get_if<T>(this); }
 
     template<typename T>
-    T& as() { return std::get<T>(un); }
+    T& as() { return std::get<T>(*this); }
 } nodeType;
 
 inline Result errorsOutput;

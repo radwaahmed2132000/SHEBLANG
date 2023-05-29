@@ -33,7 +33,7 @@
     Result right = semantic_analysis(oper); \
 
 #define NOT_CONST(oper, lineNo, sym2) \
-    auto lhsName = std::get<idNodeType>(oper->un).id; \
+    auto lhsName = oper->as<idNodeType>().id; \
       if (sym2.find(lhsName) != sym2.end()) { \
         auto& lEntry = sym2[lhsName]; \
       if(lEntry.isConstant) {\
@@ -540,7 +540,7 @@ struct ex_const_visitor {
 
 Result ex_const_kak_TM(nodeType *p) {    
     if (p == nullptr) return Result::Success("success");
-    return std::visit(ex_const_visitor{p}, p->un);
+    return std::visit(ex_const_visitor{p}, *p);
 }
 
 
@@ -558,7 +558,7 @@ struct semantic_analysis_visitor {
 
         int startingSize = errorsOutput.sizeError;
         /* Check that the type of the variable is valid */
-        auto type = std::get<idNodeType>(vd.type->un).id;
+        auto type = vd.getType();
 
         /* Check that the type & name are valid */
 
@@ -566,7 +566,7 @@ struct semantic_analysis_visitor {
         
         auto* symTable = currentNodePtr->currentScope;
         /* Check if the variable is already declared in this scope */
-        auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
+        auto nameStr = vd.getName();
         if (symTable->sym2.find(nameStr) != symTable->sym2.end()) {
           errorsOutput.addError("Error in line number: " +
             std::to_string(vd.type->lineNo) + " .The variable " +
@@ -604,7 +604,7 @@ struct semantic_analysis_visitor {
         if (vd.isConstant) {
               errorsOutput.addError("Error in line number: " +
               std::to_string(vd.decl->var_name->lineNo) + " .The constant variable " +
-              std::get<idNodeType>(vd.decl->var_name->un).id + " has no value assigned to it");
+              vd.decl->getName() + " has no value assigned to it");
         }
 
         if(startingSize != errorsOutput.sizeError) { return Result::Error("error"); }
@@ -824,7 +824,7 @@ struct semantic_analysis_visitor {
         // Since functions create their own scope, need to add
         // the function reference to the parent scope.
         currentNodePtr->currentScope->parentScope
-            ->functions[std::get<idNodeType>(fn.name->un).id] = fn;
+            ->functions[fn.name->as<idNodeType>().id] = fn;
 
         /* Check if the function parameters are valid */
         auto parameters = fn.parametersTail->toVec();
@@ -846,7 +846,7 @@ struct semantic_analysis_visitor {
                 errorsOutput.addError(lineError(
                     "The function parameter '%s' is not valid",
                     param->type->lineNo,
-                    std::get<idNodeType>(param->var_name->un).id 
+                    param->var_name->as<idNodeType>().id 
                 ));
             }
 
@@ -1446,5 +1446,5 @@ struct semantic_analysis_visitor {
 
 Result semantic_analysis(nodeType *p) {    
     if (p == nullptr) return Result::Success("success");
-    return std::visit(semantic_analysis_visitor{p}, p->un);
+    return std::visit(semantic_analysis_visitor{p}, *p);
 }

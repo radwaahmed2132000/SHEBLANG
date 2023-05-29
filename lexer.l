@@ -3,6 +3,7 @@
 
 #include "cl.h"
 #include "parser.h"
+#include "node_constructors.h"
 %}
 
 %option yylineno
@@ -48,8 +49,7 @@ COMMENT "#!".*
 %%
 
 {CHAR} {
-    yylval.lineNo = yylineno;
-    yylval.cValue = yytext[1]; // yytext[0] seems to contain nothing?
+    yylval.node = new nodeType(conNodeType{yytext[1]}, yylineno); // yytext[0] seems to contain nothing?
     return CHARACTER;
 }
 
@@ -64,12 +64,8 @@ COMMENT "#!".*
 }
 
 {STRING} {
-    yylval.lineNo = yylineno;
-
     int stringLength = std::strlen(yytext);
-    yylval.sValue = new char[stringLength];
-
-    std::strcpy(yylval.sValue, yytext);
+    yylval.node = new nodeType(conNodeType{std::string(yytext).substr(1, stringLength-2)}, yylineno);
 
     return STR;
 }
@@ -80,31 +76,28 @@ COMMENT "#!".*
 }
 
 {INTEGER_NUMBER} {
-    yylval.iValue = std::atoi(yytext);
+    int intValue = std::atoi(yytext);
+    yylval.node = new nodeType(conNodeType{intValue}, yylineno);
     return INTEGER;
 }
 
 
 {FLOAT_NUMBER}|{SCIENTIFIC_NOTATION} {
-    yylval.lineNo = yylineno;
-    yylval.fValue = std::atof(yytext);
+    yylval.node = new nodeType(conNodeType((float)std::atof(yytext)), yylineno);
     return REAL;
 }
 
 [-()<>=+*/%!~&|^;{}.,:] {
-    yylval.lineNo = yylineno;
     return *yytext;
 }
 
 "true"      {
-    yylval.lineNo = yylineno;
-    yylval.bValue = true;
+    yylval.node = new nodeType(conNodeType(true), yylineno);
     return BOOLEAN;
 }
 
 "false"     {
-    yylval.lineNo = yylineno;
-    yylval.bValue = false;
+    yylval.node = new nodeType(conNodeType(false), yylineno);
     return BOOLEAN;
 }        
 
@@ -145,8 +138,7 @@ COMMENT "#!".*
 "::"            return SCOPE_RES;
 
 {IDENT} { 
-    yylval.lineNo = yylineno;
-    yylval.nPtr = id(yytext);
+    yylval.node = new nodeType(idNodeType{std::string(yytext)}, yylineno);
     return IDENTIFIER;
 }
 

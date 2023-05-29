@@ -25,7 +25,7 @@
             case case_value: return Value(oper (ex(opr.op[0])));
 
 #define POST_OP(oper) {                                                \
-        auto nameStr = std ::get<idNodeType>(opr.op[0]->un).id;        \
+        auto nameStr =  opr.op[0]->as<idNodeType>().id;                \
         auto& varEntry = getSymEntry(nameStr, p->currentScope);        \
         auto &varRef = varEntry.getRef();                              \
         Value temp = varRef;                                           \
@@ -40,10 +40,10 @@ Value evaluate_switch(switchNodeType& sw) {
     std::optional<int> default_case_index = {};
     Value var_value = ex(sw.var);
 
-    assert(std::holds_alternative<caseNodeType>(sw.caseListTail->un));
+    assert(sw.caseListTail->is<caseNodeType>());
 
     nodeType* head = sw.caseListTail;
-    auto cases = std::get<caseNodeType>(head->un).toVec();
+    auto cases =  head->as<caseNodeType>().toVec();
 
     bool foundCase = false;
     for(int i = 0; i < cases.size(); i++) {
@@ -91,7 +91,7 @@ struct ex_visitor {
     }
 
     Value operator()(VarDecl& vd) const {
-        auto nameStr = std::get<idNodeType>(vd.var_name->un).id;
+        auto nameStr = vd.var_name->as<idNodeType>().id;
         auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
 
         varSymbolTableEntry.setValue(ex(varSymbolTableEntry.initExpr));
@@ -100,7 +100,7 @@ struct ex_visitor {
     }
 
     Value operator()(VarDefn& vd) const {
-        auto nameStr = std::get<idNodeType>(vd.decl->var_name->un).id;
+        auto nameStr = vd.decl->var_name->as<idNodeType>().id;
         auto val = ex(vd.initExpr);
 
         auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
@@ -128,7 +128,7 @@ struct ex_visitor {
                     [](doWhileNodeType& dw) { dw.break_encountered = true; },
                     [](auto def) {}
                 },
-                br.parent_switch->un
+                *br.parent_switch
         );
         return Value(0);
     }
@@ -161,7 +161,7 @@ struct ex_visitor {
 
             bool isBreak = statement->statementCode->is<breakNodeType>();
 
-            const auto *opr = std::get_if<oprNodeType>(&statement->statementCode->un);
+            const auto *opr = statement->statementCode->asPtr<oprNodeType>();
             bool isReturn = (opr != nullptr && opr->oper == RETURN);
 
             if(isBreak) { return Value(0); } 
@@ -224,18 +224,18 @@ struct ex_visitor {
             }
             case '=':       {
 
-                using std::optional, std::string, std::make_optional, std::visit, std::get;
+                using std::optional, std::string, std::make_optional, std::visit;
                 using namespace std::string_literals;
 
                 // Get the variable name based on the LHS's type.
                 optional<string> varNameOpt = visit(
                     Visitor {
-                        [&opr](VarDecl& varDecl)              { return make_optional(get<idNodeType>(varDecl.var_name->un).id); },
-                        [&opr](VarDefn& varDefn)              { return make_optional(get<idNodeType>(varDefn.decl->var_name->un).id); },
+                        [&opr](VarDecl& varDecl)              { return make_optional(varDecl.var_name->as<idNodeType>().id); },
+                        [&opr](VarDefn& varDefn)              { return make_optional(varDefn.decl->var_name->as<idNodeType>().id); },
                         [&opr](idNodeType& idNode)            { return make_optional(idNode.id); },
                         [](auto _default) -> optional<string> {  return std::nullopt; }
                     } ,
-                    opr.op[0]->un
+                    *opr.op[0]
                 );
 
                 if(!varNameOpt.has_value()) { std::cout << "Invalid assignment expression"; }
@@ -252,7 +252,7 @@ struct ex_visitor {
                         [&](idNodeType& idNode) { return symTable.setValue(ex(opr.op[1])).getValue(); },
                         [](auto _default) { return Value(0); }  // Should never reach here
                     } ,
-                    opr.op[0]->un
+                    *opr.op[0]
                 );
             }
 
@@ -301,6 +301,6 @@ struct ex_visitor {
 
 Value ex(nodeType *p) {
     if (p == nullptr) return Value(0);
-    return std::visit(ex_visitor{p}, p->un);
+    return std::visit(ex_visitor{p}, *p);
 }
 

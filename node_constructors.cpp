@@ -31,8 +31,9 @@ nodeType *opr(int oper, int nops, ...) {
 
     opr.oper = oper;
     va_start(ap, nops);
-    for (i = 0; i < nops; i++)
+    for (i = 0; i < nops; i++) {
         opr.op.push_back(va_arg(ap, nodeType*));
+    }
     va_end(ap);
 
     return new nodeType(opr, currentLineNo);
@@ -78,25 +79,25 @@ nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body) {
 }
 
 nodeType* varDecl(nodeType* type, nodeType* name) {
-    auto nameStr = std::get<idNodeType>(name->un).id;
-    auto typeStr = std::get<idNodeType>(type->un).id;
+    auto nameStr = name->as<idNodeType>().id;
+    auto typeStr = type->as<idNodeType>().id;
 
     return new nodeType(VarDecl(type, name), currentLineNo);
 }
 
 nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
-    auto* declPtr = std::get_if<VarDecl>(&decl->un);
+    auto* declPtr = decl->asPtr<VarDecl>();
     return new nodeType(VarDefn(declPtr, initExpr, isConstant), currentLineNo);
 }
 
-std::string VarDecl::getType() const { return std::get<idNodeType>(type->un).id; } 
-std::string VarDecl::getName() const { return std::get<idNodeType>(var_name->un).id; } 
+std::string VarDecl::getType() const { return type->as<idNodeType>().id; } 
+std::string VarDecl::getName() const { return var_name->as<idNodeType>().id; } 
 
 
 nodeType* fn(nodeType* name, VarDecl* paramsTail, nodeType* return_type, nodeType* statements) {
-    assert(std::holds_alternative<idNodeType>(name->un));
-    assert(std::holds_alternative<idNodeType>(return_type->un));
-    assert(std::holds_alternative<StatementList>(statements->un));
+    assert(name->is<idNodeType>());
+    assert(return_type->is<idNodeType>());
+    assert(statements->is<StatementList>());
 
     return new nodeType(functionNodeType{return_type, name, paramsTail, statements}, currentLineNo);
 }
@@ -135,11 +136,11 @@ struct set_break_parent_visitor {
 
 void set_break_parent(nodeType* node, nodeType* parent_switch) {
     if(node == NULL) return;
-    std::visit(set_break_parent_visitor{parent_switch}, node->un);
+    std::visit(set_break_parent_visitor{parent_switch}, *node);
 }
 
 nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& members) {
-    assert(std::holds_alternative<idNodeType>(enumIdentifier->un));
+    assert(enumIdentifier->is<idNodeType>());
 
     std::vector<std::string> memberNames;
     memberNames.reserve(members.size());
@@ -147,21 +148,21 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
 
     // Needed now so the interpreter works correctly..
     auto e = enumNode{enumIdentifier, memberNames};
-    auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
+    auto enumName =  enumIdentifier->as<idNodeType>().id;
 
     return new nodeType(e, currentLineNo);
 }
 
 nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier) {
-    auto enumName = std::get<idNodeType>(enumIdentifier->un).id;
-    auto enumMemberName = std::get<idNodeType>(enumMemberIdentifier->un).id;
+    auto enumName =  enumIdentifier->as<idNodeType>().id;
+    auto enumMemberName =  enumMemberIdentifier->as<idNodeType>().id;
 
     return new nodeType(enumUseNode{enumName, enumMemberName, currentLineNo}, currentLineNo);
 }
 
 nodeType* identifierListNode(nodeType* idNode, bool addNewScope) {
-    assert(std::holds_alternative<idNodeType>(idNode->un));
-    return new nodeType(IdentifierListNode(std::get_if<idNodeType>(&idNode->un)), currentLineNo ,addNewScope);
+    assert(idNode->is<idNodeType>());
+    return new nodeType(IdentifierListNode(idNode->asPtr<idNodeType>()), currentLineNo ,addNewScope);
 }
 
 nodeType* statementList(nodeType* statement) {
@@ -173,11 +174,11 @@ nodeType* exprListNode(nodeType* exprCode) {
 }
 
 nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListTail) {
-    assert(std::holds_alternative<ExprListNode>(exprListTail->un));
-    assert(std::holds_alternative<idNodeType>(fnIdentifier->un));
+    assert(exprListTail->is<ExprListNode>());
+    assert(fnIdentifier->is<idNodeType>());
 
-    auto exprList = std::get<ExprListNode>(exprListTail->un).toVec();
-    auto fnName = std::get<idNodeType>(fnIdentifier->un).id;
+    auto exprList = exprListTail->as<ExprListNode>().toVec();
+    auto fnName = fnIdentifier->as<idNodeType>().id;
 
     return new nodeType(FunctionCall{fnName, exprList, currentLineNo}, currentLineNo);
 }

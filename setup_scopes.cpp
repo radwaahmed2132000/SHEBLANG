@@ -167,7 +167,7 @@ struct setup_scopes_visitor {
     }
 
     void operator()(doWhileNodeType& dw) const {
-        if(std::holds_alternative<StatementList>(dw.loop_body->un))
+        if( dw.loop_body->is<StatementList>())
         {
             dw.condition->currentScope = currentNodePtr->currentScope;
             dw.loop_body->currentScope = currentNodePtr->currentScope;
@@ -184,7 +184,7 @@ struct setup_scopes_visitor {
     }
 
     void operator()(whileNodeType& w) const {
-        if(std::holds_alternative<StatementList>(w.loop_body->un))
+        if(w.loop_body->is<StatementList>())
         {
             w.condition->currentScope = currentNodePtr->currentScope;
             w.loop_body->currentScope = currentNodePtr->currentScope;
@@ -201,7 +201,7 @@ struct setup_scopes_visitor {
     }
 
     void operator()(forNodeType& f) const {
-        if(std::holds_alternative<StatementList>(f.loop_body->un))
+        if(f.loop_body->is<StatementList>())
         {
             f.init_statement->currentScope = currentNodePtr->currentScope;
             f.loop_condition->currentScope = currentNodePtr->currentScope;
@@ -239,5 +239,5 @@ struct setup_scopes_visitor {
 
 void setup_scopes(nodeType* p) {
     if(p == nullptr) { std::cerr << "null pointer encountered in setup_scopes\n"; }
-    std::visit(setup_scopes_visitor{p}, p->un);
+    std::visit(setup_scopes_visitor{p}, *p);
 }

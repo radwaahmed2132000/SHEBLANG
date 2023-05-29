@@ -18,25 +18,13 @@ void appendSymbolTable(int i);
 int yylex(void);
 void yyerror(char *s);
 extern int yylineno;            /* from lexer */
+
 %}
+
 %locations
 
-%union {
-    int iValue;                 /* integer value */
-    float fValue;               /* double value */
-    bool bValue;                /* boolean value */
-    char cValue;                /* char value */
-    char* sValue;               /* string value */
-    nodeType *nPtr;             /* node pointer */
-    int lineNo;                 /* Line Number of Code Line */
-};
+%union { nodeType* node; }
 
-%token <nPtr> IDENTIFIER
-%token <iValue> INTEGER
-%token <fValue> REAL
-%token <bValue> BOOLEAN
-%token <cValue> CHARACTER
-%token <sValue> STR
 %token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT CASE_LIST BREAK ENUM FN RETURN
 %token CONST INT FLOAT BOOL CHAR STRING SCOPE_RES
 %nonassoc IFX
@@ -55,9 +43,19 @@ extern int yylineno;            /* from lexer */
 %left '*' '/' '%'
 %right UPLUS UMINUS '!' '~' PP MM
 
-%type <nPtr> stmt expr stmt_list case case_list function_call function_return_type 
- function_defn var_defn function_parameter_list var_decl return_statement 
- enum_defn identifier_list enum_use expr_list
+%token <node> IDENTIFIER
+%token <node> INTEGER REAL BOOLEAN CHARACTER STR
+
+%type <node> stmt stmt_list function_defn enum_defn return_statement
+%type <node> expr enum_use
+%type <node> case case_list
+%type <node> function_call
+%type <node> function_return_type 
+%type <node> var_decl
+%type <node> var_defn
+%type <node> function_parameter_list identifier_list
+%type <node> expr_list
+
 %%
 
 program:
@@ -67,15 +65,13 @@ program:
                 /* Perform Semantic Analysis on the code. */
                 auto result = semantic_analysis($1);
                 /* Print warnings if exist. */
-                if (warningsOutput.sizeError == 0) {
-                } else {
+                if (warningsOutput.sizeError > 0) {
                     for (auto& warning : std::get<ErrorType>(warningsOutput)) {
                         printf("%s\n", warning.c_str());
                     }
                 }
                 /* Print semantic errors if exist. */
-                if (errorsOutput.sizeError == 0) {
-                } else {
+                if (errorsOutput.sizeError > 0) {
                     for (auto& error : std::get<ErrorType>(errorsOutput)) {
                         printf("%s\n", error.c_str());
                     }
@@ -107,9 +103,9 @@ stmt:
                 set_break_parent($8, $$);
         }
         | IF '(' ')' stmt                         { $$ = $4; printf("%s",std::string("Syntax Error at line "+std::to_string(yylineno)+". If's condition can\'t be empty.\n").c_str()); }
-        | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
+        | IF '(' expr ')' stmt %prec IFX          { currentLineNo = (@1).first_line; $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
-        | SWITCH '(' expr ')' case                {  currentLineNo = @1.first_line; $$ = sw($3, $5); }
+        | SWITCH '(' expr ')' case                { currentLineNo = @1.first_line; $$ = sw($3, $5); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
         | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
@@ -149,13 +145,9 @@ stmt_list:
           stmt                  { $$ = linkedListStump<StatementList>(statementList($1)); }
         | stmt_list stmt        { $$ = appendToLinkedList<StatementList>($1, statementList($2)); };
 
-expr:
-          INTEGER                       { $$ = con($1); }
-        | REAL                          { $$ = con($1); }
-        | BOOLEAN                       { $$ = con($1); }
-        | CHARACTER                     { $$ = con($1); }
-        | STR                           { $$ = con($1);  }
-        | IDENTIFIER                    { $$ = $1; }
+        expr : INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER {
+            $$ = $1;
+        }
         | IDENTIFIER '=' expr           { $$ = opr('=', 2, $1, $3); }
         | IDENTIFIER PA expr            { $$ = opr('=', 2, $1, opr('+', 2, $1, $3)); }
         | IDENTIFIER SA expr            { $$ = opr('=', 2, $1, opr('-', 2, $1, $3)); }
@@ -184,7 +176,7 @@ expr:
         | expr '/' expr                 { $$ = opr('/', 2, $1, $3); }
         | expr '%' expr                 { $$ = opr('%', 2, $1, $3); }
         | expr '<' expr                 { $$ = opr('<', 2, $1, $3); }
-        | expr '>' expr                 { $$ = opr('>', 2, $1, $3); }
+        | expr '>' expr                 { currentLineNo = @1.first_line; $$ = opr('>', 2, $1, $3); }
         | expr AND expr                 { $$ = opr(AND, 2, $1, $3); }
         | expr OR expr                  { $$ = opr(OR, 2, $1, $3); }
         | expr GE expr                  { $$ = opr(GE, 2, $1, $3); }
@@ -212,7 +204,7 @@ expr_list:
 
 enum_defn:
          ENUM IDENTIFIER '{' identifier_list '}' ';' { 
-                auto idListEnd = std::get<IdentifierListNode>($4->un);
+                auto idListEnd =  ($4)->as<IdentifierListNode>();
                 auto enumMembers = idListEnd.toVec();
                 $$ = enum_defn($2, enumMembers);
          };
@@ -235,8 +227,8 @@ function_parameter_list:
                        ;
 function_defn:
              FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}' { 
-                     auto* head = std::get_if<VarDecl>(&($4->un));
-                     $$ = fn($2, head, $6, $8);
+                     auto* head = ($4)->asPtr<VarDecl>();
+                     $$ = statementList(fn($2, head, $6, $8));
              } 
 
 %%
