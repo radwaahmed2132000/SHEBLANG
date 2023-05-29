@@ -225,13 +225,6 @@ struct setup_scopes_visitor {
         setup_scopes(f.loop_body);
     }
 
-    void operator()(oprNodeType& opr) const {
-        for (auto *op : opr.op) {
-            op->currentScope = currentNodePtr->currentScope;
-            setup_scopes(op);
-        }
-    }
-
     void operator()(BinOp& bin) const {
         bin.lOperand->currentScope = currentNodePtr->currentScope;
         bin.rOperand->currentScope = currentNodePtr->currentScope;
@@ -242,6 +235,19 @@ struct setup_scopes_visitor {
     void operator()(UnOp& uop) const {
         uop.operand->currentScope = currentNodePtr->currentScope;
         setup_scopes(uop.operand);
+    }
+    
+    void operator()(IfNode& ifNode) const {
+        ifNode.condition->currentScope = currentNodePtr->currentScope;
+        ifNode.ifCode->currentScope = currentNodePtr->currentScope;
+
+        setup_scopes(ifNode.condition);
+        setup_scopes(ifNode.ifCode);
+
+        if(ifNode.elseCode != nullptr) {
+            ifNode.elseCode->currentScope = currentNodePtr->currentScope;
+            setup_scopes(ifNode.elseCode);
+        }
     }
 
     // the default case:

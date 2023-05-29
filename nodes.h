@@ -46,12 +46,6 @@ typedef struct {
     std::string id;                 /* key/index to sym array */
 } idNodeType;
 
-/* operators */
-typedef struct {
-    int oper;                       /* operator id, can be one of '=', '+', NE, etc... */
-    std::vector<struct nodeType*> op;
-} oprNodeType;
-
 typedef struct caseNodeType: LinkedListNode<caseNodeType> {
     struct  nodeType* labelExpr, * caseBody;
 
@@ -161,54 +155,6 @@ typedef struct VarDefn {
 	VarDefn(VarDecl* decl, nodeType* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
 } VarDefn;
 
-typedef struct SymbolTableEntry {
-    Value value;
-    bool isConstant;
-    bool isUsed = false;
-    int declaredAtLine = -1;
-    std::string type = "<no type>";  
-    nodeType* initExpr = nullptr;
-
-    SymbolTableEntry() = default;
-
-    SymbolTableEntry(nodeType* initExpr, bool isConstant, std::string type):
-        initExpr(initExpr), isConstant(isConstant), type(type) {}
-    
-    SymbolTableEntry(bool isConstant, std::string type):
-        value(0), isConstant(isConstant), type(type) {}
-
-    SymbolTableEntry& setValue(Value v) {
-        value = v;
-        return *this;
-    }
-
-    Value getValue() const { return value; }
-
-    Value& getRef() { return value; }
-} SymbolTableEntry;
-
-struct ScopeSymbolTables {
-    static int tableCount;
-    int tableId;
-    ScopeSymbolTables() {
-        tableId = ++tableCount;
-        parentScope = nullptr;
-    }
-    std::unordered_map<std::string, SymbolTableEntry> sym2;
-    std::unordered_map<std::string, functionNodeType> functions;
-    std::unordered_map<std::string, enumNode> enums;
-    ScopeSymbolTables* parentScope;
-
-    std::string symbolsToString() const {
-        std::stringstream ss;
-        for(const auto& [symbol, entry]: sym2) {
-            ss << symbol << '\t' << entry.type <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' <<entry.isConstant;
-        }
-
-        return ss.str();
-    }
-};
-
 enum class BinOper {
     Assign,
     Add,
@@ -257,3 +203,59 @@ struct UnOp {
 
     static nodeType* node(UnOper op, nodeType* operand);
 };
+
+struct IfNode {
+   nodeType* condition, *ifCode, *elseCode;
+
+   static nodeType *node(nodeType *condition, nodeType *ifCode);
+   static nodeType * node(nodeType *condition, nodeType *ifCode, nodeType *elseCode);
+};
+
+typedef struct SymbolTableEntry {
+    Value value;
+    bool isConstant;
+    bool isUsed = false;
+    int declaredAtLine = -1;
+    std::string type = "<no type>";  
+    nodeType* initExpr = nullptr;
+
+    SymbolTableEntry() = default;
+
+    SymbolTableEntry(nodeType* initExpr, bool isConstant, std::string type):
+        initExpr(initExpr), isConstant(isConstant), type(type) {}
+    
+    SymbolTableEntry(bool isConstant, std::string type):
+        value(0), isConstant(isConstant), type(type) {}
+
+    SymbolTableEntry& setValue(Value v) {
+        value = v;
+        return *this;
+    }
+
+    Value getValue() const { return value; }
+
+    Value& getRef() { return value; }
+} SymbolTableEntry;
+
+struct ScopeSymbolTables {
+    static int tableCount;
+    int tableId;
+    ScopeSymbolTables() {
+        tableId = ++tableCount;
+        parentScope = nullptr;
+    }
+    std::unordered_map<std::string, SymbolTableEntry> sym2;
+    std::unordered_map<std::string, functionNodeType> functions;
+    std::unordered_map<std::string, enumNode> enums;
+    ScopeSymbolTables* parentScope;
+
+    std::string symbolsToString() const {
+        std::stringstream ss;
+        for(const auto& [symbol, entry]: sym2) {
+            ss << symbol << '\t' << entry.type <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' <<entry.isConstant;
+        }
+
+        return ss.str();
+    }
+};
+

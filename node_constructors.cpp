@@ -10,6 +10,7 @@
 
 #include "cl.h"
 #include "node_constructors.h"
+#include "nodes.h"
 
 
 #define CON_INIT(ptr_name, value) new nodeType(std::variant<NODE_TYPES>(conNodeType{value}), currentLineNo)
@@ -19,25 +20,6 @@ nodeType *con(float fValue) { return CON_INIT(p, fValue); }
 nodeType *con(bool bValue)  { return CON_INIT(p, bValue); }
 nodeType *con(char cValue)  { return CON_INIT(p, cValue); }
 nodeType *con(char* sValue) { return CON_INIT(p, std::string(sValue)); }
-
-// Create an operator node with a variable number of inputs (usually 2)
-// Note that `oper` is an enum value (or #ifdef), you can find the definintions in `parser.h`.
-nodeType *opr(int oper, int nops, ...) {
-    va_list ap;
-    int i;
-
-    /* copy information */
-    auto opr = oprNodeType{};
-
-    opr.oper = oper;
-    va_start(ap, nops);
-    for (i = 0; i < nops; i++) {
-        opr.op.push_back(va_arg(ap, nodeType*));
-    }
-    va_end(ap);
-
-    return new nodeType(opr, currentLineNo);
-}
 
 // Create an identifier node.
 nodeType *id(const char* id) {
@@ -106,28 +88,30 @@ nodeType* fn_call(nodeType* name) {
     return new nodeType(functionNodeType{nullptr, name}, currentLineNo);
 }
 
+/* Note: we don't recurse into inner loops, if an inner loop contains a break
+ * statement, then that belongs to it. Example:
+ *  while(...) {
+ *      ...
+ *      for(...) {
+ *          if(...) break; // Belongs to the inner for, so we don't recurse.
+ *      }
+ *  }
+ */
 struct set_break_parent_visitor {
-    nodeType *parent_switch;
+    // Can be a loop (for, while, do while)
+    nodeType *parentNode;
 
-    void operator()(breakNodeType &b) const { b.parent_switch = parent_switch; }
-
-    void operator()(oprNodeType &opr) const {
-        for (int i = 0; i < opr.op.size(); i++) {
-            set_break_parent(opr.op[i], parent_switch);
-        }
-    }
+    void operator()(breakNodeType &b) const { b.parent_switch = parentNode; }
 
     void operator()(StatementList& sl) const {
         for(auto* statement: sl.statements) {
-            set_break_parent(statement, parent_switch);
+            set_break_parent(statement, parentNode);
         }
     }
 
-    void operator()(caseNodeType &c) const {
-        auto cases = c.toVec();
-        for (const auto *cs : cases) {
-            set_break_parent(cs->caseBody, parent_switch);
-        }
+    void operator()(IfNode &ifNode) const {
+        set_break_parent(ifNode.ifCode, parentNode);
+        set_break_parent(ifNode.elseCode, parentNode);
     }
 
     // the default case:
@@ -168,6 +152,11 @@ nodeType* identifierListNode(nodeType* idNode, bool addNewScope) {
 nodeType* statementList(nodeType* statement) {
     return new nodeType(StatementList(statement), currentLineNo);
 }
+
+nodeType* statementList() {
+    return new nodeType(StatementList(), currentLineNo);
+}
+
 
 nodeType* exprListNode(nodeType* exprCode) {
     return new nodeType(ExprListNode(exprCode), currentLineNo);

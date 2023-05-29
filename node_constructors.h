@@ -9,7 +9,6 @@ nodeType *con(bool bValue);
 nodeType *con(char cValue);
 nodeType *con(char* sValue);
 
-nodeType *opr(int oper, int nops, ...);
 nodeType *id(const char* id);
 
 nodeType *sw(nodeType* var, nodeType* caseListTail);
@@ -30,6 +29,7 @@ nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& 
 nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier);
 
 nodeType* statementList(nodeType* statement);
+nodeType* statementList();
 
 nodeType* exprListNode(nodeType* exprCode);
 nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListHeader);

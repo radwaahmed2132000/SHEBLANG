@@ -1,11 +1,11 @@
 #include <variant>
 #include "nodes.h"
 
-#define NODE_TYPES                                                      \
-    conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, \
-    breakNodeType, functionNodeType, whileNodeType, forNodeType,        \
-    doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode,    \
-    enumUseNode, StatementList, FunctionCall, ExprListNode, BinOp, UnOp
+#define NODE_TYPES                                                             \
+    conNodeType, idNodeType, switchNodeType, caseNodeType, breakNodeType,      \
+        functionNodeType, whileNodeType, forNodeType, doWhileNodeType,         \
+        VarDecl, VarDefn, enumNode, IdentifierListNode, enumUseNode,           \
+        StatementList, FunctionCall, ExprListNode, BinOp, UnOp, IfNode
 
 typedef struct nodeType : std::variant<NODE_TYPES> {
     int lineNo;

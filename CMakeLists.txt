@@ -28,7 +28,8 @@ set(LEXER_OUT "${PARSER_DIR}/lexer.cpp")
 set(PARSER_OUT "${PARSER_DIR}/parser.cpp")
 
 flex_target(LEXER "${SRC_DIR}/lexer.l" "${LEXER_OUT}" DEFINES_FILE "${PARSER_DIR}/lexer.h")
-bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h" COMPILE_FLAGS ${BISON_DEBUG})
+# Add ` COMPILE_FLAGS "--debug"` if needed.
+bison_target(PARSER "${SRC_DIR}/parser.y" "${PARSER_OUT}" DEFINES_FILE "${PARSER_DIR}/parser.h")
 
 add_flex_bison_dependency(LEXER PARSER)
 

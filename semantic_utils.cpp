@@ -30,10 +30,10 @@ std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements) {
         }
 
         return ret;
-    } else if(auto* opr = fnStatements->asPtr<oprNodeType>(); (opr != nullptr) && opr->oper == IF) {
-        auto ifBranchRets = getFnReturnStatements(opr->op[1]);
-        if(opr->op.size() == 3) {
-            auto elseBranchRets = getFnReturnStatements(opr->op[2]);
+    } else if(auto* ifNode = fnStatements->asPtr<IfNode>(); (ifNode != nullptr)) {
+        auto ifBranchRets = getFnReturnStatements(ifNode->ifCode);
+        if(ifNode->elseCode != nullptr) {
+            auto elseBranchRets = getFnReturnStatements(ifNode->elseCode);
             ifBranchRets.insert(ifBranchRets.end(), elseBranchRets.begin(), elseBranchRets.end());
         }
         return ifBranchRets;

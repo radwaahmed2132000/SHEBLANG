@@ -1,4 +1,4 @@
-if (false) { ; }
+if (false) { }
 ===
 Warning in line number: 1 .Condition in an if statement is always false
 ===

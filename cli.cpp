@@ -215,21 +215,6 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(oprNodeType& opr) const {
-        switch(opr.oper) {
-            case IF: {
-                 if (ex(opr.op[0]))
-                     ex(opr.op[1]);
-                 else if (opr.op.size() > 2)
-                     ex(opr.op[2]);
-                 return Value(0);
-            }
-            default: return Value(0);
-        }
-
-        return Value(0);
-    }
-
     Value operator()(BinOp& bop) const {
         using enum BinOper;
 
@@ -288,6 +273,16 @@ struct ex_visitor {
         case Decrement:
             return postOp(uop, p, [](Value &val) { return val - Value(1); });
         }
+    }
+
+    Value operator()(IfNode& ifNode) const {
+        if (ex(ifNode.condition)) {
+            ex(ifNode.ifCode);
+        } else if (ifNode.elseCode != nullptr) {
+            ex(ifNode.elseCode);
+        }
+
+        return Value(0);
     }
 
     // the default case:

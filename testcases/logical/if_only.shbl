@@ -1,11 +1,6 @@
 int a = 1;
 if(a>0);
 ===
+syntax error
 ===
-    push 1
-    pop a
-    push a
-    push 0
-    compGT
-    jnz  L000
-L000:
+syntax error

@@ -17,3 +17,11 @@ nodeType* BinOp::opAssign(BinOper op, nodeType* lOp, nodeType* rOp) {
 nodeType* UnOp::node(UnOper op, nodeType* operand) {
     return new nodeType(UnOp{op, operand}, currentLineNo);
 }
+
+nodeType* IfNode::node(nodeType* condition, nodeType* ifCode) {
+    return new nodeType(IfNode{condition, ifCode, nullptr}, currentLineNo);
+}
+
+nodeType* IfNode::node(nodeType* condition, nodeType* ifCode, nodeType* elseCode) {
+    return new nodeType(IfNode{condition, ifCode, elseCode}, currentLineNo);
+}

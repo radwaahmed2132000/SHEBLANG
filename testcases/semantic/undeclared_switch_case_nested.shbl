@@ -16,11 +16,7 @@ switch(a) {
 			}
 		}
 		c = 5;
-		if(
-            c 
-            > 
-            0
-        ) {
+		if(c > 0) {
 			print c;
 		}
 	}
@@ -35,8 +31,8 @@ Error in line number: 10 .The switch variable is not valid
 Error in line number: 15 .Identifier b is not declared
 Error in line number: 14 .The case body of the case statement is not valid
 Error in line number: 18 .Identifier c is not declared
+Error in line number: 19 .Identifier c is not declared
+Error in line number: 19 .Condition in an if statement is invalid
 Error in line number: 20 .Identifier c is not declared
-Error in line number: 23 .Condition in an if statement is invalid
-Error in line number: 24 .Identifier c is not declared
-Error in line number: 24 .Body of an if statement is invalid
+Error in line number: 19 .Body of an if statement is invalid
 Error in line number: 7 .The case body of the case statement is not valid

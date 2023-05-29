@@ -443,26 +443,24 @@ struct ex_const_visitor {
             }
         }
 
-
         return Result::Error("");
     }
 
-    Result operator() (oprNodeType& opr) {
-        // TODO: Unary operators (UPLUS, UMINUS, ++, --, !, etc...)
-        switch (opr.oper) {
-            case '~': {
-                auto left = ex_const_kak_TM(opr.op[0]);
-                if (!left.isSuccess()) { return left; }
+    Result operator()(IfNode& ifNode) {
+        auto conditionResult = ex_const_kak_TM(ifNode.condition);
+        if(!conditionResult.isSuccess()) return conditionResult;
 
-                Result result = Result::Success(std::get<SuccessType>(left));
+        auto ifResult = ex_const_kak_TM(ifNode.ifCode);
+        if(!ifResult.isSuccess()) return ifResult;
 
-                if (opr.oper == '~') {
-                    result.value = new Value(~(*left.value));
-                }
-                return result;
-            }
-            default: { return Result::Error("Unknown operator"); }
+        if(ifNode.elseCode != nullptr) {
+            auto elseResult = ex_const_kak_TM(ifNode.elseCode);
+            if(!elseResult.isSuccess()) return elseResult;
+
+            return Result::Error();
         }
+
+        return Result::Error();
     }
 
     // the default case:
@@ -474,7 +472,6 @@ Result ex_const_kak_TM(nodeType *p) {
     if (p == nullptr) return Result::Success("success");
     return std::visit(ex_const_visitor{p}, *p);
 }
-
 
 struct semantic_analysis_visitor {
     nodeType* currentNodePtr;
@@ -1102,122 +1099,6 @@ struct semantic_analysis_visitor {
     }
            
 
-    Result operator()(oprNodeType &opr) {
-      int startingSize = errorsOutput.sizeError;
-
-      switch(opr.oper) {
-        case IF: {
-                   Result condition = semantic_analysis(opr.op[0]);
-
-                   if (!condition.isSuccess()) {
-                     errorsOutput.addError(
-                         "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
-                         " .Condition in an if statement is invalid");
-                   } else {
-                     auto conditionType = std::get<SuccessType>(condition);
-
-                     if (conditionType != "bool") {
-                       Result conditionCastResult = castToTarget(
-                           conditionType, "bool", opr.op[0], opr.op[0]->lineNo);
-                       if (!conditionCastResult.isSuccess()) {
-                         errorsOutput.mergeErrors(
-                             std::get<ErrorType>(conditionCastResult));
-                       }
-                     }
-                   }
-
-                   /* Check if the case condition is always false */
-                   if (condition.isSuccess()) {
-                     Result alwaysFalseResult = ex_const_kak_TM(opr.op[0]);
-
-                     if (alwaysFalseResult.isSuccess() &&
-                         std::get<SuccessType>(alwaysFalseResult) == "bool") {
-                       Value val = *alwaysFalseResult.value;
-
-                       if (std::get<bool>(val) == false) {
-                         warningsOutput.addError(
-                             "Warning in line number: " +
-                             std::to_string(opr.op[0]->lineNo) +
-                             " .Condition in an if statement is always false");
-                       }
-                     }
-                   }
-
-                   Result ifBody = semantic_analysis(opr.op[1]);
-                   if (!ifBody.isSuccess()) {
-                     errorsOutput.addError(
-                         "Error in line number: " + std::to_string(opr.op[1]->lineNo) +
-                         " .Body of an if statement is invalid");
-                   }
-
-                   if (opr.op.size() > 2) {
-                     Result elseBody = semantic_analysis(opr.op[2]);
-                     if (!ifBody.isSuccess()) {
-                       errorsOutput.addError("Error in line number: " +
-                           std::to_string(opr.op[1]->lineNo) +
-                           " .Body of an if statement is invalid");
-                     }
-                   }
-
-                   if (startingSize != errorsOutput.sizeError) {
-                     return Result::Error("error");
-                   }
-                   return Result::Success(std::get<SuccessType>(condition));
-                 } break;
-
-        case PRINT: {
-                      /* Check that the right expression is valid */
-                      RIGHT_VALID(opr.op[0]); // * gives right
-                      return right;
-                    } break;
-
-        case RETURN: {
-                       if (!opr.op.empty())
-                         return semantic_analysis(opr.op[0]);
-                     } break;
-
-        case UMINUS:
-        case UPLUS: { return semantic_analysis(opr.op[0]); } break;
-
-
-        case PP:
-        case MM: {
-                   /* Check that the left identifier is not a constant */
-                   auto *symTable = opr.op[0]->currentScope;
-                   NOT_CONST(opr.op[0], opr.op[0]->lineNo, symTable->sym2);
-
-                   /* Check that the left expression is valid (identifier is declared) */
-                   LEFT_VALID(opr.op[0]); // * gives left
-                   LEFT_TYPE(left);
-
-                   /* Manual casting without macro */
-                   if (leftType == "string") {
-                     errorsOutput.addError(
-                         "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
-                         " .Cannot cast to or from string");
-                   } else if (leftType == "int" || leftType == "float") {
-                     return Result::Success(leftType);
-                   } else if (leftType == "char") {
-                     return Result::Success("int");
-                   } else {
-                     errorsOutput.addError(
-                         "Error in line number: " + std::to_string(opr.op[0]->lineNo) +
-                         " .Can't Increment/Decrement booleans");
-                   }
-
-                   if (startingSize != errorsOutput.sizeError) {
-                     return Result::Error("error");
-                   }
-                   return Result::Success(leftType);
-                 } break;
-
-        default: return Result::Success("success");
-      }
-
-      if (startingSize != errorsOutput.sizeError) { return Result::Error("error"); }
-      return Result::Success("success");
-    }
-
     Result operator()(BinOp& bop) const {
       /* 
        * TODO: Implement the followinging check when the function identifier is added
@@ -1324,6 +1205,83 @@ struct semantic_analysis_visitor {
 
       if (startingSize != errorsOutput.sizeError) { return Result::Error("error"); }
       return Result::Success("success");
+    }
+
+    Result operator()(IfNode &ifNode) {
+        int startingSize = errorsOutput.sizeError;
+
+        Result condition = semantic_analysis(ifNode.condition);
+
+        if (!condition.isSuccess()) {
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(ifNode.condition->lineNo) +
+                " .Condition in an if statement is invalid"
+            );
+        } else {
+            auto conditionType = std::get<SuccessType>(condition);
+
+            if (conditionType != "bool") {
+                Result conditionCastResult = castToTarget(
+                    conditionType,
+                    "bool",
+                    ifNode.condition,
+                    ifNode.condition->lineNo
+                );
+
+                if (!conditionCastResult.isSuccess()) {
+                    errorsOutput.mergeErrors(
+                        std::get<ErrorType>(conditionCastResult)
+                    );
+                }
+            }
+        }
+
+        /* Check if the case condition is always false */
+        if (condition.isSuccess()) {
+            Result alwaysFalseResult = ex_const_kak_TM(ifNode.condition);
+
+            if (alwaysFalseResult.isSuccess() &&
+                std::get<SuccessType>(alwaysFalseResult) == "bool") {
+                Value val = *alwaysFalseResult.value;
+
+                if (std::get<bool>(val) == false) {
+                    warningsOutput.addError(
+                        "Warning in line number: " +
+                        std::to_string(ifNode.condition->lineNo) +
+                        " .Condition in an if statement is always false"
+                    );
+                }
+            }
+        }
+
+        Result ifBody = semantic_analysis(ifNode.ifCode);
+        if (!ifBody.isSuccess()) {
+            errorsOutput.addError(
+                "Error in line number: " + std::to_string(ifNode.ifCode->lineNo) +
+                " .Body of an if statement is invalid"
+            );
+        }
+
+        if (ifNode.elseCode != nullptr) {
+            Result elseBody = semantic_analysis(ifNode.elseCode);
+            if (!ifBody.isSuccess()) {
+                errorsOutput.addError(
+                    "Error in line number: " +
+                    std::to_string(ifNode.elseCode->lineNo) +
+                    " .Body of an if statement is invalid"
+                );
+            }
+        }
+
+        if (startingSize != errorsOutput.sizeError) {
+            return Result::Error("error");
+        }
+        return Result::Success(std::get<SuccessType>(condition));
+
+        if (startingSize != errorsOutput.sizeError) {
+            return Result::Error("error");
+        }
+        return Result::Success("success");
     }
 
     // the default case:

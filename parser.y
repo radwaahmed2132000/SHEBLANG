@@ -56,6 +56,7 @@ extern int yylineno;            /* from lexer */
 %type <node> function_parameter_list identifier_list
 %type <node> expr_list
 
+%type <node> if_else_errors
 %%
 
 program:
@@ -85,7 +86,6 @@ program:
 
                 exit(0);
             }
-        | /* NULL */
         ;
 
 var_decl:
@@ -96,15 +96,32 @@ var_defn:
         var_decl '=' expr ';'        { 
             $$ = varDefn($1, $3, false);
         };
+
+stmt_list:
+          stmt_list stmt        { $$ = $1; ($1)->asPtr<StatementList>()->addStatement($2); } 
+        | /* EMPTY */           { $$ = statementList(); }
+        ;
+
+/* TODO: Collect valid nodes (i.e. `stmt` in the if rule without a condition for semantic analysis) */
+if_else_errors:
+         IF '(' ')' stmt                         { 
+            std::cerr << "Syntax error at line " << yylineno << ": If's condition can't be empty.\n";
+
+            $$ = statementList(); // Empty statement
+        }
+        | ELSE stmt                              { 
+            std::cerr << "Syntax error at line " << yylineno << ": Cannot find the `if` statement for this `else` block!\n";
+            $$ = statementList(); // Empty statement
+        }
+
 stmt:
-        ';'                                     { $$ = opr(';', 0); }
-        | FOR '(' var_defn expr ';' expr ')' stmt { 
+        FOR '(' var_defn expr ';' expr ')' stmt { 
                 $$ = for_loop($3, $4, $6, $8); 
                 set_break_parent($8, $$);
         }
-        | IF '(' ')' stmt                         { $$ = $4; printf("%s",std::string("Syntax Error at line "+std::to_string(yylineno)+". If's condition can\'t be empty.\n").c_str()); }
-        | IF '(' expr ')' stmt %prec IFX          { $$ = opr(IF, 2, $3, $5); }
-        | IF '(' expr ')' stmt ELSE stmt          { $$ = opr(IF, 3, $3, $5, $7); }
+        | if_else_errors
+        | IF '(' expr ')' stmt %prec IFX          { $$ = IfNode::node($3, $5); }
+        | IF '(' expr ')' stmt ELSE stmt          { $$ = IfNode::node($3, $5, $7); }
         | SWITCH '(' expr ')' case                { $$ = sw($3, $5); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
@@ -143,10 +160,6 @@ case_list:
 
 literal:
        INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER 
-
-stmt_list:
-          stmt                  { $$ = statementList($1); }
-        | stmt_list stmt        { $$ = $1; ($1)->asPtr<StatementList>()->addStatement($2); } 
 
 expr : 
         literal                         { $$ = $1; }

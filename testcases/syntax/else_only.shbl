@@ -1,7 +1,17 @@
-else {
-;
+if(true) {
+    print "true";
+} else {
+    print "false";
 }
+
+else { print "borked"; }
+
+print "After the else";
 ===
-syntax error
+Syntax error at line 7: Cannot find the `if` statement for this `else` block!
+true
+After the else
 ===
-syntax error
+Syntax error at line 7: Cannot find the `if` statement for this `else` block!
+true
+After the else
