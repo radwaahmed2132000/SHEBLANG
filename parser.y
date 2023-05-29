@@ -108,7 +108,7 @@ stmt:
         | SWITCH '(' expr ')' case                { $$ = sw($3, $5); }
         | expr ';'                                { $$ = $1; }
         | BREAK ';'                               { $$ = br(); }
-        | PRINT expr ';'                          { $$ = opr(PRINT, 1, $2); }
+        | PRINT expr ';'                          { $$ = UnOp::node(UnOper::Print, $2); }
         | WHILE '(' expr ')' stmt                 { 
                 $$ = while_loop($3, $5); 
                 set_break_parent($5, $$);
@@ -127,7 +127,7 @@ stmt:
         ;
 
 return_statement:
-                RETURN expr ';' { $$ = opr(RETURN, 1, $2); }
+                RETURN expr ';' { $$ = UnOp::node(UnOper::Return, $2); }
                 ;
 
 case: 
@@ -150,12 +150,12 @@ stmt_list:
 
 expr : 
         literal                         { $$ = $1; }
-        | expr PP                       { $$ = opr(PP, 1, $1); }
-        | expr MM                       { $$ = opr(MM, 1, $1); }
-        | '+' expr %prec UPLUS          { $$ = opr(UPLUS, 1, $2); }
-        | '-' expr %prec UMINUS         { $$ = opr(UMINUS, 1, $2); }
-        | '!' expr                      { $$ = opr('!', 1, $2); }
-        | '~' expr                      { $$ = opr('~', 1, $2); }
+        | expr PP                       { $$ = UnOp::node(UnOper::Increment, $1); }
+        | expr MM                       { $$ = UnOp::node(UnOper::Decrement, $1); }
+        | '+' expr %prec UPLUS          { $$ = UnOp::node(UnOper::Plus, $2); }
+        | '-' expr %prec UMINUS         { $$ = UnOp::node(UnOper::Minus, $2); }
+        | '!' expr                      { $$ = UnOp::node(UnOper::BoolNeg, $2); }
+        | '~' expr                      { $$ = UnOp::node(UnOper::BitToggle, $2); }
         | IDENTIFIER '=' expr           { $$ = BinOp::assign($1, $3); }
         | IDENTIFIER PA expr            { $$ = BinOp::opAssign(BinOper::Add, $1, $3); }
         | IDENTIFIER SA expr            { $$ = BinOp::opAssign(BinOper::Sub, $1, $3); }

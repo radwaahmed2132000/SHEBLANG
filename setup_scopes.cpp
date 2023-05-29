@@ -239,6 +239,11 @@ struct setup_scopes_visitor {
         setup_scopes(bin.rOperand);
     }
 
+    void operator()(UnOp& uop) const {
+        uop.operand->currentScope = currentNodePtr->currentScope;
+        setup_scopes(uop.operand);
+    }
+
     // the default case:
     template<typename T> 
     void operator()(T const & /*UNUSED*/ ) const {}

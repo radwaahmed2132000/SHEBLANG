@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <stdio.h>
 #include <assert.h>
@@ -16,23 +17,17 @@
 #define BOP_CASE(case_value, oper) \
             case case_value: return ex(bop.lOperand) oper ex(bop.rOperand);
                              
-#define UOP_CASE(case_value, oper) \
-            case case_value: return oper(ex(opr.op[0]));
-
 #define BOOL_BOP_CASE(case_value, oper) \
             case case_value: return Value(ex(bop.lOperand) oper ex(bop.rOperand));
                              
-#define BOOL_UOP_CASE(case_value, oper) \
-            case case_value: return Value(oper (ex(opr.op[0])));
-
-#define POST_OP(oper) {                                                \
-        auto nameStr =  opr.op[0]->as<idNodeType>().id;                \
-        auto& varEntry = getSymEntry(nameStr, p->currentScope);        \
-        auto &varRef = varEntry.getRef();                              \
-        Value temp = varRef;                                           \
-        varRef = varRef oper Value(1);                                 \
-        return temp;                                                   \
-    }
+Value postOp(UnOp &uop, nodeType *p, std::function<Value(Value&)> op) {
+    auto nameStr = uop.operand->as<idNodeType>().id;
+    auto &varEntry = getSymEntry(nameStr, p->currentScope);
+    auto &varRef = varEntry.getRef();
+    Value temp = varRef;
+    varRef = op(varRef);
+    return temp;
+}
 
 Value ex(nodeType* p);
 
@@ -188,8 +183,8 @@ struct ex_visitor {
 
             bool isBreak = statement->is<breakNodeType>();
 
-            const auto *opr = statement->asPtr<oprNodeType>();
-            bool isReturn = (opr != nullptr && opr->oper == RETURN);
+            const auto *retOpr = statement->asPtr<UnOp>();
+            bool isReturn = (retOpr != nullptr && retOpr->op == UnOper::Return);
 
             if(isBreak) { return Value(0); } 
             if(isReturn) { return ret; }
@@ -229,26 +224,6 @@ struct ex_visitor {
                      ex(opr.op[2]);
                  return Value(0);
             }
-
-            case DEFAULT:   break;
-            case CASE:      return ex(opr.op[0]);
-
-            case PRINT:  
-            {
-                Value exprValue = ex(opr.op[0]);
-                std::cout << exprValue.toString() << '\n';
-                return Value(0);
-            }
-            case RETURN:
-                return ex(opr.op[0]);
-
-            BOOL_UOP_CASE('!',!) 
-            UOP_CASE('~',~) 
-            UOP_CASE(UPLUS,+)     
-            UOP_CASE(UMINUS,-)
-
-            case PP: POST_OP(+)
-            case MM: POST_OP(-)
             default: return Value(0);
         }
 
@@ -263,7 +238,7 @@ struct ex_visitor {
 
             BOP_CASE(Add,+)
             BOP_CASE(Sub,-)
-            BOP_CASE(Mul,*) 
+            BOP_CASE(Mul, *)
             BOP_CASE(Div,/) 
             BOP_CASE(BitAnd,&) 
             BOP_CASE(BitOr,|) 
@@ -272,18 +247,46 @@ struct ex_visitor {
             BOP_CASE(RShift,>>)
             BOP_CASE(Mod,%) 
             BOOL_BOP_CASE(LessThan,<)
-            case GreaterThan: {
-                auto l = ex(bop.lOperand);
-                auto r = ex(bop.rOperand);
-                auto comp = l > r;
-                return Value(comp);
-            }
+            BOOL_BOP_CASE(GreaterThan, >)
             BOOL_BOP_CASE(And, &&)
             BOOL_BOP_CASE(Or, ||)
             BOOL_BOP_CASE(GreaterEqual,>=)        
             BOOL_BOP_CASE(LessEqual,<=)        
             BOOL_BOP_CASE(NotEqual,!=)        
             BOOL_BOP_CASE(Equal,==)        
+        }
+    }
+
+    Value operator()(UnOp& uop) {
+        using enum UnOper;
+
+        switch (uop.op) {
+        case Print: {
+            Value exprValue = ex(uop.operand);
+            std::cout << exprValue.toString() << '\n';
+            return Value(0);
+        }
+
+        case Return:
+            return ex(uop.operand);
+
+        case BoolNeg:
+            return Value(!(ex(uop.operand)));
+
+        case BitToggle:
+            return ~(ex(uop.operand));
+
+        case Plus:
+            return +(ex(uop.operand));
+
+        case Minus:
+            return -(ex(uop.operand));
+
+        case Increment:
+            return postOp(uop, p, [](Value &val) { return val + Value(1); });
+
+        case Decrement:
+            return postOp(uop, p, [](Value &val) { return val - Value(1); });
         }
     }
 

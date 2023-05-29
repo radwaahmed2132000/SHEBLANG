@@ -5,7 +5,7 @@
     conNodeType, idNodeType, oprNodeType, switchNodeType, caseNodeType, \
     breakNodeType, functionNodeType, whileNodeType, forNodeType,        \
     doWhileNodeType, VarDecl, VarDefn, enumNode, IdentifierListNode,    \
-    enumUseNode, StatementList, FunctionCall, ExprListNode, BinOp
+    enumUseNode, StatementList, FunctionCall, ExprListNode, BinOp, UnOp
 
 typedef struct nodeType : std::variant<NODE_TYPES> {
     int lineNo;

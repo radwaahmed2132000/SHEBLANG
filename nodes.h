@@ -209,7 +209,7 @@ struct ScopeSymbolTables {
     }
 };
 
-enum BinOper {
+enum class BinOper {
     Assign,
     Add,
     Sub,
@@ -240,3 +240,20 @@ struct BinOp {
     static nodeType* opAssign(BinOper op, nodeType* lOp, nodeType* rOp);
 };
 
+enum class UnOper { 
+    BoolNeg,
+    BitToggle,
+    Plus,
+    Minus,
+    Increment,
+    Decrement,
+    Print,  // TODO: Move to its own node type
+    Return  // TODO: Move to its own node type
+};
+
+struct UnOp {
+    UnOper op;
+    nodeType* operand;
+
+    static nodeType* node(UnOper op, nodeType* operand);
+};

@@ -1,8 +1,9 @@
 #include "semantic_utils.h"
+#include "nodes.h"
 
 std::string getReturnType(nodeType* returnStatement) {
-    auto& returnOpr = returnStatement->as<oprNodeType>();
-    auto returnType = semantic_analysis(returnOpr.op[0]);
+    auto& retOpr = returnStatement->as<UnOp>();
+    auto returnType = semantic_analysis(retOpr.operand);
 
     // At this point, the function should be semantically fine, so no need to
     // check for the failure case?
@@ -19,8 +20,8 @@ std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements) {
         std::vector<nodeType*> ret;
 
         for (auto *statement : statements->statements) {
-            auto *opr = statement->asPtr<oprNodeType>();
-            if (opr != nullptr && opr->oper == RETURN) {
+            auto *uop = statement->asPtr<UnOp>();
+            if (uop != nullptr && uop->op == UnOper::Return) {
                 return {statement};
             }
 

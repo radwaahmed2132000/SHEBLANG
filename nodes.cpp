@@ -13,3 +13,7 @@ nodeType* BinOp::opAssign(BinOper op, nodeType* lOp, nodeType* rOp) {
     auto* innerRightOp = BinOp::node(op, lOp, rOp);
     return new nodeType(BinOp{BinOper::Assign, lOp, innerRightOp}, currentLineNo);
 }
+
+nodeType* UnOp::node(UnOper op, nodeType* operand) {
+    return new nodeType(UnOp{op, operand}, currentLineNo);
+}

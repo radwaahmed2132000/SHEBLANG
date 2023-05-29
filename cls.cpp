@@ -1261,6 +1261,71 @@ struct semantic_analysis_visitor {
       return Result::Success(finalType);
     }
 
+    Result operator()(UnOp& uop) {
+      using enum UnOper;
+
+      int startingSize = errorsOutput.sizeError;
+
+      switch (uop.op) {
+      case Print: {
+          /* Check that the right expression is valid */
+          RIGHT_VALID(uop.operand); // * gives right
+          return right;
+      } break;
+
+      case Return: {
+          if (uop.operand != nullptr) return semantic_analysis(uop.operand);
+      } break;
+
+      case Minus:
+      case Plus: {
+          return semantic_analysis(uop.operand);
+      } break;
+
+      case Increment:
+      case Decrement: {
+          /* Check that the left identifier is not a constant */
+          auto *symTable = uop.operand->currentScope;
+          NOT_CONST(uop.operand, uop.operand->lineNo, symTable->sym2);
+
+          /* Check that the left expression is valid (identifier is declared)
+           */
+          LEFT_VALID(uop.operand); // * gives left
+          LEFT_TYPE(left);
+
+          /* Manual casting without macro */
+          if (leftType == "string") {
+              errorsOutput.addError(
+                  "Error in line number: " +
+                  std::to_string(uop.operand->lineNo) +
+                  " .Cannot cast to or from string"
+              );
+          } else if (leftType == "int" || leftType == "float") {
+              return Result::Success(leftType);
+          } else if (leftType == "char") {
+              return Result::Success("int");
+          } else {
+              errorsOutput.addError(
+                  "Error in line number: " +
+                  std::to_string(uop.operand->lineNo) +
+                  " .Can't Increment/Decrement booleans"
+              );
+          }
+
+          if (startingSize != errorsOutput.sizeError) {
+              return Result::Error("error");
+          }
+          return Result::Success(leftType);
+      } break;
+
+      default:
+          return Result::Success("success");
+      }
+
+      if (startingSize != errorsOutput.sizeError) { return Result::Error("error"); }
+      return Result::Success("success");
+    }
+
     // the default case:
     template<typename T> 
     Result operator()(T const & /*UNUSED*/ ) const { return Result::Success("success"); } 
