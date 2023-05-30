@@ -108,7 +108,7 @@ main();
 
 ## Collaborators
 <!-- readme: collaborators -start -->
-<table>
+<table style="margin: auto">
 <tr>
     <td align="center">
         <a href="https://github.com/Hero2323">
