@@ -1,7 +1,7 @@
 #include "cl.h"
 #include "parser.h"
 
-std::string getReturnType(nodeType* returnStatement);
+std::string getReturnType(Node* returnStatement);
 
 // Recurses into a function, checking statements, if conditions, while loops,
 // for loops, do while loops, and switch cases.
@@ -22,4 +22,4 @@ std::string getReturnType(nodeType* returnStatement);
 //      }
 // }
 //
-std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements);
+std::vector<Node*> getFnReturnStatements(Node* fnStatements);

@@ -20,7 +20,7 @@
 template <typename T>
 struct LinkedListNode {
     T * prev = nullptr;
-    struct nodeType* self = nullptr;
+    struct Node* self = nullptr;
 
     LinkedListNode() = default;
     LinkedListNode(T* p) : prev(p) {}
@@ -38,8 +38,8 @@ struct LinkedListNode {
 		return nodes;
 	}
 
-    std::vector<struct nodeType*> toNodes() const {
-		std::vector<nodeType*> nodes;
+    std::vector<struct Node*> toNodes() const {
+		std::vector<Node*> nodes;
 
 		T* current = static_cast<T*>(this);
 		while(current != nullptr) {
@@ -61,27 +61,27 @@ typedef struct {
 } idNodeType;
 
 typedef struct caseNodeType: LinkedListNode<caseNodeType> {
-    struct  nodeType* labelExpr, * caseBody;
+    struct  Node* labelExpr, * caseBody;
 
     caseNodeType(): caseBody(nullptr), LinkedListNode(nullptr) {}
-    caseNodeType(nodeType* labelExpr, nodeType* caseBody): labelExpr(labelExpr), caseBody(caseBody) { }
+    caseNodeType(Node* labelExpr, Node* caseBody): labelExpr(labelExpr), caseBody(caseBody) { }
 
     bool isDefault() const { return (labelExpr == nullptr); }
 } caseNodeType;
 
 typedef struct {
     int exitLabel;             // Needed for code generation, stores the label that cases jump to on completion 
-    struct nodeType* var;       // The variable we're switching on
-    struct nodeType* caseListTail; // The last case, it contains a pointer the the previous ones.
+    struct Node* var;       // The variable we're switching on
+    struct Node* caseListTail; // The last case, it contains a pointer the the previous ones.
 } switchNodeType;
 
 typedef struct {
-    struct nodeType* parent_switch;
+    struct Node* parent_switch;
 } breakNodeType;
 
 typedef struct {
     bool break_encountered;
-    struct nodeType *condition, *loop_body;
+    struct Node *condition, *loop_body;
     int exit_label;
 } whileNodeType;
 
@@ -91,13 +91,13 @@ typedef struct {
 // split them.
 typedef struct {
     bool break_encountered;
-    struct nodeType *condition, *loop_body;
+    struct Node *condition, *loop_body;
     int exit_label;
 } doWhileNodeType;
 
 typedef struct {
     bool break_encountered;
-    struct nodeType *init_statement, *loop_condition, *post_loop_statement, *loop_body;
+    struct Node *init_statement, *loop_condition, *post_loop_statement, *loop_body;
     int exit_label;
 } forNodeType;
 
@@ -109,7 +109,7 @@ typedef struct IdentifierListNode: LinkedListNode<IdentifierListNode> {
 } IdentifierListNode;
 
 typedef struct enumNode {
-    nodeType* name;
+    Node* name;
     std::vector<std::string> enumMembers;
 } enumNode;
 
@@ -119,19 +119,19 @@ typedef struct enumUseNode {
 } enumUseNode;
 
 typedef struct StatementList {
-    std::vector<struct nodeType*> statements;
+    std::vector<struct Node*> statements;
 
     StatementList(): statements({}) {}
-    StatementList(nodeType* statementCode): statements({statementCode}) {}
-    void addStatement(nodeType* statement) { statements.push_back(statement); }
+    StatementList(Node* statementCode): statements({statementCode}) {}
+    void addStatement(Node* statement) { statements.push_back(statement); }
 
 } StatementList;
 
 typedef struct ExprListNode: LinkedListNode<ExprListNode> {
-    struct nodeType* exprCode;
+    struct Node* exprCode;
 
     ExprListNode(): exprCode(nullptr) {}
-    ExprListNode(nodeType* exprCode): exprCode(exprCode) {}
+    ExprListNode(Node* exprCode): exprCode(exprCode) {}
 
 } ExprListNode;
 
@@ -142,13 +142,13 @@ typedef struct FunctionCall {
 } FunctionCall;
 
 typedef struct VarDecl : LinkedListNode<VarDecl>{
-	struct nodeType *type, *var_name;
+	struct Node *type, *var_name;
     bool isConstant = false;
-    struct nodeType* initExpr = nullptr;
+    struct Node* initExpr = nullptr;
 
     VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
-	VarDecl(nodeType* type, nodeType* var_name) : type(type), var_name(var_name) {}
-    VarDecl(nodeType* type, nodeType* var_name, nodeType* initExpr, bool isConstant) : type(type), var_name(var_name), initExpr(initExpr), isConstant(isConstant) {}
+	VarDecl(Node* type, Node* var_name) : type(type), var_name(var_name) {}
+    VarDecl(Node* type, Node* var_name, Node* initExpr, bool isConstant) : type(type), var_name(var_name), initExpr(initExpr), isConstant(isConstant) {}
 
     std::string getType() const;
     std::string getName() const;
@@ -157,24 +157,24 @@ typedef struct VarDecl : LinkedListNode<VarDecl>{
 typedef struct VarDefn {
 	VarDecl* decl;
     bool isConstant;
-    struct nodeType* initExpr = nullptr;
+    struct Node* initExpr = nullptr;
 
-	VarDefn(VarDecl* decl, nodeType* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
+	VarDefn(VarDecl* decl, Node* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
 } VarDefn;
 
 struct FunctionDefn {
-    struct nodeType* return_type;
-    struct nodeType* name;
-    struct nodeType* parametersTail;
-    struct nodeType* statements;
+    struct Node* return_type;
+    struct Node* name;
+    struct Node* parametersTail;
+    struct Node* statements;
 
-    static nodeType* node(nodeType* name, nodeType* paramsTail, nodeType* return_type, nodeType* statements);
+    static Node* node(Node* name, Node* paramsTail, Node* return_type, Node* statements);
     std::vector<VarDecl*> getParameters() const;
-    std::vector<nodeType*> getParametersAsNodes() const;
+    std::vector<Node*> getParametersAsNodes() const;
 };
 
 struct ReturnNode {
-    nodeType* retExpr;
+    Node* retExpr;
 };
 
 enum class BinOper {
@@ -201,11 +201,11 @@ enum class BinOper {
 
 struct BinOp {
     BinOper op;
-    nodeType* lOperand, *rOperand;
+    Node* lOperand, *rOperand;
 
-    static nodeType* node(BinOper op, nodeType* lOp, nodeType* rOp);
-    static nodeType* assign(nodeType* lOp, nodeType* rOp);
-    static nodeType* opAssign(BinOper op, nodeType* lOp, nodeType* rOp);
+    static Node* node(BinOper op, Node* lOp, Node* rOp);
+    static Node* assign(Node* lOp, Node* rOp);
+    static Node* opAssign(BinOper op, Node* lOp, Node* rOp);
 };
 
 enum class UnOper { 
@@ -221,16 +221,16 @@ enum class UnOper {
 
 struct UnOp {
     UnOper op;
-    nodeType* operand;
+    Node* operand;
 
-    static nodeType* node(UnOper op, nodeType* operand);
+    static Node* node(UnOper op, Node* operand);
 };
 
 struct IfNode {
-   nodeType* condition, *ifCode, *elseCode;
+   Node* condition, *ifCode, *elseCode;
 
-   static nodeType *node(nodeType *condition, nodeType *ifCode);
-   static nodeType * node(nodeType *condition, nodeType *ifCode, nodeType *elseCode);
+   static Node *node(Node *condition, Node *ifCode);
+   static Node * node(Node *condition, Node *ifCode, Node *elseCode);
 };
 
 typedef struct SymbolTableEntry {
@@ -239,11 +239,11 @@ typedef struct SymbolTableEntry {
     bool isUsed = false;
     int declaredAtLine = -1;
     std::string type = "<no type>";  
-    nodeType* initExpr = nullptr;
+    Node* initExpr = nullptr;
 
     SymbolTableEntry() = default;
 
-    SymbolTableEntry(nodeType* initExpr, bool isConstant, std::string type):
+    SymbolTableEntry(Node* initExpr, bool isConstant, std::string type):
         initExpr(initExpr), isConstant(isConstant), type(type) {}
     
     SymbolTableEntry(bool isConstant, std::string type):

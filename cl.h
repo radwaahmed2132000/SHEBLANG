@@ -31,9 +31,9 @@ void yyerror(char *s);
 void printSymbolTables();
 void appendSymbolTable(int i);
 // Forward declare `semantic_analysis` for use in cl.y
-Result semantic_analysis(nodeType* p);
-void setup_scopes(nodeType* p);
-void set_break_parent(nodeType* node, nodeType* parent_switch);
+Result semantic_analysis(Node* p);
+void setup_scopes(Node* p);
+void set_break_parent(Node* node, Node* parent_switch);
 
 
 // Scope analysis should guarantee that we can find the variable in some parent scope.
@@ -102,4 +102,4 @@ struct ControlFlow {
     }
 };
 
-ControlFlow ex(nodeType* p);
+ControlFlow ex(Node* p);

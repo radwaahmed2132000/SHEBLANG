@@ -20,7 +20,7 @@
 #define BOOL_BOP_CASE(case_value, oper) \
             case case_value: return Value(ex(bop.lOperand) oper ex(bop.rOperand));
                              
-Value postOp(UnOp &uop, nodeType *p, std::function<Value(Value&)> op) {
+Value postOp(UnOp &uop, Node *p, std::function<Value(Value&)> op) {
     auto nameStr = uop.operand->as<idNodeType>().id;
     auto &varEntry = getSymEntry(nameStr, p->currentScope);
     auto &varRef = varEntry.getRef();
@@ -29,7 +29,7 @@ Value postOp(UnOp &uop, nodeType *p, std::function<Value(Value&)> op) {
     return temp;
 }
 
-ControlFlow assignToVar(BinOp& bop, nodeType* p) {
+ControlFlow assignToVar(BinOp& bop, Node* p) {
     using std::optional, std::string, std::make_optional, std::visit;
     using namespace std::string_literals;
 
@@ -73,7 +73,7 @@ ControlFlow evaluate_switch(switchNodeType& sw) {
 
     assert(sw.caseListTail->is<caseNodeType>());
 
-    nodeType* head = sw.caseListTail;
+    Node* head = sw.caseListTail;
     auto cases =  head->as<caseNodeType>().toVec();
 
     bool foundCase = false;
@@ -101,7 +101,7 @@ ControlFlow evaluate_switch(switchNodeType& sw) {
 struct ex_visitor {
     // pointer to the node of the current variant
     // since we need scope info from it.
-    nodeType* p;
+    Node* p;
 
     ControlFlow operator()(conNodeType& con) {
         return con;
@@ -310,7 +310,7 @@ struct ex_visitor {
     ControlFlow operator()(T const & /*UNUSED*/ ) const { return Value(0);} 
 };
 
-ControlFlow ex(nodeType *p) {
+ControlFlow ex(Node *p) {
     if (p == nullptr) return Value(0);
     return std::visit(ex_visitor{p}, *p);
 }

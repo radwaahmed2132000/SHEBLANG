@@ -3,39 +3,39 @@
 
 extern int yylineno;
 
-nodeType *con(int iValue);
-nodeType *con(float fValue);
-nodeType *con(bool bValue);
-nodeType *con(char cValue);
-nodeType *con(char* sValue);
+Node *con(int iValue);
+Node *con(float fValue);
+Node *con(bool bValue);
+Node *con(char cValue);
+Node *con(char* sValue);
 
-nodeType *id(const char* id);
+Node *id(const char* id);
 
-nodeType *sw(nodeType* var, nodeType* caseListTail);
-nodeType *cs(nodeType* labelExpr, nodeType* caseBody);
-nodeType *br();
+Node *sw(Node* var, Node* caseListTail);
+Node *cs(Node* labelExpr, Node* caseBody);
+Node *br();
 
-nodeType *for_loop(nodeType* init_statement, nodeType* loop_condition, nodeType* post_loop_statement, nodeType* loop_body);
-nodeType *while_loop(nodeType* loop_condition, nodeType* loop_body);
-nodeType *do_while_loop(nodeType* loop_condition, nodeType* loop_body);
+Node *for_loop(Node* init_statement, Node* loop_condition, Node* post_loop_statement, Node* loop_body);
+Node *while_loop(Node* loop_condition, Node* loop_body);
+Node *do_while_loop(Node* loop_condition, Node* loop_body);
 
-nodeType* varDecl(nodeType* type, nodeType* name);
-nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant);
+Node* varDecl(Node* type, Node* name);
+Node* varDefn(Node* decl, Node* initExpr, bool isConstant);
 
-nodeType* fn(nodeType* name, VarDecl* params, nodeType* return_type, nodeType* statements);
+Node* fn(Node* name, VarDecl* params, Node* return_type, Node* statements);
 
-nodeType* identifierListNode(nodeType* idNode, bool addNewScope);
-nodeType* enum_defn(nodeType* enumIdentifier, std::vector<IdentifierListNode*>& members);
-nodeType* enum_use(nodeType* enumIdentifier, nodeType* enumMemberIdentifier);
+Node* identifierListNode(Node* idNode, bool addNewScope);
+Node* enum_defn(Node* enumIdentifier, std::vector<IdentifierListNode*>& members);
+Node* enum_use(Node* enumIdentifier, Node* enumMemberIdentifier);
 
-nodeType* statementList(nodeType* statement);
-nodeType* statementList();
+Node* statementList(Node* statement);
+Node* statementList();
 
-nodeType* exprListNode(nodeType* exprCode);
-nodeType* functionCall(nodeType* fnIdentifier, nodeType* exprListHeader);
+Node* exprListNode(Node* exprCode);
+Node* functionCall(Node* fnIdentifier, Node* exprListHeader);
 
 template<typename LinkedListNode>
-nodeType* appendToLinkedList(nodeType* prev, nodeType* next) { 
+Node* appendToLinkedList(Node* prev, Node* next) { 
 	auto* prevNode = prev->asPtr<LinkedListNode>();
 	assert(prevNode != nullptr);
 
@@ -44,11 +44,11 @@ nodeType* appendToLinkedList(nodeType* prev, nodeType* next) {
 
     currNode->prev = prevNode;
     currNode->self = next;
-	return new nodeType(*currNode, currentLineNo); 
+	return new Node(*currNode, currentLineNo); 
 }
 
 template<typename LinkedListNode> 
-nodeType* linkedListStump(nodeType* end) {
+Node* linkedListStump(Node* end) {
     auto* stump = end->asPtr<LinkedListNode>();
 
     // assert only if `end` is not null
@@ -61,5 +61,5 @@ nodeType* linkedListStump(nodeType* end) {
     }
 
     stump->self = end;
-	return new nodeType(*stump, currentLineNo); 
+	return new Node(*stump, currentLineNo); 
 }

@@ -49,7 +49,7 @@ COMMENT "#!".*
 %%
 
 {CHAR} {
-    yylval.node = new nodeType(conNodeType{yytext[1]}, yylineno); // yytext[0] seems to contain nothing?
+    yylval.node = new Node(conNodeType{yytext[1]}, yylineno); // yytext[0] seems to contain nothing?
     return CHARACTER;
 }
 
@@ -65,7 +65,7 @@ COMMENT "#!".*
 
 {STRING} {
     int stringLength = std::strlen(yytext);
-    yylval.node = new nodeType(conNodeType{std::string(yytext).substr(1, stringLength-2)}, yylineno);
+    yylval.node = new Node(conNodeType{std::string(yytext).substr(1, stringLength-2)}, yylineno);
 
     return STR;
 }
@@ -77,13 +77,13 @@ COMMENT "#!".*
 
 {INTEGER_NUMBER} {
     int intValue = std::atoi(yytext);
-    yylval.node = new nodeType(conNodeType{intValue}, yylineno);
+    yylval.node = new Node(conNodeType{intValue}, yylineno);
     return INTEGER;
 }
 
 
 {FLOAT_NUMBER}|{SCIENTIFIC_NOTATION} {
-    yylval.node = new nodeType(conNodeType((float)std::atof(yytext)), yylineno);
+    yylval.node = new Node(conNodeType((float)std::atof(yytext)), yylineno);
     return REAL;
 }
 
@@ -92,12 +92,12 @@ COMMENT "#!".*
 }
 
 "true"      {
-    yylval.node = new nodeType(conNodeType(true), yylineno);
+    yylval.node = new Node(conNodeType(true), yylineno);
     return BOOLEAN;
 }
 
 "false"     {
-    yylval.node = new nodeType(conNodeType(false), yylineno);
+    yylval.node = new Node(conNodeType(false), yylineno);
     return BOOLEAN;
 }        
 
@@ -138,7 +138,7 @@ COMMENT "#!".*
 "::"            return SCOPE_RES;
 
 {IDENT} { 
-    yylval.node = new nodeType(idNodeType{std::string(yytext)}, yylineno);
+    yylval.node = new Node(idNodeType{std::string(yytext)}, yylineno);
     return IDENTIFIER;
 }
 

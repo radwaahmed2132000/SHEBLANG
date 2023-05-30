@@ -72,7 +72,7 @@
 */
 
 Result castToTarget(std::string currentType, std::string targetType,
-                    nodeType* currentNode, int lineNo) {
+                    Node* currentNode, int lineNo) {
   if (currentType == "string" || targetType == "string") {
     return Result::Error("Error in line number: " +
                           std::to_string(lineNo) +
@@ -86,7 +86,7 @@ Result castToTarget(std::string currentType, std::string targetType,
   }
 }
 
-int getTypePriority(const std::string& type, nodeType* nodePtr) {
+int getTypePriority(const std::string& type, Node* nodePtr) {
     static std::unordered_map<std::string, int> typesPriority = {
         {"string", 0}, {"bool", 1}, {"char", 2}, {"int", 3}, {"float", 5}
     };
@@ -305,10 +305,10 @@ void getEnumTypes(ScopeSymbolTables* p, std::unordered_set<std::string>& enumTyp
     }
 
 
-Result ex_const_kak_TM(nodeType *p);
+Result ex_const_kak_TM(Node *p);
 
 struct ex_const_visitor {
-    nodeType* currentNodePtr;
+    Node* currentNodePtr;
 
     Result operator()(conNodeType& con) { 
         Value v = std::visit(
@@ -466,13 +466,13 @@ struct ex_const_visitor {
     Result operator()(T const & /*UNUSED*/ ) const { return Result::Success(""); }  
 };
 
-Result ex_const_kak_TM(nodeType *p) {    
+Result ex_const_kak_TM(Node *p) {    
     if (p == nullptr) return Result::Success("success");
     return std::visit(ex_const_visitor{p}, *p);
 }
 
 struct semantic_analysis_visitor {
-    nodeType* currentNodePtr;
+    Node* currentNodePtr;
 
     Result operator()(conNodeType& con) { 
         return Result::Success(con.getType());
@@ -516,7 +516,7 @@ struct semantic_analysis_visitor {
       int startingSize = errorsOutput.sizeError;
       /* Check if the variable is declared */
 
-      nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name, vd.initExpr, vd.isConstant), vd.decl->type->lineNo);
+      Node *nt = new Node(VarDecl(vd.decl->type, vd.decl->var_name, vd.initExpr, vd.isConstant), vd.decl->type->lineNo);
       nt->currentScope = currentNodePtr->currentScope;
       Result decl = semantic_analysis(nt); 
 
@@ -810,7 +810,7 @@ struct semantic_analysis_visitor {
             innerReturnTypes.insert(getReturnType(ret));
         }
 
-        auto returnLines = collectString<std::vector<nodeType *>>(
+        auto returnLines = collectString<std::vector<Node *>>(
             innerReturnStatements.begin(),
             innerReturnStatements.end(),
             [](auto iter) { return std::to_string(iter->lineNo); }
@@ -1112,7 +1112,7 @@ struct semantic_analysis_visitor {
           bop); // * gives leftType & rightType & finalType
 
       auto setIdNodeAsUsed =
-        [currentScope = currentNodePtr->currentScope](nodeType *ptr) {
+        [currentScope = currentNodePtr->currentScope](Node *ptr) {
           ptr->currentScope = currentScope;
 
           if (auto *idNode = ptr->asPtr<idNodeType>(); idNode) {
@@ -1276,7 +1276,7 @@ struct semantic_analysis_visitor {
     Result operator()(T const & /*UNUSED*/ ) const { return Result::Success("success"); } 
 };
 
-Result semantic_analysis(nodeType *p) {    
+Result semantic_analysis(Node *p) {    
     if (p == nullptr) return Result::Success("success");
     return std::visit(semantic_analysis_visitor{p}, *p);
 }

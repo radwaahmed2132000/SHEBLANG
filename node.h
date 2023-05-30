@@ -3,19 +3,19 @@
 
 #define NODE_TYPES                                                             \
     conNodeType, idNodeType, switchNodeType, caseNodeType, breakNodeType,      \
-        FunctionDefn, whileNodeType, forNodeType, doWhileNodeType,         \
-        VarDecl, VarDefn, enumNode, IdentifierListNode, enumUseNode,           \
-        StatementList, FunctionCall, ExprListNode, BinOp, UnOp, IfNode
+        FunctionDefn, whileNodeType, forNodeType, doWhileNodeType, VarDecl,    \
+        VarDefn, enumNode, IdentifierListNode, enumUseNode, StatementList,     \
+        FunctionCall, ExprListNode, BinOp, UnOp, IfNode
 
-typedef struct nodeType : std::variant<NODE_TYPES> {
+struct Node : std::variant<NODE_TYPES> {
     int lineNo;
     std::string conversionType; 
     bool addNewScope;
     ScopeSymbolTables* currentScope;
 
-    nodeType() = default;
-    nodeType(std::variant<NODE_TYPES> inner_union, int lineNo);
-	nodeType(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope);
+    Node() = default;
+    Node(std::variant<NODE_TYPES> inner_union, int lineNo);
+	Node(std::variant<NODE_TYPES> inner_union, int lineNo, bool addNewScope);
 
     template<typename T> 
     bool is() const { return std::holds_alternative<T>(*this); }
@@ -25,4 +25,4 @@ typedef struct nodeType : std::variant<NODE_TYPES> {
 
     template<typename T>
     T& as() { return std::get<T>(*this); }
-} nodeType;
+};

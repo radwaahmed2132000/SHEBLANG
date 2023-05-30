@@ -59,7 +59,7 @@ void printSymbolTables(){
 
 
 struct setup_scopes_visitor {
-    nodeType* currentNodePtr;
+    Node* currentNodePtr;
 
     void operator()(conNodeType& con) {
         // Nothing needed here.
@@ -74,7 +74,7 @@ struct setup_scopes_visitor {
     }
 
     void operator()(VarDefn &vd) const {
-        nodeType *nt = new nodeType(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
+        Node *nt = new Node(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
 
         nt->currentScope = currentNodePtr->currentScope;
         setup_scopes(nt); 
@@ -268,7 +268,7 @@ struct setup_scopes_visitor {
 
 };
 
-void setup_scopes(nodeType* p) {
+void setup_scopes(Node* p) {
     if(p == nullptr) { std::cerr << "null pointer encountered in setup_scopes\n"; }
     std::visit(setup_scopes_visitor{p}, *p);
 }

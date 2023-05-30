@@ -879,7 +879,7 @@ case 1:
 YY_RULE_SETUP
 #line 51 ".//lexer.l"
 {
-    yylval.node = new nodeType(conNodeType{yytext[1]}, yylineno); // yytext[0] seems to contain nothing?
+    yylval.node = new Node(conNodeType{yytext[1]}, yylineno); // yytext[0] seems to contain nothing?
     return CHARACTER;
 }
 	YY_BREAK
@@ -907,7 +907,7 @@ YY_RULE_SETUP
 #line 66 ".//lexer.l"
 {
     int stringLength = std::strlen(yytext);
-    yylval.node = new nodeType(conNodeType{std::string(yytext).substr(1, stringLength-2)}, yylineno);
+    yylval.node = new Node(conNodeType{std::string(yytext).substr(1, stringLength-2)}, yylineno);
 
     return STR;
 }
@@ -926,7 +926,7 @@ YY_RULE_SETUP
 #line 78 ".//lexer.l"
 {
     int intValue = std::atoi(yytext);
-    yylval.node = new nodeType(conNodeType{intValue}, yylineno);
+    yylval.node = new Node(conNodeType{intValue}, yylineno);
     return INTEGER;
 }
 	YY_BREAK
@@ -934,7 +934,7 @@ case 7:
 YY_RULE_SETUP
 #line 85 ".//lexer.l"
 {
-    yylval.node = new nodeType(conNodeType((float)std::atof(yytext)), yylineno);
+    yylval.node = new Node(conNodeType((float)std::atof(yytext)), yylineno);
     return REAL;
 }
 	YY_BREAK
@@ -949,7 +949,7 @@ case 9:
 YY_RULE_SETUP
 #line 94 ".//lexer.l"
 {
-    yylval.node = new nodeType(conNodeType(true), yylineno);
+    yylval.node = new Node(conNodeType(true), yylineno);
     return BOOLEAN;
 }
 	YY_BREAK
@@ -957,7 +957,7 @@ case 10:
 YY_RULE_SETUP
 #line 99 ".//lexer.l"
 {
-    yylval.node = new nodeType(conNodeType(false), yylineno);
+    yylval.node = new Node(conNodeType(false), yylineno);
     return BOOLEAN;
 }        
 	YY_BREAK
@@ -1140,7 +1140,7 @@ case 46:
 YY_RULE_SETUP
 #line 140 ".//lexer.l"
 { 
-    yylval.node = new nodeType(idNodeType{std::string(yytext)}, yylineno);
+    yylval.node = new Node(idNodeType{std::string(yytext)}, yylineno);
     return IDENTIFIER;
 }
 	YY_BREAK

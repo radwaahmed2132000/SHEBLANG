@@ -2,37 +2,37 @@
 #include "nodes.h"
 #include <vector>
 
-nodeType* BinOp::node(BinOper op, nodeType* lOp, nodeType* rOp) {
-    return new nodeType(BinOp{op, lOp, rOp}, currentLineNo);
+Node* BinOp::node(BinOper op, Node* lOp, Node* rOp) {
+    return new Node(BinOp{op, lOp, rOp}, currentLineNo);
 }
 
-nodeType* BinOp::assign(nodeType* lOp, nodeType* rOp) {
-    return new nodeType(BinOp{BinOper::Assign, lOp, rOp}, currentLineNo);
+Node* BinOp::assign(Node* lOp, Node* rOp) {
+    return new Node(BinOp{BinOper::Assign, lOp, rOp}, currentLineNo);
 }
 
-nodeType* BinOp::opAssign(BinOper op, nodeType* lOp, nodeType* rOp) {
+Node* BinOp::opAssign(BinOper op, Node* lOp, Node* rOp) {
     auto* innerRightOp = BinOp::node(op, lOp, rOp);
-    return new nodeType(BinOp{BinOper::Assign, lOp, innerRightOp}, currentLineNo);
+    return new Node(BinOp{BinOper::Assign, lOp, innerRightOp}, currentLineNo);
 }
 
-nodeType* UnOp::node(UnOper op, nodeType* operand) {
-    return new nodeType(UnOp{op, operand}, currentLineNo);
+Node* UnOp::node(UnOper op, Node* operand) {
+    return new Node(UnOp{op, operand}, currentLineNo);
 }
 
-nodeType* IfNode::node(nodeType* condition, nodeType* ifCode) {
-    return new nodeType(IfNode{condition, ifCode, nullptr}, currentLineNo);
+Node* IfNode::node(Node* condition, Node* ifCode) {
+    return new Node(IfNode{condition, ifCode, nullptr}, currentLineNo);
 }
 
-nodeType* IfNode::node(nodeType* condition, nodeType* ifCode, nodeType* elseCode) {
-    return new nodeType(IfNode{condition, ifCode, elseCode}, currentLineNo);
+Node* IfNode::node(Node* condition, Node* ifCode, Node* elseCode) {
+    return new Node(IfNode{condition, ifCode, elseCode}, currentLineNo);
 }
 
-nodeType* FunctionDefn::node(nodeType* name, nodeType* paramsTail, nodeType* return_type, nodeType* statements) {
+Node* FunctionDefn::node(Node* name, Node* paramsTail, Node* return_type, Node* statements) {
     assert(name->is<idNodeType>());
     assert(return_type->is<idNodeType>());
     assert(statements->is<StatementList>());
 
-    return new nodeType(FunctionDefn{return_type, name, paramsTail, statements}, currentLineNo);
+    return new Node(FunctionDefn{return_type, name, paramsTail, statements}, currentLineNo);
 }
 
 std::vector<VarDecl*> FunctionDefn::getParameters() const {
@@ -40,9 +40,9 @@ std::vector<VarDecl*> FunctionDefn::getParameters() const {
     return paramsTail->toVec();
 }
 
-std::vector<nodeType*> FunctionDefn::getParametersAsNodes() const {
+std::vector<Node*> FunctionDefn::getParametersAsNodes() const {
     auto decls = getParameters();
-    std::vector<nodeType*> ptrs;
+    std::vector<Node*> ptrs;
     ptrs.reserve(decls.size());
     for(auto* decl: decls) {
         ptrs.push_back(decl->self);

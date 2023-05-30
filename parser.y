@@ -12,8 +12,8 @@
 
 
 /* prototypes */
-void freeNode(nodeType *p);
-ControlFlow ex(nodeType *p);
+void freeNode(Node *p);
+ControlFlow ex(Node *p);
 void printSymbolTables();
 void appendSymbolTable(int i);
 
@@ -24,7 +24,7 @@ extern int yylineno;            /* from lexer */
 %}
 
 
-%union { nodeType* node; }
+%union { Node* node; }
 
 %token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT BREAK ENUM FN RETURN
 %token CONST INT FLOAT BOOL CHAR STRING SCOPE_RES
@@ -248,7 +248,7 @@ function_defn:
 %%
 
 // De-allocates a node and all of its children (if any).
-void freeNode(nodeType *p) {
+void freeNode(Node *p) {
     int i;
 
     if (!p) return;

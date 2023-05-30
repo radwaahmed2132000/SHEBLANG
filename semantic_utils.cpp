@@ -1,7 +1,7 @@
 #include "semantic_utils.h"
 #include "nodes.h"
 
-std::string getReturnType(nodeType* returnStatement) {
+std::string getReturnType(Node* returnStatement) {
     auto& retOpr = returnStatement->as<UnOp>();
     auto returnType = semantic_analysis(retOpr.operand);
 
@@ -10,14 +10,14 @@ std::string getReturnType(nodeType* returnStatement) {
     return std::get<SuccessType>(returnType);
 }
 
-std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements) {
+std::vector<Node*> getFnReturnStatements(Node* fnStatements) {
     // Don't recurse into child functions. This is for cases where you have a
     // function defined inside another. We don't need to check the return type
     // of those.
     if(fnStatements->is<FunctionDefn>()) { return {}; }
 
     if(auto* statements = fnStatements->asPtr<StatementList>(); statements) {
-        std::vector<nodeType*> ret;
+        std::vector<Node*> ret;
 
         for (auto *statement : statements->statements) {
             auto *uop = statement->asPtr<UnOp>();
@@ -44,7 +44,7 @@ std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements) {
     } else if(auto* f = fnStatements->asPtr<forNodeType>(); (f!=nullptr)) {
         return getFnReturnStatements(f->loop_body);
     } else if(auto* sw = fnStatements->asPtr<switchNodeType>(); (sw!=nullptr)) {
-        std::vector<nodeType*> caseReturns;
+        std::vector<Node*> caseReturns;
         auto caseList = sw->caseListTail->as<caseNodeType>().toVec();
         for(const auto& cs: caseList) {
             auto csReturn = getFnReturnStatements(cs->caseBody);
