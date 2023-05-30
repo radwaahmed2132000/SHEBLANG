@@ -75,17 +75,8 @@ nodeType* varDefn(nodeType* decl, nodeType* initExpr, bool isConstant) {
 std::string VarDecl::getType() const { return type->as<idNodeType>().id; } 
 std::string VarDecl::getName() const { return var_name->as<idNodeType>().id; } 
 
-
-nodeType* fn(nodeType* name, VarDecl* paramsTail, nodeType* return_type, nodeType* statements) {
-    assert(name->is<idNodeType>());
-    assert(return_type->is<idNodeType>());
-    assert(statements->is<StatementList>());
-
-    return new nodeType(functionNodeType{return_type, name, paramsTail, statements}, currentLineNo);
-}
-
 nodeType* fn_call(nodeType* name) {
-    return new nodeType(functionNodeType{nullptr, name}, currentLineNo);
+    return new nodeType(FunctionDefn{nullptr, name}, currentLineNo);
 }
 
 /* Note: we don't recurse into inner loops, if an inner loop contains a break

@@ -13,7 +13,7 @@
 
 /* prototypes */
 void freeNode(nodeType *p);
-Value ex(nodeType *p);
+ControlFlow ex(nodeType *p);
 void printSymbolTables();
 void appendSymbolTable(int i);
 
@@ -242,8 +242,7 @@ function_parameter_list:
                        ;
 function_defn:
              FN IDENTIFIER '(' function_parameter_list ')' function_return_type '{' stmt_list '}' { 
-                     auto* head = ($4)->asPtr<VarDecl>();
-                     $$ = statementList(fn($2, head, $6, $8));
+                     $$ = statementList(FunctionDefn::node($2, $4, $6, $8));
              } 
 
 %%

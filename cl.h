@@ -64,7 +64,7 @@ static SymbolTableEntry& getSymEntry(const std::string& symbol, ScopeSymbolTable
     return symbolScope->sym2[symbol];
 }
 
-static functionNodeType& getFnEntry(const std::string& symbol, ScopeSymbolTables* scope) {
+static FunctionDefn& getFnEntry(const std::string& symbol, ScopeSymbolTables* scope) {
     auto* fnScope = getSymbolScope(symbol, scope);
     assert(fnScope);
     return fnScope->functions[symbol];
@@ -75,3 +75,31 @@ static enumNode& getEnumEntry(const std::string& symbol, ScopeSymbolTables* scop
     assert(enumScope);
     return enumScope->enums[symbol];
 }
+
+struct ControlFlow {
+    enum class Type {
+        Continue,
+        Return,
+    };
+
+    Value val;
+    Type type;
+
+    ControlFlow() = default;
+    ControlFlow(const Value& val): val(val), type(Type::Continue) {}
+    ControlFlow(const Value& val, const Type& type): val(val), type(type) {}
+
+    ControlFlow& operator=(const Value& val) { this->val = val;  return *this; }
+
+    static ControlFlow Return(const Value&& val) { return ControlFlow{val, Type::Return}; }
+
+    bool operator&&(const ControlFlow& other) const { return val && other.val; }
+    bool operator||(const ControlFlow& other) const { return val || other.val; }
+    bool operator!() const { return !val; }
+
+    explicit operator bool() const {
+        return bool(val);
+    }
+};
+
+ControlFlow ex(nodeType* p);

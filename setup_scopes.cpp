@@ -148,23 +148,35 @@ struct setup_scopes_visitor {
         }
     }
 
-    void operator()(functionNodeType& fn) const {
+    void operator()(FunctionDefn& fn) const {
         // TODO: Revise this when doing the function logic. 
 
-        auto* prevScope = currentNodePtr->currentScope;
-        currentNodePtr->currentScope = fn.statements->currentScope = new ScopeSymbolTables();
-        fn.statements->currentScope->parentScope = currentNodePtr->currentScope->parentScope = prevScope;
+        // Create an extra scope for the statements of the function.
+        auto* functionScope = new ScopeSymbolTables();
+        functionScope->parentScope = currentNodePtr->currentScope;
+        fn.statements->currentScope = functionScope;
+
         // FIXME: If a function takes no parameters, the list will have one
         // element (the last one) with null data.
-        for(auto* param: fn.parametersTail->toVec()) {
+        for(auto* param: fn.getParameters()) {
             if(param->var_name == nullptr && param->type == nullptr) break;
 
-            param->var_name->currentScope = currentNodePtr->currentScope;
-            param->type->currentScope = currentNodePtr->currentScope;
+            param->var_name->currentScope = functionScope;
+            param->type->currentScope = functionScope;
         }
-        fn.name->currentScope = currentNodePtr->currentScope;
-        fn.return_type->currentScope = currentNodePtr->currentScope;
-        setup_scopes(fn.statements);
+
+        fn.name->currentScope = functionScope;
+        fn.return_type->currentScope = functionScope;
+
+        // Recursively update the scope of each child statement to use the new function scope.
+        if(fn.statements->is<StatementList>()) {
+            for (auto &c : fn.statements->asPtr<StatementList>()->statements) {
+                c->currentScope = functionScope;
+                setup_scopes(c);
+            }
+        } else {
+            setup_scopes(fn.statements);
+        }
     }
 
     void operator()(doWhileNodeType& dw) const {

@@ -85,6 +85,9 @@ struct Value : ValueVariant {
             *this
         );
     }
+
+    Value(const struct ControlFlow& cf);
+    Value operator=(const struct ControlFlow& cf);
 };
 
 // Defined in `value_operators.cpp`

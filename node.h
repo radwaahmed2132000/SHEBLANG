@@ -3,7 +3,7 @@
 
 #define NODE_TYPES                                                             \
     conNodeType, idNodeType, switchNodeType, caseNodeType, breakNodeType,      \
-        functionNodeType, whileNodeType, forNodeType, doWhileNodeType,         \
+        FunctionDefn, whileNodeType, forNodeType, doWhileNodeType,         \
         VarDecl, VarDefn, enumNode, IdentifierListNode, enumUseNode,           \
         StatementList, FunctionCall, ExprListNode, BinOp, UnOp, IfNode
 

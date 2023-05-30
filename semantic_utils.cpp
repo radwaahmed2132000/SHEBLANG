@@ -14,7 +14,7 @@ std::vector<nodeType*> getFnReturnStatements(nodeType* fnStatements) {
     // Don't recurse into child functions. This is for cases where you have a
     // function defined inside another. We don't need to check the return type
     // of those.
-    if(fnStatements->is<functionNodeType>()) { return {}; }
+    if(fnStatements->is<FunctionDefn>()) { return {}; }
 
     if(auto* statements = fnStatements->asPtr<StatementList>(); statements) {
         std::vector<nodeType*> ret;

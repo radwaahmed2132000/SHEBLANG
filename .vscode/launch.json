@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/SHEBLANG_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/syntax/else_only.shbl", null, null],
+            "stdio": ["testcases/semantic/function_mismatched_return_types.shbl", null, null],
         },
         {
             "name": "Launch Compiler",

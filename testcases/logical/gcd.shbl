@@ -1,0 +1,19 @@
+fn gcd(int a, int b) int {
+    if (b == 0) {
+        return a;
+    } else {
+        return gcd(b, a % b);
+    }
+}
+
+print gcd(17, 23);
+print gcd(24, 36);
+print gcd(15, 75);
+print gcd(420, 0);
+print gcd(312736112, 13122);
+===
+1
+12
+15
+420
+2

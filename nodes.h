@@ -20,9 +20,10 @@
 template <typename T>
 struct LinkedListNode {
     T * prev = nullptr;
+    struct nodeType* self = nullptr;
+
     LinkedListNode() = default;
     LinkedListNode(T* p) : prev(p) {}
-
     
 	std::vector<T*> toVec() {
 		std::vector<T*> nodes;
@@ -36,6 +37,19 @@ struct LinkedListNode {
         std::reverse(nodes.begin(), nodes.end());
 		return nodes;
 	}
+
+    std::vector<struct nodeType*> toNodes() const {
+		std::vector<nodeType*> nodes;
+
+		T* current = static_cast<T*>(this);
+		while(current != nullptr) {
+			nodes.push_back(current->self);
+			current = current->prev;
+		}
+	
+        std::reverse(nodes.begin(), nodes.end());
+		return nodes;
+    }
 };
 
 /* For constants and literals. */
@@ -64,13 +78,6 @@ typedef struct {
 typedef struct {
     struct nodeType* parent_switch;
 } breakNodeType;
-
-typedef struct {
-    struct nodeType* return_type;
-    struct nodeType* name;
-    struct VarDecl* parametersTail;
-    struct nodeType* statements;
-} functionNodeType;
 
 typedef struct {
     bool break_encountered;
@@ -154,6 +161,21 @@ typedef struct VarDefn {
 
 	VarDefn(VarDecl* decl, nodeType* initExpr, bool isConstant) : decl(decl), initExpr(initExpr), isConstant(isConstant) {}
 } VarDefn;
+
+struct FunctionDefn {
+    struct nodeType* return_type;
+    struct nodeType* name;
+    struct nodeType* parametersTail;
+    struct nodeType* statements;
+
+    static nodeType* node(nodeType* name, nodeType* paramsTail, nodeType* return_type, nodeType* statements);
+    std::vector<VarDecl*> getParameters() const;
+    std::vector<nodeType*> getParametersAsNodes() const;
+};
+
+struct ReturnNode {
+    nodeType* retExpr;
+};
 
 enum class BinOper {
     Assign,
@@ -240,19 +262,34 @@ typedef struct SymbolTableEntry {
 struct ScopeSymbolTables {
     static int tableCount;
     int tableId;
+
     ScopeSymbolTables() {
         tableId = ++tableCount;
         parentScope = nullptr;
     }
+
     std::unordered_map<std::string, SymbolTableEntry> sym2;
-    std::unordered_map<std::string, functionNodeType> functions;
+    std::unordered_map<std::string, FunctionDefn> functions;
     std::unordered_map<std::string, enumNode> enums;
     ScopeSymbolTables* parentScope;
+
+
+    ScopeSymbolTables(const ScopeSymbolTables& other) : sym2(other.sym2), functions(other.functions), enums(other.enums), tableId(++tableCount) { }
+
+    ScopeSymbolTables& operator=(const ScopeSymbolTables& other) {
+        if(this != &other)  {
+            this->sym2 = other.sym2;
+            this->functions = other.functions;
+            this->enums = other.enums;
+            tableId = ++tableCount;
+        }
+        return *this;
+    }
 
     std::string symbolsToString() const {
         std::stringstream ss;
         for(const auto& [symbol, entry]: sym2) {
-            ss << symbol << '\t' << entry.type <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' <<entry.isConstant;
+            ss << symbol << '\t' << entry.type <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' << entry.isConstant << '\n';
         }
 
         return ss.str();

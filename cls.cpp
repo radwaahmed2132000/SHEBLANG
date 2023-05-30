@@ -456,11 +456,9 @@ struct ex_const_visitor {
         if(ifNode.elseCode != nullptr) {
             auto elseResult = ex_const_kak_TM(ifNode.elseCode);
             if(!elseResult.isSuccess()) return elseResult;
-
-            return Result::Error();
         }
 
-        return Result::Error();
+        return Result::Success();
     }
 
     // the default case:
@@ -738,14 +736,13 @@ struct semantic_analysis_visitor {
       return Result::Success(eu.enumName);
     }
 
-    Result operator()(functionNodeType &fn) const {
+    Result operator()(FunctionDefn &fn) const {
 
         int startingSize = errorsOutput.sizeError;
 
         /* Function Declaration code */
         auto functionName = fn.name->as<idNodeType>().id;
-        auto *functionScope =
-            getSymbolScope(functionName, currentNodePtr->currentScope);
+        auto *functionScope = getSymbolScope(functionName, currentNodePtr->currentScope);
 
         // Already declared.
         if (functionScope != nullptr) {
@@ -759,10 +756,12 @@ struct semantic_analysis_visitor {
         /* Add the new function to the functions table */
         // Since functions create their own scope, need to add
         // the function reference to the parent scope.
-        currentNodePtr->currentScope->parentScope->functions[fn.name->as<idNodeType>().id] = fn;
+        currentNodePtr->currentScope->functions[fn.name->as<idNodeType>().id] = fn;
 
         /* Check if the function parameters are valid */
-        auto parameters = fn.parametersTail->toVec();
+        auto parameters = fn.getParameters();
+        auto parameterNodes = fn.getParametersAsNodes();
+
         for (int i = 0; i < parameters.size(); i++) {
             auto *param = parameters[i];
 
@@ -771,27 +770,17 @@ struct semantic_analysis_visitor {
                 break;
             }
 
-            nodeType *nt = new nodeType(
-                VarDecl(param->type, param->var_name), param->type->lineNo
-            );
-            nt->currentScope = currentNodePtr->currentScope;
-            auto parameter = semantic_analysis(nt);
+            auto* paramPtr = parameterNodes[i];
+            paramPtr->currentScope = fn.statements->currentScope;
+            auto paramResult = semantic_analysis(paramPtr);
 
-            if (!parameter.isSuccess()) {
+            if (!paramResult.isSuccess()) {
                 errorsOutput.addError(lineError(
                     "The function parameter '%s' is not valid",
                     param->type->lineNo,
                     param->var_name->as<idNodeType>().id 
                 ));
             }
-
-            // Add parameter to the function's symbol table.
-            auto paramName =
-                parameters[i]->var_name->as<idNodeType>().id;
-            auto paramType = parameters[i]->type->as<idNodeType>().id;
-
-            currentNodePtr->currentScope->sym2[paramName] =
-                SymbolTableEntry(parameters[i]->isConstant, paramType);
         }
 
         /* Check if the function body is valid */
@@ -801,6 +790,7 @@ struct semantic_analysis_visitor {
                 "The function body is not valid", fn.statements->lineNo
             ));
         }
+
         /* Check if the return type is valid */
         auto returnType = fn.return_type->as<idNodeType>().id;
         EXISTING_TYPE(returnType, fn.return_type->lineNo);
@@ -907,7 +897,7 @@ struct semantic_analysis_visitor {
                     + fc.functionName + " is not declared");
         } else {
             auto &fnRef = fnScope->functions[fc.functionName];
-            fnParams = fnRef.parametersTail->toVec();
+            fnParams = fnRef.getParameters();
 
             if (fnParams.size() != callArgExprs.size()) {
                 errorsOutput.addError(
@@ -984,8 +974,6 @@ struct semantic_analysis_visitor {
                 ret.mergeErrors(*e);
             }
         }
-
-        int x = 12 + 1.2f;
 
         for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
             if(!entry.isUsed) {
@@ -1127,9 +1115,9 @@ struct semantic_analysis_visitor {
         [currentScope = currentNodePtr->currentScope](nodeType *ptr) {
           ptr->currentScope = currentScope;
 
-          if (auto *lhsVar = ptr->asPtr<idNodeType>(); lhsVar) {
-            auto lhsVarSymEntry = getSymEntry(lhsVar->id, ptr->currentScope);
-            lhsVarSymEntry.isUsed = true;
+          if (auto *idNode = ptr->asPtr<idNodeType>(); idNode) {
+            auto nodeSymEntry = getSymEntry(idNode->id, ptr->currentScope);
+            nodeSymEntry.isUsed = true;
           }
         };
 
@@ -1278,10 +1266,9 @@ struct semantic_analysis_visitor {
         }
         return Result::Success(std::get<SuccessType>(condition));
 
-        if (startingSize != errorsOutput.sizeError) {
-            return Result::Error("error");
-        }
-        return Result::Success("success");
+        if (startingSize != errorsOutput.sizeError) { return Result::Error("error"); }
+
+        return Result::Success();
     }
 
     // the default case:

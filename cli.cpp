@@ -29,9 +29,7 @@ Value postOp(UnOp &uop, nodeType *p, std::function<Value(Value&)> op) {
     return temp;
 }
 
-Value ex(nodeType* p);
-
-Value assignToVar(BinOp& bop, nodeType* p) {
+ControlFlow assignToVar(BinOp& bop, nodeType* p) {
     using std::optional, std::string, std::make_optional, std::visit;
     using namespace std::string_literals;
 
@@ -54,11 +52,11 @@ Value assignToVar(BinOp& bop, nodeType* p) {
 
     // Assign the value in the scope table.
     auto ret = visit(
-        Visitor{
+        Visitor {
             [&](VarDecl &varDecl) { return ex(bop.rOperand); },
             [&](VarDefn &varDefn) { return ex(varDefn.initExpr); },
             [&](idNodeType &idNode) { return ex(bop.rOperand); },
-            [](auto _default) { return Value(0); } // Should never reach here
+            [](auto _default) { return ControlFlow(Value(0)); } // Should never reach here
         },
         *bop.lOperand
     );
@@ -68,7 +66,7 @@ Value assignToVar(BinOp& bop, nodeType* p) {
     return ret;
 }
 
-Value evaluate_switch(switchNodeType& sw) {
+ControlFlow evaluate_switch(switchNodeType& sw) {
     std::optional<int> matching_case_index = {};
     std::optional<int> default_case_index = {};
     Value var_value = ex(sw.var);
@@ -105,16 +103,16 @@ struct ex_visitor {
     // since we need scope info from it.
     nodeType* p;
 
-    Value operator()(conNodeType& con) {
+    ControlFlow operator()(conNodeType& con) {
         return con;
     }
 
-    Value operator()(idNodeType& identifier) const {
+    ControlFlow operator()(idNodeType& identifier) const {
         auto& varSymbolTableEntry = getSymEntry(identifier.id, p->currentScope);
         return varSymbolTableEntry.getValue();
     }
 
-    Value operator()(VarDecl& vd) const {
+    ControlFlow operator()(VarDecl& vd) const {
         auto nameStr = vd.var_name->as<idNodeType>().id;
         auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
 
@@ -123,7 +121,7 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(VarDefn& vd) const {
+    ControlFlow operator()(VarDefn& vd) const {
         auto nameStr = vd.decl->var_name->as<idNodeType>().id;
         auto val = ex(vd.initExpr);
 
@@ -133,18 +131,18 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(enumUseNode& eu) const {
+    ControlFlow operator()(enumUseNode& eu) const {
         auto& e = getEnumEntry(eu.enumName, p->currentScope);
         auto memberIter = std::find(e.enumMembers.begin(), e.enumMembers.end(), eu.memberName);
         int enumMemberValue = std::distance(e.enumMembers.begin(), memberIter);
         return Value(enumMemberValue);
     }
 
-    Value operator()(switchNodeType& sw) {
+    ControlFlow operator()(switchNodeType& sw) {
         return evaluate_switch(sw);
     }
 
-    Value operator()(breakNodeType& br) {
+    ControlFlow operator()(breakNodeType& br) {
         std::visit(
                 Visitor {
                     [](whileNodeType& w) { w.break_encountered = true; },
@@ -157,7 +155,7 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(FunctionCall& fc) const {
+    ControlFlow operator()(FunctionCall& fc) const {
         // TODO: Function calls
 
         // For each argument, find the corresponding parameter in the symbol table,
@@ -166,34 +164,46 @@ struct ex_visitor {
         // We can dereference the iterator just fine because symantic analysis 
         // succeed unless we can reach the function in its proper scope.
         auto& fnRef = getFnEntry(fc.functionName, p->currentScope);
-        auto fnParams = fnRef.parametersTail->toVec();
-        auto* fnScope = fnRef.statements->currentScope;
+        auto fnParams = fnRef.getParameters();
+
+        ScopeSymbolTables fnFrame(*fnRef.statements->currentScope);      // Make a copy of the original function scope after parameter binding.
+        ScopeSymbolTables originalScope(fnFrame);
 
         for(int i = 0; i < fnParams.size(); i++) {
             if(fnParams[i]->type == nullptr && fnParams[i]->var_name == nullptr) continue;
-            fnScope->sym2[fnParams[i]->getName()].setValue(ex(fc.parameterExpressions[i]->exprCode));
+
+            auto paramName = fnParams[i]->getName();
+            auto paramValue = ex(fc.parameterExpressions[i]->exprCode);
+
+            fnFrame.sym2[paramName].setValue(paramValue);
         }
 
-        return ex(fnRef.statements);
+        *fnRef.statements->currentScope = fnFrame;
+        // std::cout << fnFrame.symbolsToString() << '\n';
+        auto fnRet = ex(fnRef.statements);
+
+        // Restore the original function scope (i.e. pop the frame off the stack)
+        *fnRef.statements->currentScope = originalScope;
+
+        return fnRet;
     }
 
-    Value operator()(StatementList& sl) {
+    ControlFlow operator()(StatementList& sl) {
         for(const auto& statement: sl.statements) {
             auto ret = ex(statement);
 
+            if(ret.type == ControlFlow::Type::Return) {
+                return ret;
+            }
+
             bool isBreak = statement->is<breakNodeType>();
-
-            const auto *retOpr = statement->asPtr<UnOp>();
-            bool isReturn = (retOpr != nullptr && retOpr->op == UnOper::Return);
-
             if(isBreak) { return Value(0); } 
-            if(isReturn) { return ret; }
         }
 
         return Value(0);
     }
 
-    Value operator()(doWhileNodeType& dw) {
+    ControlFlow operator()(doWhileNodeType& dw) {
         do {
             ex(dw.loop_body); 
         } while(ex(dw.condition) && !dw.break_encountered); 
@@ -201,21 +211,21 @@ struct ex_visitor {
         return Value(0);
     }
 
-    Value operator()(whileNodeType& w) {
+    ControlFlow operator()(whileNodeType& w) {
         while(ex(w.condition) && !w.break_encountered) 
             ex(w.loop_body); 
 
         return Value(0);
     }
 
-    Value operator()(forNodeType& f) {
+    ControlFlow operator()(forNodeType& f) {
         for(ex(f.init_statement); ex(f.loop_condition) && !f.break_encountered; ex(f.post_loop_statement)) {
             ex(f.loop_body);
         }
         return Value(0);
     }
 
-    Value operator()(BinOp& bop) const {
+    ControlFlow operator()(BinOp& bop) const {
         using enum BinOper;
 
         switch(bop.op) {
@@ -230,7 +240,12 @@ struct ex_visitor {
             BOP_CASE(BitXor,^)
             BOP_CASE(LShift,<<)
             BOP_CASE(RShift,>>)
-            BOP_CASE(Mod,%) 
+            case Mod: {
+                auto l = ex(bop.lOperand);
+                auto r = ex(bop.rOperand);
+
+                return l % r;
+            }
             BOOL_BOP_CASE(LessThan,<)
             BOOL_BOP_CASE(GreaterThan, >)
             BOOL_BOP_CASE(And, &&)
@@ -242,7 +257,7 @@ struct ex_visitor {
         }
     }
 
-    Value operator()(UnOp& uop) {
+    ControlFlow operator()(UnOp& uop) {
         using enum UnOper;
 
         switch (uop.op) {
@@ -253,7 +268,7 @@ struct ex_visitor {
         }
 
         case Return:
-            return ex(uop.operand);
+            return ControlFlow::Return(ex(uop.operand));
 
         case BoolNeg:
             return Value(!(ex(uop.operand)));
@@ -275,11 +290,16 @@ struct ex_visitor {
         }
     }
 
-    Value operator()(IfNode& ifNode) const {
+    ControlFlow operator()(IfNode& ifNode) const {
+        ControlFlow ret;
         if (ex(ifNode.condition)) {
-            ex(ifNode.ifCode);
+            ret = ex(ifNode.ifCode);
         } else if (ifNode.elseCode != nullptr) {
-            ex(ifNode.elseCode);
+            ret = ex(ifNode.elseCode);
+        }
+
+        if(ret.type == ControlFlow::Type::Return) {
+            return ret;
         }
 
         return Value(0);
@@ -287,10 +307,10 @@ struct ex_visitor {
 
     // the default case:
     template<typename T> 
-    Value operator()(T const & /*UNUSED*/ ) const { return Value(0);} 
+    ControlFlow operator()(T const & /*UNUSED*/ ) const { return Value(0);} 
 };
 
-Value ex(nodeType *p) {
+ControlFlow ex(nodeType *p) {
     if (p == nullptr) return Value(0);
     return std::visit(ex_visitor{p}, *p);
 }

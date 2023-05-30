@@ -43,6 +43,7 @@ nodeType* appendToLinkedList(nodeType* prev, nodeType* next) {
 	assert(currNode != nullptr);
 
     currNode->prev = prevNode;
+    currNode->self = next;
 	return new nodeType(*currNode, currentLineNo); 
 }
 
@@ -59,5 +60,6 @@ nodeType* linkedListStump(nodeType* end) {
         stump = new LinkedListNode();
     }
 
+    stump->self = end;
 	return new nodeType(*stump, currentLineNo); 
 }

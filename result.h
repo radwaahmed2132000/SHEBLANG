@@ -18,6 +18,10 @@ struct Result: std::variant<ErrorType, SuccessType> {
         return std::holds_alternative<SuccessType>(*this);
     }
 
+    static Result Success() {
+        return Result{std::variant<ErrorType, SuccessType>(SuccessType{})};
+    }
+
     static Result Success(std::string type) {
         return Result{std::variant<ErrorType, SuccessType>(SuccessType{type})};
     }
