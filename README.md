@@ -4,7 +4,20 @@
 
 SHEBLANG is a prototype interpretered language built for CMP23's fourth year compiler project. It can be interpretered and compiled to instructions for a stack machine. Its syntax is similar to C but it has some niceties like being able to define functions/enums inside of inner scopes. `testcases` contains our example/testcases. 
 
-## Example 
+## Examples
+
+### Fibbonaci 
+```
+fn fib(int n) int {
+    if(n == 1 || n == 0) return 1;
+
+    return fib(n-2) + fib(n-1);
+}
+
+print fib(20); #! should print 10946
+```
+
+### Everything in action
 ```
 enum EnumTest { value1, value2, value3 };
 const float pi = 3.14;
