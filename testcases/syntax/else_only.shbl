@@ -13,5 +13,16 @@ true
 After the else
 ===
 Syntax error at line 7: Cannot find the `if` statement for this `else` block!
-true
-After the else
+        push true
+        push true
+        compEQ
+        jnz     L000
+        push true
+        print 
+        jmp     L001
+L000:
+        push false
+        print 
+L001:
+        push After the else
+        print

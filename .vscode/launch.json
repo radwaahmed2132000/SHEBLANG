@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/SHEBLANG_compiler",
             "cwd": "${workspaceFolder}",
-            "stdio": ["test.shbl", null, null]
+            "stdio": ["testcases/semantic/function_call_multiple_expressions.shbl", null, null]
         },
         {
             "name": "Python: Current File",

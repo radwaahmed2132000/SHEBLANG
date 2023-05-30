@@ -11,27 +11,31 @@
 #include <unordered_set>
 
 #include "cl.h"
+#include "nodes.h"
 #include "parser.h"
+
+static int lbl;
+
+// TODO: Use ControlFlow to improve compiler code (remove STACK_HACK, etc...).
 
 // Meant to prevent `push 0` when an `ex()` call returns 0.
 #define STACK_HACK(var)\
     if(!(std::holds_alternative<std::string>(var) && var.toString() == "0")) { \
         printf("\tpush %s\n", var.toString().c_str()); \
-    }  
+    }
 
-static int lbl;
 #define PUSH_BIN_OPR_PARAMS                                                    \
-    auto lhs = ex(opr.op[0]);                                                  \
+    auto lhs = ex(bop.lOperand).val;                                           \
     STACK_HACK(lhs);                                                           \
-    convPushedVar(opr.op[0]);                                                  \
-    auto rhs = ex(opr.op[1]);                                                  \
+    convertPushedVar(bop.lOperand);                                            \
+    auto rhs = ex(bop.rOperand).val;                                           \
     STACK_HACK(rhs);                                                           \
-    convPushedVar(opr.op[1]);                                                  
+    convertPushedVar(bop.rOperand);
 
 #define UN_OP(OP_CODE)                                                         \
-    auto var = ex(opr.op[0]);                                                  \
+    auto var = ex(uop.operand).val;                                            \
     printf("\tpush %s\n", var.toString().c_str());                             \
-    convPushedVar(opr.op[0]);                                                  \
+    convertPushedVar(uop.operand);                                             \
     OP_CODE                                                                    \
     if (!var.isLiteral()) {                                                    \
         printf("\tpop %s\n", var.toString().c_str());                          \
@@ -42,30 +46,66 @@ static int lbl;
     printf("\tpush true\n");                                                   \
     printf("\tcompEQ\n");
 
-void compileBoolExprs(nodeType* ptr) {
-    static std::unordered_set<int> boolOpers = { EQ, NE, GE, '>', LE, '<', AND, OR, '!' };
-    if (auto *opr = std::get_if<oprNodeType>(&ptr->un);
-        opr != nullptr && boolOpers.count(opr->oper) == 0) {
-            printf("\tpush true\n");
-            printf("\tcompEQ\n");
-    }
-}
-
 // To handle 
 // while(true), while(x) and so on ...
-#define BOOL_COMP_HACK_LOOPS_LOOPS(var)                                                    \
-    if (auto *con = std::get_if<conNodeType>(&var.condition->un); con) {       \
+#define BOOL_COMP_HACK_LOOPS_LOOPS(var)                                        \
+    if (auto *con = std::get_if<conNodeType>(var.condition); con) {            \
         CONDITION_CHECK(con->toString())                                       \
-    } else if (auto *id = std::get_if<idNodeType>(&var.condition->un); id) {   \
+    } else if (auto *id = std::get_if<idNodeType>(var.condition); id) {        \
         CONDITION_CHECK(id->id)                                                \
     } else {                                                                   \
         ex(var.condition);                                                     \
-        compileBoolExprs(var.condition);\
+        compileBoolExprs(var.condition);                                       \
     }
 
 
+// Checks if the given unary or binary expression is not boolean. If not, then we need to 
+// push true and compare with that.
+// Example:
+//      int a = 1;
+//      if(a) { ... }
+//
+// This should compile down to something like:
+//      push a 
+//      pop a
+//      push a
+//      intToBool
+//      push true   // <-
+//      compEQ      // <- Handled by this function
+//      jnz ...
+//
+// While something like:
+//      int a = 2; int b = 1;
+//      if(a > b) { ... }
+//
+// Compiles down to something like this:
+//      push 2
+//      pop a
+//      push 1
+//      pop b
+//      push a  // <- 
+//      push b  // <- Don't require intervention by this function!
+//      compGT  // <-
+//      jnz ...
+void compileBoolExprs(Node* ptr) {
+    using enum BinOper; 
+    using enum UnOper;
 
-Value ex(nodeType *p);
+    static std::unordered_set<BinOper> boolBinOpers = { Equal, NotEqual, GreaterEqual,GreaterThan, LessEqual, LessThan, And, Or};
+    
+    auto *uop = std::get_if<UnOp>(ptr); 
+    auto notUnaryNeg = uop != nullptr && uop->op != BoolNeg;
+
+    auto *bop = std::get_if<BinOp>(ptr); 
+    auto notBinaryBool = bop != nullptr && boolBinOpers.count(bop->op) == 0;
+
+    if (notBinaryBool || notUnaryNeg) {
+        printf("\tpush true\n");
+        printf("\tcompEQ\n");
+    }
+}
+
+ControlFlow ex(Node *p);
 
 //     switch(j) {
 //      default:
@@ -118,8 +158,10 @@ int compile_switch(switchNodeType &sw) {
     for (int i = 0; i < cases.size(); i++) {
         if(cases[i]->isDefault()) { default_case_index = i; continue; }
 
+        auto labelRet = ex(cases[i]->labelExpr);
+
         printf("\tpush\t%s\n", var_name.toString().c_str()); // variable value
-        printf("\tpush\t%s\n", ex(cases[i]->labelExpr).toString().c_str()); // label value
+        printf("\tpush\t%s\n", labelRet.val.toString().c_str()); // label value
         printf("\tcompEQ\n");
         printf("\tje\tL%03d\n", labels[i]);
     }
@@ -145,73 +187,76 @@ int compile_switch(switchNodeType &sw) {
     return 0;
 }
 
-void convPushedVar(nodeType* nodePtr) {
-    auto nodeType = std::visit(
-        Visitor {
-            [&](idNodeType& id) {    return getSymEntry(id.id, nodePtr->currentScope).type; },
-            [](conNodeType& con) { return con.getType(); },
-            [](auto _default) { return std::string(""); }
-        },
-        nodePtr->un
+void convertPushedVar(Node* nodePtr) {
+    auto Node = std::visit(
+        Visitor{
+            [&](idNodeType &id) { return getSymEntry(id.id, nodePtr->currentScope).type; },
+            [](conNodeType &con) { return con.getType(); },
+            [](auto _default) { return std::string(""); }},
+        *nodePtr
     );
 
     auto convType = nodePtr->conversionType;
 
-    if(!nodeType.empty() && !convType.empty() && nodeType != convType) {
+    if(!Node.empty() && !convType.empty() && Node != convType) {
         auto convTypeCamelCase = convType;
         convTypeCamelCase[0] = std::toupper(convTypeCamelCase[0]);
-        printf("\t%sTo%s\n", nodeType.c_str(), convTypeCamelCase.c_str());
+        printf("\t%sTo%s\n", Node.c_str(), convTypeCamelCase.c_str());
     }
 }
 
 struct compiler_visitor {
-    nodeType* p;
+    Node* p;
 
-    Value operator()(idNodeType &identifier) {
+    ControlFlow operator()(idNodeType &identifier) {
         return Value(identifier.id);
     }
 
-    Value operator()(conNodeType& c) {
+    ControlFlow operator()(conNodeType& c) {
         return Value(c);
     }
 
-    Value operator()(VarDecl& varDecl) {
-        return Value(ex(varDecl.var_name).toString());
+    ControlFlow operator()(VarDecl& varDecl) {
+        return Value(ex(varDecl.var_name).val.toString());
     }
 
-    Value operator()(VarDefn& vd) {
-        auto ret = ex(vd.initExpr);
-        STACK_HACK(ret);
-        convPushedVar(vd.initExpr);
-        printf("\tpop %s\n", ex(vd.decl->var_name).toString().c_str());
+    ControlFlow operator()(VarDefn& vd) {
+        auto initRet = ex(vd.initExpr).val;
+
+        STACK_HACK(initRet);
+        convertPushedVar(vd.initExpr);
+
+        auto varNameRet = ex(vd.decl->var_name).val;
+        printf("\tpop %s\n", varNameRet.toString().c_str());
         return Value(0);
     }
 
-    Value operator()(caseNodeType& c) {
+    ControlFlow operator()(caseNodeType& c) {
         auto caseLabelValue = ex(c.labelExpr);
         return Value(0);
     }
 
-    Value operator()(enumUseNode& eu) const {
+    ControlFlow operator()(enumUseNode& eu) const {
         auto members =  getEnumEntry(eu.enumName, p->currentScope).enumMembers;
         int memberValue = std::distance(members.begin(), std::find(members.begin(), members.end(), eu.memberName));
         return Value(memberValue);
     }
 
-    Value operator()(StatementList& sl) {
-        for(const auto& s: sl.toVec()) {
-            ex(s->statementCode);
+    ControlFlow operator()(StatementList& sl) {
+        for (const auto &s : sl.statements) {
+            auto ret = ex(s);
+            if (ret.type == ControlFlow::Type::Return) break;
         }
 
         return Value(0);
     }
 
-    Value operator()(switchNodeType &sw) {
+    ControlFlow operator()(switchNodeType &sw) {
         compile_switch(sw);
         return Value(0);
     }
 
-    Value operator()(breakNodeType &br) {
+    ControlFlow operator()(breakNodeType &br) {
         int exit_label = std::visit(
             Visitor {
                 [](whileNodeType& w) { return w.exit_label; },
@@ -219,7 +264,7 @@ struct compiler_visitor {
                 [](doWhileNodeType& dw) { return dw.exit_label; },
                 [](auto _default) { return 0; }
             },
-            br.parent_switch->un
+            *br.parent_switch
         );
         
         printf("\tjmp\tL%03d\n", exit_label);
@@ -227,11 +272,11 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(functionNodeType &fn) {
-        auto name = std::get<idNodeType>(fn.name->un).id;
+    ControlFlow operator()(FunctionDefn &fn) {
+        auto name =  fn.name->as<idNodeType>().id;
 
         printf("%s:\n", name.c_str());
-        for(const auto& param: fn.parametersTail->toVec()) {
+        for(const auto& param: fn.getParameters()) {
             // See the fixme in this same overload (functionNodeType) setup_scopes.cpp
             // for why we continue.
             if(param->var_name == nullptr && param->type == nullptr) continue; 
@@ -240,12 +285,12 @@ struct compiler_visitor {
         }
         ex(fn.statements);
 
-        printf("\n");
+        printf("\tret\n");
         
         return Value(0);
     }
 
-    Value operator()(FunctionCall& fc) {
+    ControlFlow operator()(FunctionCall& fc) {
         // ASSUMPTION: parameters are either conNodeType or idNodeType
         // Not sure about other function calls..
         
@@ -257,8 +302,8 @@ struct compiler_visitor {
         for(const auto& param: paramsReversed) {
             if(param->exprCode == nullptr) continue;
 
-            auto exprResult = ex(param->exprCode);
-            STACK_HACK(exprResult);
+            auto exprRet = ex(param->exprCode).val;
+            STACK_HACK(exprRet);
         }
         printf("\tcall %s\n", fc.functionName.c_str());
 
@@ -266,7 +311,7 @@ struct compiler_visitor {
         return Value(std::string("0"));
     }
 
-    Value operator()(doWhileNodeType &dw) {
+    ControlFlow operator()(doWhileNodeType &dw) {
         int loopLabel = lbl++;
         int exitLabel = lbl++;
         dw.exit_label = exitLabel;
@@ -288,7 +333,7 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(whileNodeType &w) {
+    ControlFlow operator()(whileNodeType &w) {
         int loopLabel = lbl++;
         int exitLabel = lbl++;
 
@@ -314,7 +359,7 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(forNodeType &f) {
+    ControlFlow operator()(forNodeType &f) {
         // Should go like this:
         //      loop initialization expression
         //  label1:
@@ -350,168 +395,115 @@ struct compiler_visitor {
         return Value(0);
     }
 
-    Value operator()(oprNodeType &opr) const {
-        int lbl1;
-        int lbl2;
+    ControlFlow operator()(BinOp bop) const {
+        using enum BinOper;
 
-        switch (opr.oper) {
-        case IF: {
-            auto* cond = opr.op[0];
+        if(bop.op == Assign) {
+            std::string lhs = ex(bop.lOperand).val.toString();
 
-            if (const auto *con = std::get_if<conNodeType>(&cond->un); con) {     
-                CONDITION_CHECK(con->toString())                                     
-            } else if (const auto *id = std::get_if<idNodeType>(&cond->un); id) { 
-                CONDITION_CHECK(id->id)                                              
-            } else {                                                                 
-                ex(cond);                                                   
-            }
-
-
-            switch (opr.op.size()) {
-            /* if op[0] { op[1] } else { op[2] } */
-            case 3:
-                printf("\tjnz\tL%03d\n", lbl1 = lbl++);
-                ex(opr.op[1]);
-                printf("\tjmp\tL%03d\n", lbl2 = lbl++);
-                printf("L%03d:\n", lbl1);
-                ex(opr.op[2]);
-                printf("L%03d:\n", lbl2);
-                break;
-
-            /* if op[0] { op[1] } */
-            case 2:
-                /* if */
-                printf("\tjnz\tL%03d\n", lbl1 = lbl++);
-                ex(opr.op[1]);
-                printf("L%03d:\n", lbl1);
-                break;
-
-            /* if op[0]; */
-            // Shouldn't be too common, but I think we should handle it.
-            case 1:
-                printf("\tjz\tL%03d\n", lbl1 = lbl++);
-                break;
-            }
-        } break;
-        case DEFAULT:
-        case CASE:
-            ex(opr.op[0]);
-            break;
-
-        case PRINT: {
-            // HACK
-            auto ret = ex(opr.op[0]);
-            STACK_HACK(ret);
-            printf("\tprint \n");
-        } break;
-        case '=': {
-            std::string lhs = ex(opr.op[0]).toString();
-            auto rhs = ex(opr.op[1]);
+            auto rhs = ex(bop.rOperand).val;
             STACK_HACK(rhs);
+
             printf("\tpop %s\n", lhs.c_str());
             return Value(lhs);
-        } break;
-
-        case PP: { UN_OP(printf("\tinc\n");) } break;
-        case MM: { UN_OP(printf("\tdec\n");) } break;
-        case UPLUS: { UN_OP(printf("\tpos\n");) } break;
-        case UMINUS: { UN_OP(printf("\tneg\n");) } break;
-        case '!': { UN_OP(printf("\tnot\n");) } break;
-        case '~': { UN_OP(printf("\tbitNOT\n");) } break;
-
-        case '&': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tbitAND\n");
-        } break;
-        case '|': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tbitOR\n");
-        } break;
-        case '^': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tbitXOR\n");
-            break;
         }
-        case LS: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tLshift\n");
-        } break;
-        case RS: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tRshift\n");
-        } break;
-        case '+': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tadd\n");
-            convPushedVar(p);
-        } break;
-        case '-': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tsub\n");
-        } break;
-        case '*': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tmul\n");
-        } break;
-        case '/': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tdiv\n");
-        } break;
-        case '%': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tmod\n");
-        } break;
-        case AND: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tand\n");
-        } break;
-        case OR: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tor\n");
-        } break;
-        case '<': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tcompLT\n");
-        } break;
-        case '>': {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tcompGT\n");
-        } break;
-        case GE: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tcompGE\n");
-        } break;
-        case LE: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tcompLE\n");
-        } break;
-        case NE: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tcompNE\n");
-        } break;
-        case EQ: {
-            PUSH_BIN_OPR_PARAMS
-            printf("\tcompEQ\n");
-        } break;
-        case RETURN: {
-            if(!opr.op.empty()) {
-                auto ret = ex(opr.op[0]);
-                STACK_HACK(ret);
-            } 
-            printf("\tret\n");
-        }
-        default:
-            return Value(0);
+
+        PUSH_BIN_OPR_PARAMS
+        switch (bop.op) {
+        
+        case Assign:     /* Already handled above */ break;
+        case BitAnd:       { printf("\tbitAND\n"); } break;
+        case BitOr:        { printf("\tbitOR\n");  } break;
+        case BitXor:       { printf("\tbitXOR\n"); } break;
+        case LShift:       { printf("\tLshift\n"); } break;
+        case RShift:       { printf("\tRshift\n"); } break;
+        case Add:          { printf("\tadd\n");    } break;
+        case Sub:          { printf("\tsub\n");    } break;
+        case Mul:          { printf("\tmul\n");    } break;
+        case Div:          { printf("\tdiv\n");    } break;
+        case Mod:          { printf("\tmod\n");    } break;
+        case And:          { printf("\tand\n");    } break;
+        case Or:           { printf("\tor\n");     } break;
+        case LessThan:     { printf("\tcompLT\n"); } break;
+        case GreaterThan:  { printf("\tcompGT\n"); } break;
+        case GreaterEqual: { printf("\tcompGE\n"); } break;
+        case LessEqual:    { printf("\tcompLE\n"); } break;
+        case NotEqual:     { printf("\tcompNE\n"); } break;
+        case Equal:        { printf("\tcompEQ\n"); } break;
+
         }
 
         return Value(std::string("0"));
     }
 
-    template <typename T> Value operator()(T const & /*UNUSED*/) const {  return Value(0);}
+    ControlFlow operator()(UnOp uop) const {
+        using enum UnOper;
+
+        switch(uop.op) {
+
+        case Print: {
+            auto ret = ex(uop.operand).val;
+            STACK_HACK(ret);
+            printf("\tprint \n");
+        } break;
+
+        case Return: {
+            if(uop.operand != nullptr) {
+                auto ret = ex(uop.operand).val;
+                STACK_HACK(ret);
+            } 
+
+            // TODO: ControlFlow here doesn't really need to return a value,
+            // just needs to signal to the caller that it reached a return statement.
+            return ControlFlow::Return(Value(0));
+        }
+
+        case Increment: { UN_OP(printf("\tinc\n");) } break;
+        case Decrement: { UN_OP(printf("\tdec\n");) } break;
+        case Plus:      { UN_OP(printf("\tpos\n");) } break;
+        case Minus:     { UN_OP(printf("\tneg\n");) } break;
+        case BoolNeg:   { UN_OP(printf("\tnot\n");) } break;
+        case BitToggle: { UN_OP(printf("\tbitNOT\n");) } break;
+
+        }
+
+        return Value(std::string("0"));
+    }
+
+    ControlFlow operator()(IfNode ifNode) const {
+        int lbl1;
+        int lbl2;
+        auto *cond = ifNode.condition;
+
+        if (const auto *con = std::get_if<conNodeType>(cond); con) {
+            CONDITION_CHECK(con->toString())
+        } else if (const auto *id = std::get_if<idNodeType>(cond); id) {
+            CONDITION_CHECK(id->id)
+        } else {
+            ex(cond);
+        }
+
+        if(ifNode.ifCode != nullptr && ifNode.elseCode != nullptr) {
+            printf("\tjnz\tL%03d\n", lbl1 = lbl++);
+            ex(ifNode.ifCode);
+            printf("\tjmp\tL%03d\n", lbl2 = lbl++);
+            printf("L%03d:\n", lbl1);
+            ex(ifNode.elseCode);
+            printf("L%03d:\n", lbl2);
+        } else if (ifNode.elseCode == nullptr) {
+            printf("\tjnz\tL%03d\n", lbl1 = lbl++);
+            ex(ifNode.ifCode);
+            printf("L%03d:\n", lbl1);
+        }
+
+        return Value(std::string("0"));
+    }
+
+    template <typename T> ControlFlow operator()(T const & /*UNUSED*/) const {  return Value(0);}
     
 };
 
-Value ex(nodeType *p) {
+ControlFlow ex(Node *p) {
     if (p == nullptr) return Value(0);
-    return std::visit(compiler_visitor{p}, p->un);
+    return std::visit(compiler_visitor{p}, *p);
 }

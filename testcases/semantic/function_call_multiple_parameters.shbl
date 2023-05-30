@@ -17,6 +17,7 @@ test:
     push b
     add
     print
+    ret
 
 push 1
 pop a
