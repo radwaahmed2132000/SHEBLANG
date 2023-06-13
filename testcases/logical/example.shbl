@@ -55,8 +55,8 @@ fn main() {
 #! Main is just a function like any other, you must call it 
 main();
 ===
-Warning in line number: 19 .Variable d is declared but never used
 Warning in line number: 15 .Variable _underscored is declared but never used
+Warning in line number: 19 .Variable d is declared but never used
 Warning in line number: 11 .Variable e1 is declared but never used
 0
 1

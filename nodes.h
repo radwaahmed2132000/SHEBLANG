@@ -142,16 +142,12 @@ typedef struct FunctionCall {
 } FunctionCall;
 
 typedef struct VarDecl : LinkedListNode<VarDecl>{
-	struct Node *type, *var_name;
-    bool isConstant = false;
-    struct Node* initExpr = nullptr;
+	struct Node *type, *varName;
+    bool isArray = false;
 
-    VarDecl(): type(nullptr), var_name(nullptr), LinkedListNode(nullptr) {}
-	VarDecl(Node* type, Node* var_name) : type(type), var_name(var_name) {}
-    VarDecl(Node* type, Node* var_name, Node* initExpr, bool isConstant) : type(type), var_name(var_name), initExpr(initExpr), isConstant(isConstant) {}
-
-    std::string getType() const;
+    struct Type getType() const;
     std::string getName() const;
+    static Node* node(Node* type, Node* varName, bool isArray);
 } VarDecl;
 
 typedef struct VarDefn {
@@ -229,70 +225,71 @@ struct UnOp {
 struct IfNode {
    Node* condition, *ifCode, *elseCode;
 
-   static Node *node(Node *condition, Node *ifCode);
-   static Node * node(Node *condition, Node *ifCode, Node *elseCode);
+   static Node* node(Node *condition, Node *ifCode);
+   static Node* node(Node *condition, Node *ifCode, Node *elseCode);
 };
 
-typedef struct SymbolTableEntry {
-    Value value;
-    bool isConstant;
-    bool isUsed = false;
-    int declaredAtLine = -1;
-    std::string type = "<no type>";  
-    Node* initExpr = nullptr;
+struct ArrayLiteral {
+    std::vector<Node*> expressions;
 
-    SymbolTableEntry() = default;
+    static Node* node(Node* exprTail);
+};
 
-    SymbolTableEntry(Node* initExpr, bool isConstant, std::string type):
-        initExpr(initExpr), isConstant(isConstant), type(type) {}
-    
-    SymbolTableEntry(bool isConstant, std::string type):
-        value(0), isConstant(isConstant), type(type) {}
+struct Type {
+    enum class IsArray {
+        DontCare = 0,
+        No = 0,
+        Yes = 1,
+    };
 
-    SymbolTableEntry& setValue(Value v) {
-        value = v;
-        return *this;
-    }
+    std::string innerType;
+    IsArray isArray;
+    int depth;
 
-    Value getValue() const { return value; }
+    Type(std::string s) : innerType(s), isArray(IsArray::DontCare), depth(0) {}
+    Type(std::string s, IsArray arr) : innerType(s), isArray(arr), depth(int(arr)) {}
+    Type(std::string s, IsArray arr, int d) : innerType(s), isArray(arr), depth(d) {}
+    Type() = default;
 
-    Value& getRef() { return value; }
-} SymbolTableEntry;
+    inline const static std::string anyTypeStr = "<any>";
 
-struct ScopeSymbolTables {
-    static int tableCount;
-    int tableId;
+    static Type Invalid;
+    static Type Any;
 
-    ScopeSymbolTables() {
-        tableId = ++tableCount;
-        parentScope = nullptr;
-    }
+    static Node* variable(Node* variableType, Type::IsArray isArray);
 
-    std::unordered_map<std::string, SymbolTableEntry> sym2;
-    std::unordered_map<std::string, FunctionDefn> functions;
-    std::unordered_map<std::string, enumNode> enums;
-    ScopeSymbolTables* parentScope;
+    // For cases like [[int]]. This function will be getting the inner [int]
+    static Node* increaseDepth(Node* innerArrayType);
 
+    bool operator==(const Type& other) const {
+        bool anyWithMatchingDepth =
+            (this->innerType == anyTypeStr || other.innerType == anyTypeStr) &&
+            (this->depth == other.depth);
 
-    ScopeSymbolTables(const ScopeSymbolTables& other) : sym2(other.sym2), functions(other.functions), enums(other.enums), tableId(++tableCount) { }
+        if(anyWithMatchingDepth) return true;
 
-    ScopeSymbolTables& operator=(const ScopeSymbolTables& other) {
-        if(this != &other)  {
-            this->sym2 = other.sym2;
-            this->functions = other.functions;
-            this->enums = other.enums;
-            tableId = ++tableCount;
+        bool depthAndTypeMatch  = other.depth == this->depth && other.innerType == this->innerType;
+        if(this->isArray == IsArray::DontCare || other.isArray == IsArray::DontCare) {
+            return depthAndTypeMatch;
         }
-        return *this;
+
+        return other.isArray == this->isArray && depthAndTypeMatch;
     }
 
-    std::string symbolsToString() const {
+    bool operator==(const std::string& other) const { return other == this->innerType; }
+
+    explicit operator std::string() const {
         std::stringstream ss;
-        for(const auto& [symbol, entry]: sym2) {
-            ss << symbol << '\t' << entry.type <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' << entry.isConstant << '\n';
+        ss << innerType;
+
+        if(isArray == IsArray::Yes) {
+            for(int i = 1; i <= depth; i++) { ss << "[]"; }
         }
 
         return ss.str();
     }
 };
 
+// Must be initialized here since the type is incomplete inside the class definition.
+inline Type Type::Invalid = Type("<Invalid>", Type::IsArray::DontCare);
+inline Type Type::Any = Type(Type::anyTypeStr, Type::IsArray::DontCare);

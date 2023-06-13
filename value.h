@@ -1,9 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <cassert>
 #include <variant>
 #include <string>
 #include <iostream>
-
+#include <vector>
+#include <sstream>
 
 // https://en.cppreference.com/w/cpp/utility/variant/visit
 // Needed so you can use std::visitor ergonomically like so:
@@ -23,30 +26,35 @@ struct Visitor : Ts... { using Ts::operator()...; };
 template<class... Ts>
 Visitor(Ts...) -> Visitor<Ts...>;
 
-using ValueVariant = std::variant<int, float, bool, char, std::string>;
-struct Value : ValueVariant { 
-    // Explicit constructor to avoid implicit conversions (caused issues when implementing operators)
-    // Implicit conversion `return 0;` being valid in a function that returns `Value`. (the 0 is converted to Value{0})
-    explicit Value(): ValueVariant(0) {}
-    explicit Value(int iVal): ValueVariant(iVal) {}
-    explicit Value(float fVal): ValueVariant(fVal) {}
-    explicit Value(bool bVal): ValueVariant(bVal) {}
-    explicit Value(char cVal): ValueVariant(cVal) {}
-    explicit Value(std::string sVal): ValueVariant(sVal) {}
+// TODO: Add `undefined` as a type to indicate uninitialized variables
+#define PRIMITIVE_TYPES int, float, bool, char, std::string
+
+struct Value;
+using PrimitiveArray = std::vector<Value>;
+
+struct Value : std::variant<PRIMITIVE_TYPES, PrimitiveArray> { 
+
+    Value(): std::variant<PRIMITIVE_TYPES, PrimitiveArray>(0) {}
+
+    template<typename SubType>
+    Value(SubType s): std::variant<PRIMITIVE_TYPES, PrimitiveArray>(s) {}
+
+    Value(const struct ControlFlow& cf);
+    Value operator=(const struct ControlFlow& cf);
 
     // For use in `if`, `while`, `for`, etc...
     explicit operator bool() const {
         return std::visit(
             Visitor {
-                    [](bool bValue)        { return bValue; },
-                    [](std::string sValue) { std::cerr << "No conversion from string to bool, returning false\n"; return false; },
-                    [](auto arg)           { return (bool)arg; }
+                [](std::string sValue)  { std::cerr << "No conversion from string to bool, returning false\n"; return false; },
+                [](PrimitiveArray vv)   { return !vv.empty(); },
+                [](auto arg)            { return (bool)arg; }
             },
             *this
         );
     }
 
-    std::string toString() const {
+    explicit operator std::string() const {
         using namespace std::string_literals;
         return std::visit(
             Visitor {
@@ -55,39 +63,75 @@ struct Value : ValueVariant {
                     [](bool bValue)        { return bValue? "true"s: "false"s; },
                     [](char cValue)        { return std::string(1, cValue); },
                     [](std::string sValue) { return sValue; },
+                    [](PrimitiveArray vv)    { 
+                        std::stringstream ss;
+                        ss << '[';
+                        for(int i = 0; i < vv.size(); i++) {
+                            ss << std::string(vv[i]);
+                            if(i < vv.size() - 1) { ss << ", "; }
+                        };
+                        ss << ']';
+
+                        return ss.str();
+                    }
             },
             *this
         );
     }
 
-    bool isLiteral() {
+    bool isLiteral() const {
         return std::visit(
             Visitor {
-                    [](int iValue)         { return true; },
-                    [](float fValue)       { return true; },
-                    [](bool bValue)        { return true; },
-                    [](char cValue)        { return true; },
-                    [](std::string sValue) { return false; },
+                [](int iValue)         { return true; },
+                [](float fValue)       { return true; },
+                [](bool bValue)        { return true; },
+                [](char cValue)        { return true; },
+                [](std::string sValue) { return false; },
+                [](PrimitiveArray vv) {
+                    return std::all_of(vv.begin(), vv.end(), [](const Value& p) { return p.isLiteral(); });
+                }
             },
             *this
         );
     }
 
     std::string getType() const {
+        using namespace std::string_literals;
         return std::visit(
             Visitor {
-                    [](int iValue)         { return "int"; },
-                    [](float fValue)       { return "float"; },
-                    [](bool bValue)        { return "bool"; },
-                    [](char cValue)        { return "char"; },
-                    [](std::string sValue) { return "string"; },
+                [](int iValue)         { return "int"s; },
+                [](float fValue)       { return "float"s; },
+                [](bool bValue)        { return "bool"s; },
+                [](char cValue)        { return "char"s; },
+                [](std::string sValue) { return "string"s; }, 
+                [](PrimitiveArray vv)   {
+
+                    // FIXME: What to do when we have an empty array?
+                    assert(!vv.empty());
+                    
+                    bool allElementsSameType = true;
+                    int firstElementTypeIndex = vv.front().index();
+                    for(int i = 1; i < vv.size(); i++) {
+                        if(vv[i].index() != firstElementTypeIndex) {
+                            allElementsSameType = false;
+                            break;
+                        }
+                    }
+
+                    assert(allElementsSameType);
+
+                    return vv.front().getType();
+                }
             },
             *this
         );
     }
 
-    Value(const struct ControlFlow& cf);
-    Value operator=(const struct ControlFlow& cf);
+    Value operator[](const int n) const {
+        auto vv = std::get<PrimitiveArray>(*this);
+        assert(n < vv.size());
+        return vv[n];
+    }
 };
 
 // Defined in `value_operators.cpp`

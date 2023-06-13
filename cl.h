@@ -4,15 +4,13 @@
 #include <algorithm>
 #include <memory>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 #include <variant>
 #include <string>
 #include <iostream>
 #include <unordered_map>
 #include <utility>
-#include <assert.h>
-#include <new>
-#include <system_error>
 
 #include "value.h"
 #include "result.h"
@@ -20,20 +18,28 @@
 // Tracking line numbers
 inline int currentLineNo = 1;
 
-inline Result errorsOutput;
-inline Result warningsOutput;
+inline std::vector<std::string> errors;
+inline std::vector<std::string> warnings;
+inline std::string filePath;
 
 #include "node.h" // Must include after the structs are defined
 // Needs `currentLineNo` to be defined
 #include "node_constructors.h"
+#include "template_utils.h"
 
 void yyerror(char *s);
 void printSymbolTables();
 void appendSymbolTable(int i);
 // Forward declare `semantic_analysis` for use in cl.y
-Result semantic_analysis(Node* p);
+Result<Type, std::vector<std::string>> semantic_analysis(Node* p);
 void setup_scopes(Node* p);
 void set_break_parent(Node* node, Node* parent_switch);
+
+template<typename  S>
+void error(Result<S, std::vector<std::string>> errs) { auto e = std::get<std::vector<std::string>>(errs); Utils::extendVector(errors, e); }
+
+template<typename  S>
+void warning(Result<S, std::vector<std::string>> warns) { auto w = std::get<std::vector<std::string>>(warns); Utils::extendVector(warnings, w); }
 
 
 // Scope analysis should guarantee that we can find the variable in some parent scope.

@@ -1,6 +1,6 @@
 CompileFlags:
   # Treat code as C++, use C++17 standard, enable more warnings.
-  Add: [-xc++, -std=c++17, -Wno-missing-prototypes, -I=vendor/**]
+  Add: [-xc++, -std=c++20, -Wno-missing-prototypes, -I=vendor/**]
   # Remove extra warnings specified in compile commands.
   # Single value is also acceptable, same as "Remove: [-mabi]"
   Remove: -mabi

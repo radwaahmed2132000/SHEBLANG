@@ -4,6 +4,6 @@ fn fib(int n) int {
     return fib(n-2) + fib(n-1);
 }
 
-print fib(20); #! should print 10946
+print fib(30);
 ===
-10946
+1346269

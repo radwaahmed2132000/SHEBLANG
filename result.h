@@ -4,40 +4,39 @@
 #include <iostream>
 #include <vector>
 
-struct ErrorType: std::vector<std::string> {};
-struct SuccessType: std::string {};
-
 // auto success = Result::Success("int");
 // auto error  = Result::Error("LHS = int, RHS = string");
 // error.push_back("another error!");
-struct Result: std::variant<ErrorType, SuccessType> {
+
+template<typename S = std::string, typename E = std::vector<std::string>>
+struct Result: std::variant<S, E> {
     int sizeError=0;
     Value * value = nullptr;
 
+    inline static Result<S,E> Err = Result{std::variant<S, E>(E{})};
+    inline static Result<S,E> Ok = Result{std::variant<S, E>(S{})};
+
     bool isSuccess() const {
-        return std::holds_alternative<SuccessType>(*this);
+        return std::holds_alternative<S>(*this);
     }
 
-    static Result Success() {
-        return Result{std::variant<ErrorType, SuccessType>(SuccessType{})};
+    static Result ok(S type) {
+        return Result{std::variant<S, E>(S{type})};
     }
 
-    static Result Success(std::string type) {
-        return Result{std::variant<ErrorType, SuccessType>(SuccessType{type})};
+    static Result err(E error) {
+        return Result{std::variant<S, E>(error)};
     }
-
-    static Result Error(std::string error) {
-        return Result{std::variant<ErrorType, SuccessType>(ErrorType{{error}})};
-    }
-
-    static Result Error() {
-        return Result{std::variant<ErrorType, SuccessType>(ErrorType{})};
+    
+    template<typename I>
+    static Result err(I error) {
+        return Result{std::variant<S, E>(E{error})};
     }
 
     Result& addError(std::string newError) {
-        if(auto *s = std::get_if<SuccessType>(this); s != nullptr) {
+        if(auto *s = std::get_if<S>(this); s != nullptr) {
             std::cerr << "Cannot add an error to a success variant\n";
-        } else if (auto *e = std::get_if<ErrorType>(this); e != nullptr) {
+        } else if (auto *e = std::get_if<E>(this); e != nullptr) {
             e->push_back(newError);
             sizeError++;
         }
@@ -45,7 +44,7 @@ struct Result: std::variant<ErrorType, SuccessType> {
         return *this;
     }
 
-    Result& mergeErrors(ErrorType& errors) {
+    Result& mergeErrors(E& errors) {
         for(const auto& err: errors) {
             this->addError(err);
         }
@@ -54,9 +53,9 @@ struct Result: std::variant<ErrorType, SuccessType> {
     }
 
     void print() {
-        if(auto *s = std::get_if<SuccessType>(this); s != nullptr) {
+        if(auto *s = std::get_if<S>(this); s != nullptr) {
             std::cout << *s;
-        } else if (auto *e = std::get_if<ErrorType>(this); e != nullptr) {
+        } else if (auto *e = std::get_if<E>(this); e != nullptr) {
             for(auto& innerErr: *e) {
                 std::cerr << innerErr << "\n";
             }

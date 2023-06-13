@@ -19,7 +19,6 @@ Node *for_loop(Node* init_statement, Node* loop_condition, Node* post_loop_state
 Node *while_loop(Node* loop_condition, Node* loop_body);
 Node *do_while_loop(Node* loop_condition, Node* loop_body);
 
-Node* varDecl(Node* type, Node* name);
 Node* varDefn(Node* decl, Node* initExpr, bool isConstant);
 
 Node* fn(Node* name, VarDecl* params, Node* return_type, Node* statements);
@@ -49,11 +48,12 @@ Node* appendToLinkedList(Node* prev, Node* next) {
 
 template<typename LinkedListNode> 
 Node* linkedListStump(Node* end) {
-    auto* stump = end->asPtr<LinkedListNode>();
+    LinkedListNode* stump;
 
     // assert only if `end` is not null
     // `end` should only be null for empty parameter lists.
     if(end != nullptr) {
+        stump = end->asPtr<LinkedListNode>();
         assert(stump != nullptr);
     } else {
         // In case of Stump:

@@ -217,7 +217,7 @@ struct compiler_visitor {
     }
 
     ControlFlow operator()(VarDecl& varDecl) {
-        return Value(ex(varDecl.var_name).val.toString());
+        return Value(ex(varDecl.varName).val.toString());
     }
 
     ControlFlow operator()(VarDefn& vd) {
@@ -226,7 +226,7 @@ struct compiler_visitor {
         STACK_HACK(initRet);
         convertPushedVar(vd.initExpr);
 
-        auto varNameRet = ex(vd.decl->var_name).val;
+        auto varNameRet = ex(vd.decl->varName).val;
         printf("\tpop %s\n", varNameRet.toString().c_str());
         return Value(0);
     }
@@ -279,7 +279,7 @@ struct compiler_visitor {
         for(const auto& param: fn.getParameters()) {
             // See the fixme in this same overload (functionNodeType) setup_scopes.cpp
             // for why we continue.
-            if(param->var_name == nullptr && param->type == nullptr) continue; 
+            if(param->varName == nullptr && param->type == nullptr) continue; 
 
             printf("\tpop %s\n", param->getName().c_str());
         }

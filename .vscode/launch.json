@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/SHEBLANG_interpreter",
             "cwd": "${workspaceFolder}",
-            "stdio": ["testcases/semantic/function_mismatched_return_types.shbl", null, null],
-        },
+            "stdio": ["${file}", null, null],
+        }
         {
             "name": "Launch Compiler",
             "type": "lldb",

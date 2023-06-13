@@ -1,6 +1,10 @@
 #include "cl.h"
+#include "value.h"
 #include <variant>
 #include <string>
+
+// TODO: Perhaps refactor this so all the old `Value` logic gets moved to `Primitive`
+// and we only have to handle `Primitive` and `PrimitiveArray`?
 
 // Here we overload all the needed operators so that `Value` can be used in the interpreter freely.
 // Things needed to overload are:
@@ -69,29 +73,43 @@
     ERROR_CASE_BINARY_DIFF_TYPES(std::string, float, Value) \
     ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, Value)  \
     ERROR_CASE_BINARY_DIFF_TYPES(std::string, char, Value)  \
-    ERROR_CASE_BINARY_SAME_TYPE(std::string, Value)         
+    ERROR_CASE_BINARY_SAME_TYPE(std::string, Value)         \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, int, Value)   \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, float, Value) \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, bool, Value)  \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, char, Value)  \
+    ERROR_CASE_BINARY_SAME_TYPE(PrimitiveArray, Value)         \
 
 // Bitwise operators is defined only for integers, booleans, and characters.
-#define BITWISE_ERROR_CASES                                 \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, int, Value)   \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, Value)  \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, char, Value)  \
-    ERROR_CASE_BINARY_DIFF_TYPES(float, int, Value)         \
-    ERROR_CASE_BINARY_DIFF_TYPES(float, bool, Value)        \
-    ERROR_CASE_BINARY_DIFF_TYPES(float, char, Value)        \
-    ERROR_CASE_BINARY_DIFF_TYPES(float, std::string, Value) \
-    ERROR_CASE_BINARY_SAME_TYPE(std::string, Value)         \
-    ERROR_CASE_BINARY_SAME_TYPE(float, Value)
+#define BITWISE_ERROR_CASES                                    \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, int, Value)      \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, Value)     \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, char, Value)     \
+    ERROR_CASE_BINARY_DIFF_TYPES(float, int, Value)            \
+    ERROR_CASE_BINARY_DIFF_TYPES(float, bool, Value)           \
+    ERROR_CASE_BINARY_DIFF_TYPES(float, char, Value)           \
+    ERROR_CASE_BINARY_DIFF_TYPES(float, std::string, Value)    \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, int, Value)   \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, bool, Value)  \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, char, Value)  \
+    ERROR_CASE_BINARY_SAME_TYPE(std::string, Value)            \
+    ERROR_CASE_BINARY_SAME_TYPE(float, Value)                  \
+    ERROR_CASE_BINARY_SAME_TYPE(PrimitiveArray, Value)         
 
-#define EQUALITY_ERROR_CASES \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, int, bool)     \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, float, bool)   \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, char, bool)    \
-    ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, bool)    
+#define EQUALITY_ERROR_CASES                                    \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, int, bool)        \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, float, bool)      \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, char, bool)       \
+    ERROR_CASE_BINARY_DIFF_TYPES(std::string, bool, bool)       \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, int, bool)     \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, float, bool)   \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, char, bool)    \
+    ERROR_CASE_BINARY_DIFF_TYPES(PrimitiveArray, bool, bool)    
 
-#define LOGICAL_ERROR_CASES \
-    EQUALITY_ERROR_CASES    \
-    ERROR_CASE_BINARY_SAME_TYPE(std::string, bool)
+#define LOGICAL_ERROR_CASES                        \
+    EQUALITY_ERROR_CASES                           \
+    ERROR_CASE_BINARY_SAME_TYPE(std::string, bool) \
+    ERROR_CASE_BINARY_SAME_TYPE(PrimitiveArray, bool)
 
 #define INT_ERROR_CASES                              \
     ARITHMETIC_ERROR_CASES                           \
@@ -129,7 +147,11 @@ BINARY_OPERATOR_DEFN_BEGIN(LE)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(<=
 BINARY_OPERATOR_DEFN_BEGIN(GE)  LOGICAL_ERROR_CASES  BINARY_OPERATOR_DEFN_END(>=, bool)
 BINARY_OPERATOR_DEFN_BEGIN(EQ)  EQUALITY_ERROR_CASES  BINARY_OPERATOR_DEFN_END(==, bool)
 BINARY_OPERATOR_DEFN_BEGIN(NE)  EQUALITY_ERROR_CASES  BINARY_OPERATOR_DEFN_END(!=, bool)
-UNARY_OPERATOR_DEFN_BEGIN(LogicalNot) ERROR_CASE_UNARY(std::string, bool) UNARY_OPERATOR_DEFN_END(!, bool);
+
+UNARY_OPERATOR_DEFN_BEGIN(LogicalNot) 
+    ERROR_CASE_UNARY(std::string, bool) 
+    ERROR_CASE_UNARY(PrimitiveArray, bool) 
+UNARY_OPERATOR_DEFN_END(!, bool);
 
 // Shifting and modulo are defined only for integers.
 BINARY_OPERATOR_DEFN_BEGIN(LS)     INT_ERROR_CASES  BINARY_OPERATOR_DEFN_END(<<, Value)
@@ -186,9 +208,7 @@ BINARY_OPERATOR(%, Modulo)
 UNARY_OPERATOR(+, UnaryPlus)
 UNARY_OPERATOR(-, UnaryMinus)
 
-std::ostream& operator<<(std::ostream& os, const Value& v) {
-    return os << v.toString();
-}
+std::ostream& operator<<(std::ostream& os, const Value& v) { return os << std::string(v); }
 
 Value::Value(const struct ControlFlow& cf) : Value(cf.val){ } 
 

@@ -1,16 +1,26 @@
 set -xe
 
-debug=$2
+debug_build=$2
+
+# set to "--debug" for bison debugging
+debug_bison=""
 
 help() {
 	# $0 is the script name
-	echo "USAGE: $0 {(i)nterpreter|(c)ompiler|clean} [--debug]"
+	echo "USAGE: $0 {(i)nterpreter|(c)ompiler|clean} [--debug|--release]"
 }
 
 cmake_prep() {
 	mkdir -p build
 	cd build
-	cmake ../ -DBISON_DEBUG:STRING="$debug" -DCMAKE_BUILD_TYPE=Debug
+
+	if [ "$debug_build" == "--release" ]; then
+		echo "Creating a release build"
+		cmake ../ -DBISON_DEBUG:STRING=$debug_bison -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	else
+		echo "Creating a debug build"
+		cmake ../ -DBISON_DEBUG:STRING=$debug_bison -DCMAKE_BUILD_TYPE=Debug
+	fi
 }
 
 interpreter() {

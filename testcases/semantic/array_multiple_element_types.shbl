@@ -1,0 +1,4 @@
+#! Having multiple element types in one array literal is not allowed.
+[1, 2, "error!"];
+===
+Error at line 2. An array cannot elements with multiple types (int, string)

@@ -8,11 +8,13 @@
 #include <variant>
 #include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "cl.h"
 #include "nodes.h"
 #include "result.h"
 #include "parser.h"
+#include "value.h"
 
 #define BOP_CASE(case_value, oper) \
             case case_value: return ex(bop.lOperand) oper ex(bop.rOperand);
@@ -36,8 +38,8 @@ ControlFlow assignToVar(BinOp& bop, Node* p) {
     // Get the variable name based on the LHS's type.
     optional<string> varNameOpt = visit(
             Visitor {
-                [](VarDecl& varDecl)              { return make_optional(varDecl.var_name->as<idNodeType>().id); },
-                [](VarDefn& varDefn)              { return make_optional(varDefn.decl->var_name->as<idNodeType>().id); },
+                [](VarDecl& varDecl)              { return make_optional(varDecl.varName->as<idNodeType>().id); },
+                [](VarDefn& varDefn)              { return make_optional(varDefn.decl->varName->as<idNodeType>().id); },
                 [](idNodeType& idNode)            { return make_optional(idNode.id); },
                 [](auto _default) -> optional<string> {  return std::nullopt; }
             } ,
@@ -103,8 +105,16 @@ struct ex_visitor {
     // since we need scope info from it.
     Node* p;
 
-    ControlFlow operator()(conNodeType& con) {
-        return con;
+    ControlFlow operator()(conNodeType& con) { return con; }
+
+    ControlFlow operator()(ArrayLiteral& al) {
+        std::vector<Value> arrayElements;
+        arrayElements.reserve(al.expressions.size());
+        for(const auto& expr: al.expressions) {
+            arrayElements.push_back(ex(expr).val);
+        }
+
+        return Value(PrimitiveArray{arrayElements});
     }
 
     ControlFlow operator()(idNodeType& identifier) const {
@@ -113,7 +123,7 @@ struct ex_visitor {
     }
 
     ControlFlow operator()(VarDecl& vd) const {
-        auto nameStr = vd.var_name->as<idNodeType>().id;
+        auto nameStr = vd.varName->as<idNodeType>().id;
         auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
 
         varSymbolTableEntry.setValue(ex(varSymbolTableEntry.initExpr));
@@ -122,7 +132,7 @@ struct ex_visitor {
     }
 
     ControlFlow operator()(VarDefn& vd) const {
-        auto nameStr = vd.decl->var_name->as<idNodeType>().id;
+        auto nameStr = vd.decl->varName->as<idNodeType>().id;
         auto val = ex(vd.initExpr);
 
         auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
@@ -170,7 +180,7 @@ struct ex_visitor {
         ScopeSymbolTables originalScope(fnFrame);
 
         for(int i = 0; i < fnParams.size(); i++) {
-            if(fnParams[i]->type == nullptr && fnParams[i]->var_name == nullptr) continue;
+            if(fnParams[i]->type == nullptr && fnParams[i]->varName == nullptr) continue;
 
             auto paramName = fnParams[i]->getName();
             auto paramValue = ex(fc.parameterExpressions[i]->exprCode);
@@ -263,7 +273,7 @@ struct ex_visitor {
         switch (uop.op) {
         case Print: {
             Value exprValue = ex(uop.operand);
-            std::cout << exprValue.toString() << '\n';
+            std::cout << std::string(exprValue) << '\n';
             return Value(0);
         }
 

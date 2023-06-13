@@ -1,7 +1,8 @@
 #include "cl.h"
+#include "nodes.h"
 #include "parser.h"
 
-std::string getReturnType(Node* returnStatement);
+Type getReturnType(Node* returnStatement);
 
 // Recurses into a function, checking statements, if conditions, while loops,
 // for loops, do while loops, and switch cases.
@@ -23,3 +24,5 @@ std::string getReturnType(Node* returnStatement);
 // }
 //
 std::vector<Node*> getFnReturnStatements(Node* fnStatements);
+
+int getArrayDepth(Node* expr);

@@ -22,14 +22,11 @@ void printSymbolTables(){
         for (int i = 0; i < allSymbolTables.size(); i++) {
             outfile<<"Tables of Scope "+std::to_string(allSymbolTables[i]->tableId)<<std::endl;
             outfile<<"Identifiers Symbol Table"<<std::endl;
-            // /* Loop on all the 3 symbol tables: the sym, functionNode & enumNode tables*/
-            outfile<<"sym_key, sym_val, declaration_line, type, isConstant"<<std::endl;
+            outfile << "symKey\tsymVal\tdeclarationLine\ttype\tisConstant"<<std::endl;
+
             /* Identifier Symbol Table */
-            for (auto iter = allSymbolTables[i]->sym2.begin(); iter != allSymbolTables[i]->sym2.end(); ++iter)
-            {
-                outfile<<iter->first<<", "<<iter->second.getValue()<<", "<<iter->second.declaredAtLine;
-                outfile<<", "<<iter->second.type<<", "<<iter->second.isConstant<<std::endl;
-            }
+            outfile << allSymbolTables[i]->symbolsToString();
+
             // outfile<<"Functions Symbol Table"<<std::endl;
             // outfile<<"function_name, return_type, parameter_list"<<std::endl;
             // /* Function Symbol Table */
@@ -67,17 +64,15 @@ struct setup_scopes_visitor {
 
     void operator()(VarDecl& vd) const { 
         vd.type->currentScope = currentNodePtr->currentScope;
-        vd.var_name->currentScope = currentNodePtr->currentScope;
+        vd.varName->currentScope = currentNodePtr->currentScope;
 
         setup_scopes(vd.type);
-        setup_scopes(vd.var_name);
+        setup_scopes(vd.varName);
     }
 
     void operator()(VarDefn &vd) const {
-        Node *nt = new Node(VarDecl(vd.decl->type, vd.decl->var_name), vd.decl->type->lineNo);
-
-        nt->currentScope = currentNodePtr->currentScope;
-        setup_scopes(nt); 
+        vd.decl->self->currentScope = currentNodePtr->currentScope;
+        setup_scopes(vd.decl->self); 
 
         vd.initExpr->currentScope = currentNodePtr->currentScope;
         setup_scopes(vd.initExpr);        
@@ -159,9 +154,9 @@ struct setup_scopes_visitor {
         // FIXME: If a function takes no parameters, the list will have one
         // element (the last one) with null data.
         for(auto* param: fn.getParameters()) {
-            if(param->var_name == nullptr && param->type == nullptr) break;
+            if(param->varName == nullptr && param->type == nullptr) break;
 
-            param->var_name->currentScope = functionScope;
+            param->varName->currentScope = functionScope;
             param->type->currentScope = functionScope;
         }
 
@@ -259,6 +254,13 @@ struct setup_scopes_visitor {
         if(ifNode.elseCode != nullptr) {
             ifNode.elseCode->currentScope = currentNodePtr->currentScope;
             setup_scopes(ifNode.elseCode);
+        }
+    }
+
+    void operator()(ArrayLiteral& al) const {
+        for(auto* expr: al.expressions) {
+            expr->currentScope = currentNodePtr->currentScope;
+            setup_scopes(expr);
         }
     }
 

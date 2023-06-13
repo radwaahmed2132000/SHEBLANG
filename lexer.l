@@ -1,5 +1,6 @@
 %{
 #include <iostream>
+#include <cstring>
 
 #include "cl.h"
 #include "parser.h"
@@ -53,11 +54,6 @@ COMMENT "#!".*
     return CHARACTER;
 }
 
-{SINGLE_QUOTE_STRING} {
-    std::cerr << "Syntax error at line " << yylineno  << ": "
-              << "Cannot use single quotes for strings. Instead use \"\"\n";
-}
-
 {UNCLOSED_CHAR} {
     std::cerr << "Syntax error at line " << yylineno << ": " 
               << "Missing closing quote (\')\n";
@@ -75,6 +71,11 @@ COMMENT "#!".*
               << "Missing closing double quote (\")!\n";
 }
 
+{SINGLE_QUOTE_STRING} {
+    std::cerr << "Syntax error at line " << yylineno  << ": "
+              << "Cannot use single quotes for strings. Instead use \"\"\n";
+}
+
 {INTEGER_NUMBER} {
     int intValue = std::atoi(yytext);
     yylval.node = new Node(conNodeType{intValue}, yylineno);
@@ -87,7 +88,7 @@ COMMENT "#!".*
     return REAL;
 }
 
-[-()<>=+*/%!~&|^;{}.,:] {
+[-()<>=+*/%!~&|^;{}.,:\[\]] {
     return *yytext;
 }
 

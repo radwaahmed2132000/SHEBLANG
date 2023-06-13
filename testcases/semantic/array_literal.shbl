@@ -1,0 +1,4 @@
+#! Tests whether array literals are parsed correctly.
+[1, 2, 3];
+===
+

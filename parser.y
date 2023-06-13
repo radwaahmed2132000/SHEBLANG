@@ -19,7 +19,9 @@ void appendSymbolTable(int i);
 
 int yylex(void);
 void yyerror(char *s);
+
 extern int yylineno;            /* from lexer */
+extern FILE* yyin;
 
 %}
 
@@ -27,7 +29,7 @@ extern int yylineno;            /* from lexer */
 %union { Node* node; }
 
 %token WHILE IF PRINT DO FOR SWITCH CASE DEFAULT BREAK ENUM FN RETURN
-%token CONST INT FLOAT BOOL CHAR STRING SCOPE_RES
+%token CONST SCOPE_RES
 %nonassoc IFX
 %nonassoc ELSE
 
@@ -55,6 +57,7 @@ extern int yylineno;            /* from lexer */
 %type <node> var_defn
 %type <node> function_parameter_list identifier_list
 %type <node> expr_list
+%type <node> var_type array_type
 
 %type <node> if_else_errors
 %%
@@ -66,12 +69,10 @@ program:
 
                 auto result = semantic_analysis($1);
 
-                if (warningsOutput.sizeError > 0) {
-                    warningsOutput.print();
-                }
+                for(auto& msg: warnings) { std::cout << msg << '\n'; }
+                for(auto& msg: errors) { std::cerr << msg << '\n'; }
 
-                if (errorsOutput.sizeError > 0) {
-                    errorsOutput.print();
+                if(!errors.empty()) { 
                     exit(1);
                 }
 
@@ -88,8 +89,18 @@ program:
             }
         ;
 
+array_type:
+          IDENTIFIER '[' ']'  { $$ = Type::variable($1, Type::IsArray::Yes); }
+        | array_type '[' ']'  { $$ = Type::increaseDepth($1); }
+        ;
+
+var_type:
+          IDENTIFIER  { $$ = Type::variable($1, Type::IsArray::No); }
+        | array_type
+        ;
+
 var_decl:
-        IDENTIFIER IDENTIFIER       { $$ = varDecl($1, $2); }
+        var_type IDENTIFIER            { $$ = VarDecl::node($1, $2, false); }
         ;
 
 var_defn:
@@ -158,9 +169,6 @@ case_list:
          | case_list case         { $$ = appendToLinkedList<caseNodeType>($1, $2); }
          ;
 
-literal:
-       INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER 
-
 expr : 
         literal                         { $$ = $1; }
         | expr PP                       { $$ = UnOp::node(UnOper::Increment, $1); }
@@ -202,6 +210,10 @@ expr :
         | function_call                 { $$ = $1; }
         | enum_use
         ;
+
+literal:
+       INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER  { }
+       | '[' expr_list ']'              { $$ = ArrayLiteral::node($2); }
 
 enum_use:
         IDENTIFIER SCOPE_RES IDENTIFIER { $$ = enum_use($1, $3); }
@@ -259,10 +271,30 @@ void yyerror(char *s) {
     fprintf(stdout, "%s\n", s);
 }
 
-int main(void) {
+int main(int argc, char** argv) {
 #if defined(YYDEBUG) && (YYDEBUG != 0)
         yydebug = 1;
 #endif
-    yyparse();
+
+    // Only program name (supplied by OS), no script path
+    if(argc == 1) {
+        // Take input from stdin. Used for testing (Expected outputs are
+        // removed and the interpreter/compiler are fed the source code only)
+        yyparse();
+    } else {
+        yyin = fopen(argv[1], "r");
+        filePath = std::string(argv[1]);
+
+        if(yyin == NULL) {
+            std::cerr << fmt("File '%s' not found.\n\n", filePath)
+                      << fmt("\tUsage: %s [path_to_shbl_file]\n")
+                      << fmt("\n\nIf a .shbl file is not passed as an argument, the program reads from stdin.\n");
+            exit(1);
+        }
+
+        yyparse();
+
+        fclose(yyin);
+    }
     return 0;
 }

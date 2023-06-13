@@ -49,3 +49,55 @@ std::vector<Node*> FunctionDefn::getParametersAsNodes() const {
     }
     return ptrs;
 }
+
+Node* ArrayLiteral::node(Node* exprTail) {
+    std::vector<Node*> expressions;
+    for(auto* currNode = std::get_if<ExprListNode>(exprTail); currNode != nullptr; currNode = currNode->prev) {
+        expressions.push_back(currNode->exprCode);
+    }
+
+    std::reverse(expressions.begin(), expressions.end());
+
+    // Account for empty arrays with one null node.
+    if(expressions.size() == 1 && expressions[0] == nullptr) {
+        expressions.pop_back();
+    }
+
+    return new Node(ArrayLiteral{expressions}, currentLineNo);
+}
+
+Node* VarDecl::node(Node* type, Node* varName, bool isArray) {
+    auto vd = VarDecl{
+        .type = type,
+        .varName = varName,
+        .isArray = isArray
+    };
+
+    // Smelly circular references...
+    auto* vdNode = new Node(vd, currentLineNo);
+    vdNode->as<VarDecl>().self = vdNode;
+
+    return vdNode;
+}
+
+Node* Type::variable(Node* variableType, IsArray isArray) {
+    auto typeStr = variableType->as<idNodeType>().id;
+    
+    int depth = 0;
+    switch (isArray) {
+    case IsArray::DontCare:
+        depth = 0;
+        break;
+    case IsArray::Yes:
+        depth = 1;
+        break;
+    }
+
+    return new Node(Type(typeStr, isArray, depth), currentLineNo);
+}
+
+Node* Type::increaseDepth(Node* innerArrayType) {
+    assert(innerArrayType->asPtr<Type>()->isArray);
+    innerArrayType->asPtr<Type>()->depth += 1;
+    return innerArrayType;
+}

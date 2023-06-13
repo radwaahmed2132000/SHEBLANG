@@ -60,20 +60,22 @@ Node *do_while_loop(Node* loop_condition, Node* loop_body) {
     return new Node(doWhileNode, currentLineNo);
 }
 
-Node* varDecl(Node* type, Node* name) {
-    auto nameStr = name->as<idNodeType>().id;
-    auto typeStr = type->as<idNodeType>().id;
-
-    return new Node(VarDecl(type, name), currentLineNo);
-}
-
 Node* varDefn(Node* decl, Node* initExpr, bool isConstant) {
     auto* declPtr = decl->asPtr<VarDecl>();
     return new Node(VarDefn(declPtr, initExpr, isConstant), currentLineNo);
 }
 
-std::string VarDecl::getType() const { return type->as<idNodeType>().id; } 
-std::string VarDecl::getName() const { return var_name->as<idNodeType>().id; } 
+Type VarDecl::getType() const { 
+    return std::visit(
+        Visitor {
+            [](const Type& at) { return at; },
+            [](const auto& _default) { std::cerr << "Attempt to get type of non-id node\n"; return Type("invalid"); }
+        },
+        *type
+    );
+} 
+
+std::string VarDecl::getName() const { return varName->as<idNodeType>().id; } 
 
 Node* fn_call(Node* name) {
     return new Node(FunctionDefn{nullptr, name}, currentLineNo);

@@ -1,0 +1,6 @@
+#! Tests if array definitions are parsed correctly.
+int[] testArr = [1, 2, 3];
+
+print testArr;
+===
+[1, 2, 3]

@@ -11,10 +11,10 @@ TEST_TYPE_SEPARATOR = "===\n"
 
 class Testcase:
     def __init__(self, dir: os.PathLike, filename: os.PathLike) -> None:
-        with open(os.path.join(dir, filename), "r") as f:
+        self.path = os.path.join(dir, filename)
+        with open(self.path, "r") as f:
 
             test_case_file = f.read()
-            self.filename = filename
             self.interpreter_ref = self.compiler_ref = None
 
             type_count = test_case_file.count(TEST_TYPE_SEPARATOR)
@@ -27,7 +27,7 @@ class Testcase:
                 self.interpreter_ref, self.compiler_ref = splits[1:]
 
     def __str__(self) -> str:
-        s = f"{self.filename}"
+        s = f"{self.path:<64}"
 
         test_types = []
         if self.interpreter_ref is not None:
@@ -36,7 +36,7 @@ class Testcase:
             test_types.append("compiler")
 
         if len(test_types) > 0:
-            s += f" ({','.join(test_types)})"
+            s += f"\t({','.join(test_types)})"
 
         return s
 
@@ -73,11 +73,12 @@ if args.category is None:
     test_cases = []
     for case_folder in case_folders:
         test_cases += [Testcase(case_folder, file) for file in os.listdir(case_folder) if file.endswith(".shbl")]
-        
+
 else:
     test_case_dir = os.path.join("./testcases/", args.category)
     test_cases = [file for file in os.listdir(test_case_dir) if file.endswith(".shbl")]
     test_cases = [Testcase(test_case_dir, test_case) for test_case in test_cases]
+
 print("Testcases found:")
 print(indent_list(list_test_cases(test_cases)))
 
@@ -87,13 +88,13 @@ for test_case in test_cases:
     expected_output = test_case.get_binary_type_output(args.shbl_binary_type)
     if expected_output is None:
         skipped += 1
-        print(f"SKIPPED: {test_case.filename}, no test case output.")
+        print(f"SKIPPED: {test_case.path}, no test case output.")
         continue
 
     try:
         proc = subprocess.run([binary], input=test_case.code.encode(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5)
     except subprocess.TimeoutExpired:
-        print(f"TIMEOUT: {test_case.filename}")
+        print(f"TIMEOUT: {test_case.path}")
         continue
 
     actual_output = proc.stdout.decode().strip()
@@ -113,7 +114,7 @@ for test_case in test_cases:
         passed += 1
     else:
         failed += 1
-        print(f"FAILED: {test_case.filename}")
+        print(f"FAILED: {test_case.path}")
         print(f"\nExpected output:\n{expected_output}")
         print("=" * 80)
         print(f"Actual output:\n{actual_output}")

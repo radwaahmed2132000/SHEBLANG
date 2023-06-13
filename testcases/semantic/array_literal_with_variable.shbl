@@ -1,0 +1,6 @@
+int[] bar = [1];
+int[][] foo = [bar];
+
+print foo;
+===
+[[1]]
