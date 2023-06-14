@@ -101,3 +101,7 @@ Node* Type::increaseDepth(Node* innerArrayType) {
     innerArrayType->asPtr<Type>()->depth += 1;
     return innerArrayType;
 }
+
+Node* ArrayIndex::node(Node* arr, Node* index) {
+    return new Node(ArrayIndex{arr, index}, currentLineNo);
+}

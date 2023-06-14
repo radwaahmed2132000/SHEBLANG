@@ -5,7 +5,8 @@
     conNodeType, idNodeType, switchNodeType, caseNodeType, breakNodeType,      \
         FunctionDefn, whileNodeType, forNodeType, doWhileNodeType, VarDecl,    \
         VarDefn, enumNode, IdentifierListNode, enumUseNode, StatementList,     \
-        FunctionCall, ExprListNode, BinOp, UnOp, IfNode, ArrayLiteral, Type
+        FunctionCall, ExprListNode, BinOp, UnOp, IfNode, ArrayLiteral, Type,    \
+        ArrayIndex
 
 struct ScopeSymbolTables; struct Node : std::variant<NODE_TYPES> {
     int lineNo;

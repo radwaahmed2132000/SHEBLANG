@@ -10,7 +10,6 @@
 
 template<typename S = std::string, typename E = std::vector<std::string>>
 struct Result: std::variant<S, E> {
-    int sizeError=0;
     Value * value = nullptr;
 
     inline static Result<S,E> Err = Result{std::variant<S, E>(E{})};
@@ -38,7 +37,6 @@ struct Result: std::variant<S, E> {
             std::cerr << "Cannot add an error to a success variant\n";
         } else if (auto *e = std::get_if<E>(this); e != nullptr) {
             e->push_back(newError);
-            sizeError++;
         }
 
         return *this;

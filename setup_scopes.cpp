@@ -264,6 +264,11 @@ struct setup_scopes_visitor {
         }
     }
 
+    void operator()(ArrayIndex& al) const {
+        al.indexExpr->currentScope = currentNodePtr->currentScope;
+        al.arrayExpr->currentScope = currentNodePtr->currentScope;
+    }
+
     // the default case:
     template<typename T> 
     void operator()(T const & /*UNUSED*/ ) const {}

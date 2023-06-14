@@ -315,6 +315,28 @@ struct ex_visitor {
         return Value(0);
     }
 
+    ControlFlow operator()(ArrayIndex& ai) const {
+        auto arr = ex(ai.arrayExpr).val;
+        auto ind = std::get<int>(ex(ai.indexExpr).val);
+        auto* arrPtr = std::get_if<PrimitiveArray>(&arr);
+        
+        // Should be guaranteed that the array expression evaluates to an array.
+        assert(arrPtr);
+
+        if(ind < 0 || ind > arrPtr->size()) {
+            std::cerr << fmt(
+                "Attempt to index outside array bounds %s\n",
+                ind < 0 ? fmt("(%d < 0)", ind)
+                        : fmt("(%d > array length (%d))", ind, arrPtr->size())
+            );
+            // TODO: Return some sort of error?
+            return Value(0);
+        }
+
+        // Semantic analysis should guarantee that index expressions are integral.
+        return (*arrPtr)[ind];
+    }
+
     // the default case:
     template<typename T> 
     ControlFlow operator()(T const & /*UNUSED*/ ) const { return Value(0);} 

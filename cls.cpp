@@ -1299,6 +1299,32 @@ struct semantic_analysis_visitor {
         return SemResult::ok(arrayType);
     }
 
+    SemResult operator()(ArrayIndex& ai) {
+        auto arrayExprResult = semantic_analysis(ai.arrayExpr);
+
+        if(!arrayExprResult.isSuccess()) {
+            errors.push_back(lineError("Invalid array expression.", currentLineNo));
+        } else {
+            auto arrayType = std::get<Type>(arrayExprResult);
+            if(arrayType.isArray != Type::IsArray::Yes) {
+                errors.push_back(lineError("Cannot index a non-array.", currentLineNo));
+            }
+        }
+
+
+        auto indexExprResult = semantic_analysis(ai.indexExpr);
+        if(!arrayExprResult.isSuccess()) {
+            errors.push_back(lineError("Invalid array indexing expression.", currentLineNo));
+        } else {
+            auto indexType = std::get<Type>(arrayExprResult);
+            if(indexType != "int" && indexType.isArray == Type::IsArray::No) {
+                errors.push_back(lineError("Cannot index an array with a non-integer expression", currentLineNo));
+            }
+        }
+
+        return SemResult::Ok;
+    }
+
     // the default case:
     template<typename T> 
     SemResult operator()(T const & /*UNUSED*/ ) const { return SemResult::Ok; } 

@@ -293,3 +293,10 @@ struct Type {
 // Must be initialized here since the type is incomplete inside the class definition.
 inline Type Type::Invalid = Type("<Invalid>", Type::IsArray::DontCare);
 inline Type Type::Any = Type(Type::anyTypeStr, Type::IsArray::DontCare);
+
+struct ArrayIndex {
+    // arrayExpr is for when you for example access a 2D array, foo[0][0]
+    Node *arrayExpr, *indexExpr;
+
+    static Node* node(Node* arr, Node* index);
+};

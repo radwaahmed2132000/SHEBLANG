@@ -57,7 +57,7 @@ extern FILE* yyin;
 %type <node> var_defn
 %type <node> function_parameter_list identifier_list
 %type <node> expr_list
-%type <node> var_type array_type
+%type <node> var_type array_type array_index array_open
 
 %type <node> if_else_errors
 %%
@@ -88,9 +88,12 @@ program:
                 exit(0);
             }
         ;
+array_open:
+       IDENTIFIER '['         { $$ = $1; }
+       ;
 
 array_type:
-          IDENTIFIER '[' ']'  { $$ = Type::variable($1, Type::IsArray::Yes); }
+          array_open ']'      { $$ = Type::variable($1, Type::IsArray::Yes); }
         | array_type '[' ']'  { $$ = Type::increaseDepth($1); }
         ;
 
@@ -209,19 +212,25 @@ expr :
         | '(' expr ')'                  { $$ = $2; }
         | function_call                 { $$ = $1; }
         | enum_use
+        | array_index
         ;
+
 
 literal:
        INTEGER | REAL | BOOLEAN | CHARACTER | STR | IDENTIFIER  { }
        | '[' expr_list ']'              { $$ = ArrayLiteral::node($2); }
+       ;
+
+array_index:
+           array_open expr ']'            { $$ = ArrayIndex::node($1, $2); }
+           ;
 
 enum_use:
         IDENTIFIER SCOPE_RES IDENTIFIER { $$ = enum_use($1, $3); }
 
 function_call:
-             IDENTIFIER '(' expr_list ')' { 
-                     $$ = functionCall($1, $3);
-             }
+             IDENTIFIER '(' expr_list ')' { $$ = functionCall($1, $3); }
+             ;
 
 expr_list:
          expr_list ',' expr { $$ = appendToLinkedList<ExprListNode>($1, exprListNode($3)); }
