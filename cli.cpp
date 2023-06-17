@@ -15,6 +15,7 @@
 #include "result.h"
 #include "parser.h"
 #include "value.h"
+#include "template_utils.h"
 
 #define BOP_CASE(case_value, oper) \
             case case_value: return ex(bop.lOperand) oper ex(bop.rOperand);
@@ -24,7 +25,7 @@
                              
 Value postOp(UnOp &uop, Node *p, std::function<Value(Value&)> op) {
     auto nameStr = uop.operand->as<idNodeType>().id;
-    auto &varEntry = getSymEntry(nameStr, p->currentScope);
+    auto &varEntry = getVarEntry(nameStr, p->currentScope);
     auto &varRef = varEntry.getRef();
     Value temp = varRef;
     varRef = op(varRef);
@@ -35,35 +36,42 @@ ControlFlow assignToVar(BinOp& bop, Node* p) {
     using std::optional, std::string, std::make_optional, std::visit;
     using namespace std::string_literals;
 
-    // Get the variable name based on the LHS's type.
-    optional<string> varNameOpt = visit(
-            Visitor {
-                [](VarDecl& varDecl)              { return make_optional(varDecl.varName->as<idNodeType>().id); },
-                [](VarDefn& varDefn)              { return make_optional(varDefn.decl->varName->as<idNodeType>().id); },
-                [](idNodeType& idNode)            { return make_optional(idNode.id); },
-                [](auto _default) -> optional<string> {  return std::nullopt; }
-            } ,
+    // Evaluate the RHS
+    auto ret = ex(bop.rOperand);
+
+    // If we're indexing into an array (`foo[0] = bar`) Get a reference to the
+    // array in the symbol table, then update the specified index.
+    if(auto *ai = bop.lOperand->asPtr<ArrayIndex>(); ai) {
+        auto arrName = ai->arrayExpr->as<idNodeType>().id;
+        auto arrIndex = std::get<int>(ex(ai->indexExpr).val());
+        getVarEntry(arrName, p->currentScope).getRef().setIndex(arrIndex, ret);
+    } else {
+
+        // Normal variables just update the specified value in the symbol table.
+        using OptRef = OptRef<SymbolTableEntry>;
+        auto sym = [&](std::string &name) -> OptRef {
+            return OptRef::Some(getVarEntry(name, p->currentScope));
+        };
+
+        // Get the variable name based on the LHS's type.
+        auto varRefOpt = visit(
+            Visitor{
+                [&](VarDecl &varDecl)   { return sym(varDecl.varName->as<idNodeType>().id); },
+                [&](VarDefn &varDefn)   { return sym(varDefn.decl->varName->as<idNodeType>().id); },
+                [&](idNodeType &idNode) { return sym(idNode.id); },
+                [](auto _default)       { return OptRef::None; }
+            },
             *bop.lOperand
         );
 
-    if(!varNameOpt.has_value()) { std::cout << "Invalid assignment expression"; }
-    auto varName = varNameOpt.value();
+        // TODO: Return something else to signify an error?
+        if (!varRefOpt.has_value()) {
+            std::cerr << "Invalid left hand side for assignment expression\n";
+            return ControlFlow(0, ControlFlow::Type::Continue);
+        }
 
-    // Get the symbol table entry of the scope containing the variable.
-    auto& symTable = getSymEntry(varName, p->currentScope);
-
-    // Assign the value in the scope table.
-    auto ret = visit(
-        Visitor {
-            [&](VarDecl &varDecl) { return ex(bop.rOperand); },
-            [&](VarDefn &varDefn) { return ex(varDefn.initExpr); },
-            [&](idNodeType &idNode) { return ex(bop.rOperand); },
-            [](auto _default) { return ControlFlow(Value(0)); } // Should never reach here
-        },
-        *bop.lOperand
-    );
-
-    symTable.setValue(ret);
+        varRefOpt.value().get().setValue(ret.val());
+    }
 
     return ret;
 }
@@ -71,7 +79,7 @@ ControlFlow assignToVar(BinOp& bop, Node* p) {
 ControlFlow evaluate_switch(switchNodeType& sw) {
     std::optional<int> matching_case_index = {};
     std::optional<int> default_case_index = {};
-    Value var_value = ex(sw.var);
+    auto var_value = ex(sw.var);
 
     assert(sw.caseListTail->is<caseNodeType>());
 
@@ -80,7 +88,7 @@ ControlFlow evaluate_switch(switchNodeType& sw) {
 
     bool foundCase = false;
     for(int i = 0; i < cases.size(); i++) {
-        Value case_value = ex(cases[i]->labelExpr);
+        auto case_value = ex(cases[i]->labelExpr);
 
         if(cases[i]->isDefault()) {
             default_case_index = i;
@@ -105,37 +113,28 @@ struct ex_visitor {
     // since we need scope info from it.
     Node* p;
 
-    ControlFlow operator()(conNodeType& con) { return con; }
+    ControlFlow operator()(conNodeType& con) { return ControlFlow(con); }
 
     ControlFlow operator()(ArrayLiteral& al) {
         std::vector<Value> arrayElements;
         arrayElements.reserve(al.expressions.size());
         for(const auto& expr: al.expressions) {
-            arrayElements.push_back(ex(expr).val);
+            arrayElements.push_back(ex(expr).val());
         }
 
         return Value(PrimitiveArray{arrayElements});
     }
 
     ControlFlow operator()(idNodeType& identifier) const {
-        auto& varSymbolTableEntry = getSymEntry(identifier.id, p->currentScope);
+        auto& varSymbolTableEntry = getVarEntry(identifier.id, p->currentScope);
         return varSymbolTableEntry.getValue();
-    }
-
-    ControlFlow operator()(VarDecl& vd) const {
-        auto nameStr = vd.varName->as<idNodeType>().id;
-        auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
-
-        varSymbolTableEntry.setValue(ex(varSymbolTableEntry.initExpr));
-
-        return Value(0);
     }
 
     ControlFlow operator()(VarDefn& vd) const {
         auto nameStr = vd.decl->varName->as<idNodeType>().id;
         auto val = ex(vd.initExpr);
 
-        auto& varSymbolTableEntry = getSymEntry(nameStr, p->currentScope);
+        auto& varSymbolTableEntry = getVarEntry(nameStr, p->currentScope);
         varSymbolTableEntry.setValue(val);
 
         return Value(0);
@@ -216,20 +215,20 @@ struct ex_visitor {
     ControlFlow operator()(doWhileNodeType& dw) {
         do {
             ex(dw.loop_body); 
-        } while(ex(dw.condition) && !dw.break_encountered); 
+        } while(bool(ex(dw.condition)) && !dw.break_encountered); 
 
         return Value(0);
     }
 
     ControlFlow operator()(whileNodeType& w) {
-        while(ex(w.condition) && !w.break_encountered) 
+        while(bool(ex(w.condition)) && !w.break_encountered) 
             ex(w.loop_body); 
 
         return Value(0);
     }
 
     ControlFlow operator()(forNodeType& f) {
-        for(ex(f.init_statement); ex(f.loop_condition) && !f.break_encountered; ex(f.post_loop_statement)) {
+        for(ex(f.init_statement); bool(ex(f.loop_condition)) && !f.break_encountered; ex(f.post_loop_statement)) {
             ex(f.loop_body);
         }
         return Value(0);
@@ -273,7 +272,7 @@ struct ex_visitor {
         switch (uop.op) {
         case Print: {
             Value exprValue = ex(uop.operand);
-            std::cout << std::string(exprValue) << '\n';
+            std::cerr << std::string(exprValue) << '\n';
             return Value(0);
         }
 
@@ -301,23 +300,19 @@ struct ex_visitor {
     }
 
     ControlFlow operator()(IfNode& ifNode) const {
-        ControlFlow ret;
         if (ex(ifNode.condition)) {
-            ret = ex(ifNode.ifCode);
+            return ex(ifNode.ifCode);
         } else if (ifNode.elseCode != nullptr) {
-            ret = ex(ifNode.elseCode);
+            return ex(ifNode.elseCode);
+        } else {
+            // TODO: Return something else?
+            return ControlFlow(Value(0));
         }
-
-        if(ret.type == ControlFlow::Type::Return) {
-            return ret;
-        }
-
-        return Value(0);
     }
 
     ControlFlow operator()(ArrayIndex& ai) const {
-        auto arr = ex(ai.arrayExpr).val;
-        auto ind = std::get<int>(ex(ai.indexExpr).val);
+        auto arr = ex(ai.arrayExpr).val();
+        auto ind = std::get<int>(ex(ai.indexExpr).val());
         auto* arrPtr = std::get_if<PrimitiveArray>(&arr);
         
         // Should be guaranteed that the array expression evaluates to an array.

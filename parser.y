@@ -67,7 +67,7 @@ program:
                 /* First, create all the Symbol Tables. */
                 setup_scopes($1);
 
-                auto result = semantic_analysis($1);
+                auto result = semanticAnalysis($1);
 
                 for(auto& msg: warnings) { std::cout << msg << '\n'; }
                 for(auto& msg: errors) { std::cerr << msg << '\n'; }
@@ -88,6 +88,7 @@ program:
                 exit(0);
             }
         ;
+
 array_open:
        IDENTIFIER '['         { $$ = $1; }
        ;
@@ -180,17 +181,17 @@ expr :
         | '-' expr %prec UMINUS         { $$ = UnOp::node(UnOper::Minus, $2); }
         | '!' expr                      { $$ = UnOp::node(UnOper::BoolNeg, $2); }
         | '~' expr                      { $$ = UnOp::node(UnOper::BitToggle, $2); }
-        | IDENTIFIER '=' expr           { $$ = BinOp::assign($1, $3); }
-        | IDENTIFIER PA expr            { $$ = BinOp::opAssign(BinOper::Add, $1, $3); }
-        | IDENTIFIER SA expr            { $$ = BinOp::opAssign(BinOper::Sub, $1, $3); }
-        | IDENTIFIER MA expr            { $$ = BinOp::opAssign(BinOper::Mul, $1, $3); }
-        | IDENTIFIER DA expr            { $$ = BinOp::opAssign(BinOper::Div, $1, $3); }
-        | IDENTIFIER RA expr            { $$ = BinOp::opAssign(BinOper::Mod, $1, $3); }
-        | IDENTIFIER LSA expr           { $$ = BinOp::opAssign(BinOper::LShift,  $1, $3); }
-        | IDENTIFIER RSA expr           { $$ = BinOp::opAssign(BinOper::RShift,  $1, $3); }
-        | IDENTIFIER ANDA expr          { $$ = BinOp::opAssign(BinOper::BitAnd, $1, $3); }
-        | IDENTIFIER EORA expr          { $$ = BinOp::opAssign(BinOper::BitXor, $1, $3); }
-        | IDENTIFIER IORA expr          { $$ = BinOp::opAssign(BinOper::BitOr, $1, $3); }
+        | expr '=' expr           { $$ = BinOp::assign($1, $3); }
+        | expr PA expr            { $$ = BinOp::opAssign(BinOper::Add, $1, $3); }
+        | expr SA expr            { $$ = BinOp::opAssign(BinOper::Sub, $1, $3); }
+        | expr MA expr            { $$ = BinOp::opAssign(BinOper::Mul, $1, $3); }
+        | expr DA expr            { $$ = BinOp::opAssign(BinOper::Div, $1, $3); }
+        | expr RA expr            { $$ = BinOp::opAssign(BinOper::Mod, $1, $3); }
+        | expr LSA expr           { $$ = BinOp::opAssign(BinOper::LShift,  $1, $3); }
+        | expr RSA expr           { $$ = BinOp::opAssign(BinOper::RShift,  $1, $3); }
+        | expr ANDA expr          { $$ = BinOp::opAssign(BinOper::BitAnd, $1, $3); }
+        | expr EORA expr          { $$ = BinOp::opAssign(BinOper::BitXor, $1, $3); }
+        | expr IORA expr          { $$ = BinOp::opAssign(BinOper::BitOr, $1, $3); }
         | expr '&' expr                 { $$ = BinOp::node(BinOper::BitAnd, $1, $3); }
         | expr '|' expr                 { $$ = BinOp::node(BinOper::BitOr, $1, $3); }
         | expr '^' expr                 { $$ = BinOp::node(BinOper::BitXor, $1, $3); }
@@ -252,8 +253,8 @@ identifier_list:
                ;
 
 function_return_type:
-                    IDENTIFIER          {  $$ = $1; }
-                    | /* EMPTY */       {  $$ = id("void"); }
+                      var_type
+                    | /* EMPTY */       {  $$ = Type::variable("void", Type::IsArray::No); }
                     ;
 
 function_parameter_list:

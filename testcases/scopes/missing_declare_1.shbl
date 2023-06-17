@@ -1,5 +1,5 @@
 print x;
 ===
-Error in line number: 1 .Identifier x is not declared
+Error at line 1. Identifier 'x' is not declared.
 ===
-Error in line number: 1 .Identifier x is not declared
+Error at line 1. Identifier 'x' is not declared.

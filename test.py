@@ -114,8 +114,8 @@ for test_case in test_cases:
         passed += 1
     else:
         failed += 1
-        print(f"FAILED: {test_case.path}")
-        print(f"\nExpected output:\n{expected_output}")
+        print(f"\nFAILED: {test_case.path}")
+        print(f"Expected output:\n{expected_output}")
         print("=" * 80)
         print(f"Actual output:\n{actual_output}")
 

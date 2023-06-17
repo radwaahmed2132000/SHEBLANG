@@ -1,3 +1,4 @@
+#pragma once
 #include <variant>
 #include "nodes.h"
 
@@ -30,19 +31,23 @@ struct ScopeSymbolTables; struct Node : std::variant<NODE_TYPES> {
 
 struct SymbolTableEntry {
     Value value;
-    bool isConstant;
-    bool isUsed = false;
-    int declaredAtLine = -1;
     Type type = Type::Invalid;  
-    Node* initExpr = nullptr;
+    
+    bool isConstant = false;
+    bool isUsed = false;
+    int declLine = -1;
+
 
     SymbolTableEntry() = default;
 
-    SymbolTableEntry(Node* initExpr, bool isConstant, std::string type):
-        initExpr(initExpr), isConstant(isConstant), type(type) {}
-    
-    SymbolTableEntry(bool isConstant, std::string type):
-        value(0), isConstant(isConstant), type(type) {}
+    SymbolTableEntry(bool isConstant, std::string type)
+        : value(-1), isConstant(isConstant), type(type) {}
+
+    SymbolTableEntry(bool isConstant, Type type)
+        : value(-1), isConstant(isConstant), type(type) {}
+
+    SymbolTableEntry(Type type, int declLine, bool isUsed)
+        : value(-1), declLine(declLine), type(type), isUsed(isUsed) {}
 
     SymbolTableEntry& setValue(Value v) {
         value = v;
@@ -84,7 +89,7 @@ struct ScopeSymbolTables {
     std::string symbolsToString() const {
         std::stringstream ss;
         for(const auto& [symbol, entry]: sym2) {
-            ss << symbol << '\t' << std::string(entry.type) <<'\t' <<  entry.value << '\t' << entry.declaredAtLine <<  '\t' << entry.isConstant << '\n';
+            ss << symbol << '\t' << std::string(entry.type) <<'\t' <<  entry.value << '\t' << entry.declLine <<  '\t' << entry.isConstant << '\n';
         }
 
         return ss.str();

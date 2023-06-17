@@ -3,6 +3,6 @@ float x = 25.4;
 
 print x;
 ===
-Error in line number: 2 .The variable x is already declared in this scope.
+Error at line 2. The variable 'x' is already declared in this scope.
 ===
-Error in line number: 2 .The variable x is already declared in this scope.
+Error at line 2. The variable 'x' is already declared in this scope.

@@ -1,91 +1,26 @@
-Design a suitable programming language; you may use an existing one. The important constructs to be considered are:
-1. Variables and Constants declaration:
-	* Variable/Constant Names: [a-zA-Z_][a-zA-Z0-9_]* (1-225 char)
-    1. Variable Types:
-		* int ✅
-		* float ✅
-		* bool ✅
-		* char ✅
-		* double
-		* void
-		* string ✅
-	2. Constant:
-		* Using const keyword. ✅
-		* Using #define preprocessor.
-2. Mathematical and logical expressions:
-    1. Arithmetic Operators:
-		* \+ ✅
-		* \- ✅
-		* \* ✅
-		* / ✅
-		* % ✅
-		* ++ & --
-			* Prefix: ❌ Buggy
-			* Postfix ✅
-    2. Relational Operators: ✔
-		* == ✅
-		* != ✅
-		* \> ✅
-		* < ✅
-		* \>= ✅
-		* <= ✅
-    3. Logical Operators: ✔
-		* && ✅
-		* || ✅
-		* ! ✅
-    4. Bitwise Operators: ✔
-		* & ✅
-		* | ✅
-		* ^ ✅
-		* ~ ✅
-		* << ✅
-		* \>> ✅
-	5. Other: ✔
-		* Unary + ✅
-		* Unary - ✅
-3. Assignment statement: ✔
-	* = ✅
-	* += ✅
-	* -= ✅
-	* *= ✅
-	* /= ✅
-	* %= ✅
-	* <<= ✅
-	* \>>= ✅
-	* &= ✅
-	* ^= ✅
-	* |= ✅
-4. Logic Blocks:
-	1. [x] If-then-else statement
-	2. [x] While loops
-	3. [x] Repeat-until loops [i.e. do-while loops]
-	4. [x] For loops
-        - Limitation: can't do for(;;) {...}, for(; expr; expr) {...}, etc..., mut always be for(expr; expr; expr) {...}
-        - Can omit the braces if there's only one statement.
-	5. [x] Switch statement
-5. Block structure (nested scopes where variables may be
-declared at the beginning of blocks):
-	* Handle { }
-	* Handle Function Scope
-6. Enums:
-	* Syntax: enum enumerated-type-name{value1=1, value2, value3};
-	* ex: enum suit{heart, diamond=8, spade=3, club}; ==> 0,8,3,4
-    * Currently implemented as `enum IDENTIFIER { val1, val2, ...};` won't probably allow assigning values to different members for simplicity.
-7. Functions:
-	* Function Declaration (optional) ✅
-	* Return Type ✅
-	* Function Name ✅
-	* Parameters (+ their data types and default values if available) [Assume all are by value
-	* Function Body ✅
-	* Function call ✅
-### Helpful Sources/References:
-* https://www.tutorialspoint.com/cplusplus/cpp_operators.htm
-* https://en.cppreference.com/w/cpp/language/operator_precedence
+- Clean up code
+  - Rename Nodes to perhasp remove the `Node` suffix.
+  - Clean up semantic analyser code (perhaps use libfmt for easier printing?).
+  - Clean up compiler code.
+  - Clean up scope setup code.
 
-BUGS:
-    - Having a break statement does not guarantee the following lines will not
-     be executed (see `do_while_with_break.shbl`). This is due to the
-     execution of statement lists being recursive (i.e. not much control over
-     the control flow), so we probably have to do something similar to
-     `caseNodeType` where we later on collect this list of statements, then
-     iterate over it, stopping when encountering a break;
+- Array support?
+- Namespaces / modules
+  ```
+  module foo {
+    fn bar(int baz) int { ... }
+  }
+
+  module qux {
+    fn bar(string corge) float { ... }
+  }
+
+  fn main() {
+    foo::bar(12);
+    qux::bar("grault");
+  }
+  ```
+
+- Check if a symbol is defined as multiple symbol types (var + fn, enum + fn, etc ...)
+- Re-enable break statements inside switch cases to allow for early exits. This wouldn't change the fact that switch cases automatically break on case block completion.
+- Run testcases in parallel.

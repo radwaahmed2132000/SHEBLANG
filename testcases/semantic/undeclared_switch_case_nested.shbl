@@ -22,17 +22,17 @@ switch(a) {
 	}
 }
 ===
-Error in line number: 1 .Identifier a is not declared
-Error in line number: 3 .Identifier a is not declared
-Error in line number: 3 .The switch variable is not valid
-Error in line number: 9 .Identifier b is not declared
-Error in line number: 10 .Identifier b is not declared
-Error in line number: 10 .The switch variable is not valid
-Error in line number: 15 .Identifier b is not declared
-Error in line number: 14 .The case body of the case statement is not valid
-Error in line number: 18 .Identifier c is not declared
-Error in line number: 19 .Identifier c is not declared
-Error in line number: 19 .Condition in an if statement is invalid
-Error in line number: 20 .Identifier c is not declared
-Error in line number: 19 .Body of an if statement is invalid
-Error in line number: 7 .The case body of the case statement is not valid
+Error at line 1. Identifier 'a' is not declared.
+Error at line 3. Identifier 'a' is not declared.
+Error at line 3. Invalid switch variable 'a'.
+Error at line 9. Identifier 'b' is not declared.
+Error at line 10. Identifier 'b' is not declared.
+Error at line 10. Invalid switch variable 'b'.
+Error at line 15. Identifier 'b' is not declared.
+Error at line 14. Invalid case body.
+Error at line 18. Identifier 'c' is not declared.
+Error at line 19. Identifier 'c' is not declared.
+Error at line 19. Invalid if statement condition.
+Error at line 20. Identifier 'c' is not declared.
+Error at line 19. Invalid if statement block.
+Error at line 7. Invalid case body.

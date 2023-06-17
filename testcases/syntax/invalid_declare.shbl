@@ -1,8 +1,9 @@
 float x=5.5;
 int x=10;
 ===
-Warning in line number: 1 .Variable x is declared but never used
-Error in line number: 2 .The variable x is already declared in this scope.
+Warning at line 1. Variable 'x' is declared but never used.
+Error at line 2. The variable 'x' is already declared in this scope.
 ===
-Warning in line number: 1 .Variable x is declared but never used
-Error in line number: 2 .The variable x is already declared in this scope.
+Warning at line 1. Variable 'x' is declared but never used.
+Error at line 2. The variable 'x' is already declared in this scope.
+=

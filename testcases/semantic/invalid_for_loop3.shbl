@@ -4,10 +4,10 @@ for(int i=5; i<"5";i++)
     print "l";
 }
 ===
-Warning in line number: 1 .Variable x is declared but never used
-Error in line number: 2 .Cannot cast to or from string
-Error in line number: 2 .The condition in the for loop is not valid
+Warning at line 1. Variable 'x' is declared but never used.
+Error at line 2. Cannot cast to or from `string`
+Error at line 2. Invalid for loop condition.
 ===
-Warning in line number: 1 .Variable x is declared but never used
-Error in line number: 2 .Cannot cast to or from string
-Error in line number: 2 .The condition in the for loop is not valid
+Warning at line 1. Variable 'x' is declared but never used.
+Error at line 2. Cannot cast to or from `string`
+Error at line 2. Invalid for loop condition.

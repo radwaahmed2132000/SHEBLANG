@@ -1,6 +1,6 @@
 test();
 ===
-Error in line number: 1 .The function test is not declared
+Error at line 1. Function 'test' is not declared in this scope.
 ===
-Error in line number: 1 .The function test is not declared
+Error at line 1. Function 'test' is not declared in this scope.
 

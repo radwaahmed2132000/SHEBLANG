@@ -1,6 +1,6 @@
 int x=5;
 x|=3.0;
 ===
-Error in line number: 2 .The RHS in bitwise operation can't be float
+Error at line 2. RHS in a bitwise operation can't be 'float'.
 ===
-Error in line number: 2 .The RHS in bitwise operation can't be float
+Error at line 2. RHS in a bitwise operation can't be 'float'.

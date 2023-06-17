@@ -29,7 +29,7 @@ Node* IfNode::node(Node* condition, Node* ifCode, Node* elseCode) {
 
 Node* FunctionDefn::node(Node* name, Node* paramsTail, Node* return_type, Node* statements) {
     assert(name->is<idNodeType>());
-    assert(return_type->is<idNodeType>());
+    assert(return_type->is<Type>());
     assert(statements->is<StatementList>());
 
     return new Node(FunctionDefn{return_type, name, paramsTail, statements}, currentLineNo);
@@ -80,20 +80,27 @@ Node* VarDecl::node(Node* type, Node* varName, bool isArray) {
     return vdNode;
 }
 
-Node* Type::variable(Node* variableType, IsArray isArray) {
-    auto typeStr = variableType->as<idNodeType>().id;
-    
+Node* Type::variable(std::string typeStr, IsArray isArray) {
     int depth = 0;
+
     switch (isArray) {
     case IsArray::DontCare:
         depth = 0;
         break;
+
     case IsArray::Yes:
         depth = 1;
         break;
     }
 
     return new Node(Type(typeStr, isArray, depth), currentLineNo);
+}
+
+
+Node* Type::variable(Node* variableType, IsArray isArray) {
+    auto typeStr = variableType->as<idNodeType>().id;
+    
+    return Type::variable(typeStr, isArray);
 }
 
 Node* Type::increaseDepth(Node* innerArrayType) {

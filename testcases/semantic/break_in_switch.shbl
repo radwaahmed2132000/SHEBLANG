@@ -12,8 +12,8 @@ switch(x) {
 	}
 }
 ===
-Error at line: 11. Break statements are valid inside for loops, while loops, or do while loops only.
-Error in line number: 8 .The case body of the case statement is not valid
+Error at line 11. Break statements are valid only inside loops
+Error at line 8. Invalid case body.
 ===
-Error at line: 11. Break statements are valid inside for loops, while loops, or do while loops only.
-Error in line number: 8 .The case body of the case statement is not valid
+Error at line 11. Break statements are valid only inside loops
+Error at line 8. Invalid case body.

@@ -161,7 +161,7 @@ int compile_switch(switchNodeType &sw) {
         auto labelRet = ex(cases[i]->labelExpr);
 
         printf("\tpush\t%s\n", var_name.toString().c_str()); // variable value
-        printf("\tpush\t%s\n", labelRet.val.toString().c_str()); // label value
+        printf("\tpush\t%s\n", labelRet._val.toString().c_str()); // label value
         printf("\tcompEQ\n");
         printf("\tje\tL%03d\n", labels[i]);
     }
@@ -190,7 +190,7 @@ int compile_switch(switchNodeType &sw) {
 void convertPushedVar(Node* nodePtr) {
     auto Node = std::visit(
         Visitor{
-            [&](idNodeType &id) { return getSymEntry(id.id, nodePtr->currentScope).type; },
+            [&](idNodeType &id) { return getVarEntry(id.id, nodePtr->currentScope).type; },
             [](conNodeType &con) { return con.getType(); },
             [](auto _default) { return std::string(""); }},
         *nodePtr
@@ -217,16 +217,16 @@ struct compiler_visitor {
     }
 
     ControlFlow operator()(VarDecl& varDecl) {
-        return Value(ex(varDecl.varName).val.toString());
+        return Value(ex(varDecl.varName)._val.toString());
     }
 
     ControlFlow operator()(VarDefn& vd) {
-        auto initRet = ex(vd.initExpr).val;
+        auto initRet = ex(vd.initExpr)._val;
 
         STACK_HACK(initRet);
         convertPushedVar(vd.initExpr);
 
-        auto varNameRet = ex(vd.decl->varName).val;
+        auto varNameRet = ex(vd.decl->varName)._val;
         printf("\tpop %s\n", varNameRet.toString().c_str());
         return Value(0);
     }
@@ -399,9 +399,9 @@ struct compiler_visitor {
         using enum BinOper;
 
         if(bop.op == Assign) {
-            std::string lhs = ex(bop.lOperand).val.toString();
+            std::string lhs = ex(bop.lOperand)._val.toString();
 
-            auto rhs = ex(bop.rOperand).val;
+            auto rhs = ex(bop.rOperand)._val;
             STACK_HACK(rhs);
 
             printf("\tpop %s\n", lhs.c_str());
@@ -442,14 +442,14 @@ struct compiler_visitor {
         switch(uop.op) {
 
         case Print: {
-            auto ret = ex(uop.operand).val;
+            auto ret = ex(uop.operand)._val;
             STACK_HACK(ret);
             printf("\tprint \n");
         } break;
 
         case Return: {
             if(uop.operand != nullptr) {
-                auto ret = ex(uop.operand).val;
+                auto ret = ex(uop.operand)._val;
                 STACK_HACK(ret);
             } 
 

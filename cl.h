@@ -2,9 +2,11 @@
 
 #include <cstdio>
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <sstream>
 #include <type_traits>
+#include <unordered_set>
 #include <vector>
 #include <variant>
 #include <string>
@@ -12,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "nodes.h"
 #include "value.h"
 #include "result.h"
 
@@ -31,7 +34,7 @@ void yyerror(char *s);
 void printSymbolTables();
 void appendSymbolTable(int i);
 // Forward declare `semantic_analysis` for use in cl.y
-Result<Type, std::vector<std::string>> semantic_analysis(Node* p);
+Result<Type, std::vector<std::string>> semanticAnalysis(Node* p);
 void setup_scopes(Node* p);
 void set_break_parent(Node* node, Node* parent_switch);
 
@@ -42,44 +45,88 @@ template<typename  S>
 void warning(Result<S, std::vector<std::string>> warns) { auto w = std::get<std::vector<std::string>>(warns); Utils::extendVector(warnings, w); }
 
 
-// Scope analysis should guarantee that we can find the variable in some parent scope.
-static ScopeSymbolTables* getSymbolScope(const std::string& symbol, ScopeSymbolTables* scope) {
-    if(scope == nullptr) return nullptr;
+enum class SymbolType {
+    Variable,
+    Function,
+    Enum,
+    Invalid
+};
 
-    auto sym = scope->sym2;
-    auto fn = scope->functions;
-    auto en = scope->enums;
+struct SymTypeScope: std::unordered_map<SymbolType, ScopeSymbolTables*> {
+    bool hasType(SymbolType type) {
+        return !this->empty() && this->contains(type);
+    }
 
-    auto symFound = sym.find(symbol) != sym.end();
-    auto fnFound = fn.find(symbol) != fn.end();
-    auto enFound = en.find(symbol) != en.end();
+   ScopeSymbolTables* getTypeScope(SymbolType type) {
+        return  (*this)[type];
+   }
+};
 
-    if(symFound || fnFound || enFound) {
-        return scope;
-    } 
+static std::pair<ScopeSymbolTables*, SymbolType> getSymbolScopeUtil(
+    const std::string &symbolName,
+    ScopeSymbolTables *startingScope
+) {
+    if (startingScope == nullptr) return {nullptr, SymbolType::Invalid};
 
-    return getSymbolScope(symbol, scope->parentScope);
+    std::vector<std::pair<bool, SymbolType>> symbolFound = {
+        {startingScope->sym2.contains(symbolName), SymbolType::Variable},
+        {startingScope->functions.contains(symbolName), SymbolType::Function},
+        {startingScope->enums.contains(symbolName), SymbolType::Enum},
+    };
+
+    auto foundIter =
+        std::find_if(symbolFound.begin(), symbolFound.end(), [](auto pair) {
+            return pair.first == true;
+        });
+
+    // No symbol found
+    if(foundIter == symbolFound.end()) { return getSymbolScopeUtil(symbolName, startingScope->parentScope); }
+
+    return {startingScope, foundIter->second};
 }
 
+// Scope analysis should guarantee that we can find the variable in some parent scope.
+static std::pair<ScopeSymbolTables*, SymbolType> getSymbolScope(const std::string& symbol, ScopeSymbolTables* scope) {
+    return getSymbolScopeUtil(symbol, scope);
+}
+
+#define GET_ENTRY(symbolName, scope, symbolType, table)                        \
+    auto [symMap, symType] = getSymbolScope(symbolName, scope);                \
+    assert(symMap != nullptr);                                                 \
+    assert(symType == symbolType);                                             \
+    return symMap->table[symbol];
 
 // Used to get the symbol table entry for a specific variable.
-// For use in the compiler and interpereter only.
-static SymbolTableEntry& getSymEntry(const std::string& symbol, ScopeSymbolTables* scope) {
-    auto* symbolScope = getSymbolScope(symbol, scope);
-    assert(symbolScope);
-    return symbolScope->sym2[symbol];
+// For use in the compiler and interpereter only. As it assumes the given symbol names exist.
+static SymbolTableEntry& getVarEntry(const std::string& symbol, ScopeSymbolTables* scope) {
+    GET_ENTRY(symbol, scope, SymbolType::Variable, sym2);
 }
 
 static FunctionDefn& getFnEntry(const std::string& symbol, ScopeSymbolTables* scope) {
-    auto* fnScope = getSymbolScope(symbol, scope);
-    assert(fnScope);
-    return fnScope->functions[symbol];
+    GET_ENTRY(symbol, scope, SymbolType::Function, functions);
 }
 
 static enumNode& getEnumEntry(const std::string& symbol, ScopeSymbolTables* scope) {
-    auto* enumScope = getSymbolScope(symbol, scope);
-    assert(enumScope);
-    return enumScope->enums[symbol];
+    GET_ENTRY(symbol, scope, SymbolType::Enum, enums);
+}
+
+static std::string getFnType(const FunctionDefn& fn) {
+    auto returnType = fn.return_type->as<Type>().innerType;
+    auto declList = fn.parametersTail->asPtr<VarDecl>()->toVec();
+
+    std::stringstream ss;
+    ss << '(';
+    for (int i = 0; i < declList.size(); i++) {
+        auto paramType = declList[i]->getType().innerType;
+
+        ss << paramType; 
+
+        if(i < declList.size() - 1) { ss << ", "; }
+    }
+    ss << ')';
+    ss << " -> " << returnType;
+
+    return ss.str();
 }
 
 struct ControlFlow {
@@ -88,24 +135,33 @@ struct ControlFlow {
         Return,
     };
 
-    Value val;
-    Type type;
+    const Type type;
 
-    ControlFlow() = default;
-    ControlFlow(const Value& val): val(val), type(Type::Continue) {}
-    ControlFlow(const Value& val, const Type& type): val(val), type(type) {}
+    template<typename T>
+    ControlFlow(T val): _val(val), type(Type::Continue) {}
 
-    ControlFlow& operator=(const Value& val) { this->val = val;  return *this; }
+    ControlFlow(Value&& val): _val(val), type(Type::Continue) {}
+    ControlFlow(Value&& val, const Type type): _val(val), type(type) {}
 
-    static ControlFlow Return(const Value&& val) { return ControlFlow{val, Type::Return}; }
+    ControlFlow& operator=(Value& val) { this->_val = val;  return *this; }
 
-    bool operator&&(const ControlFlow& other) const { return val && other.val; }
-    bool operator||(const ControlFlow& other) const { return val || other.val; }
-    bool operator!() const { return !val; }
+    static ControlFlow Return(Value&& val) { return ControlFlow(std::forward<Value>(val), Type::Return); }
+
+    bool operator==(const ControlFlow& other) const { return (_val == other._val) && (type == other.type); }
+
+    bool operator&&(const ControlFlow& other) const { return _val && other._val; }
+    bool operator||(const ControlFlow& other) const { return _val || other._val; }
+    bool operator!() const { return !_val; }
 
     explicit operator bool() const {
-        return bool(val);
+        return bool(_val);
     }
+
+    Value &val() { return _val; }
+    operator Value() const { return _val; }
+
+  private:
+    Value _val;
 };
 
 ControlFlow ex(Node* p);

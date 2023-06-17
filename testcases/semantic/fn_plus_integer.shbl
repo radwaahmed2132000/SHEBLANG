@@ -1,0 +1,11 @@
+fn foo(int n) int {
+    if(n == 0) {
+        return 0;
+    }
+
+    return n + foo(n - 1);
+}
+
+print foo + 12;
+===
+Error at line 9. Identifier 'foo' is not declared.

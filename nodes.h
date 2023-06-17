@@ -35,6 +35,9 @@ struct LinkedListNode {
 		}
 	
         std::reverse(nodes.begin(), nodes.end());
+        auto nulls = std::remove_if(nodes.begin(), nodes.end(), [](T* node){ return node->prev == nullptr && node->self == nullptr; });
+
+        nodes.erase(nulls, nodes.end());
 		return nodes;
 	}
 
@@ -202,6 +205,36 @@ struct BinOp {
     static Node* node(BinOper op, Node* lOp, Node* rOp);
     static Node* assign(Node* lOp, Node* rOp);
     static Node* opAssign(BinOper op, Node* lOp, Node* rOp);
+
+    operator std::string() const {
+        using enum BinOper;
+
+        std::string s;
+
+        switch (op) {
+        case Assign:       { s = "Assign";       } break; 
+        case Add:          { s = "Add";          } break;
+        case Sub:          { s = "Sub";          } break;
+        case Mul:          { s = "Mul";          } break;
+        case Div:          { s = "Div";          } break;
+        case LShift:       { s = "LShift";       } break;
+        case RShift:       { s = "RShift";       } break;
+        case And:          { s = "And";          } break;
+        case Or:           { s = "Or";           } break;
+        case BitAnd:       { s = "BitAnd";       } break;
+        case BitOr:        { s = "BitOr";        } break;
+        case BitXor:       { s = "BitXor";       } break;
+        case Mod:          { s = "Mod";          } break;
+        case GreaterThan:  { s = "GreaterThan";  } break;
+        case LessThan:     { s = "LessThan";     } break;
+        case Equal:        { s = "Equal";        } break;
+        case NotEqual:     { s = "NotEqual";     } break;
+        case GreaterEqual: { s = "GreaterEqual"; } break;
+        case LessEqual:    { s = "LessEqual";    } break;
+        }
+
+        return s;
+    }
 };
 
 enum class UnOper { 
@@ -246,34 +279,38 @@ struct Type {
     IsArray isArray;
     int depth;
 
-    Type(std::string s) : innerType(s), isArray(IsArray::DontCare), depth(0) {}
-    Type(std::string s, IsArray arr) : innerType(s), isArray(arr), depth(int(arr)) {}
-    Type(std::string s, IsArray arr, int d) : innerType(s), isArray(arr), depth(d) {}
-    Type() = default;
+    Type(std::string s) :
+        innerType(s), isArray(IsArray::DontCare), depth(0) {}
+        Type(std::string s, IsArray arr) : innerType(s), isArray(arr), depth(int(arr)) {}
+        Type(std::string s, IsArray arr, int d) : innerType(s), isArray(arr), depth(d) {}
+        Type() = default;
 
-    inline const static std::string anyTypeStr = "<any>";
+        inline const static std::string anyTypeStr = "<any>";
 
-    static Type Invalid;
-    static Type Any;
+        static Type Invalid;
+        static Type Any;
 
-    static Node* variable(Node* variableType, Type::IsArray isArray);
+        static Node* variable(std::string typeStr, IsArray isArray);
+        static Node *variable(Node * variableType, Type::IsArray isArray);
 
-    // For cases like [[int]]. This function will be getting the inner [int]
-    static Node* increaseDepth(Node* innerArrayType);
+        // For cases like [[int]]. This function will be getting the inner [int]
+        static Node *increaseDepth(Node * innerArrayType);
 
-    bool operator==(const Type& other) const {
-        bool anyWithMatchingDepth =
-            (this->innerType == anyTypeStr || other.innerType == anyTypeStr) &&
-            (this->depth == other.depth);
+        bool operator==(const Type &other) const {
+            bool anyWithMatchingDepth = (this->innerType == anyTypeStr ||
+                                         other.innerType == anyTypeStr) &&
+                                        (this->depth == other.depth);
 
-        if(anyWithMatchingDepth) return true;
+            if (anyWithMatchingDepth) return true;
 
-        bool depthAndTypeMatch  = other.depth == this->depth && other.innerType == this->innerType;
-        if(this->isArray == IsArray::DontCare || other.isArray == IsArray::DontCare) {
-            return depthAndTypeMatch;
-        }
+            bool depthAndTypeMatch = other.depth == this->depth &&
+                                     other.innerType == this->innerType;
+            if (this->isArray == IsArray::DontCare ||
+                other.isArray == IsArray::DontCare) {
+                return depthAndTypeMatch;
+            }
 
-        return other.isArray == this->isArray && depthAndTypeMatch;
+            return other.isArray == this->isArray && depthAndTypeMatch;
     }
 
     bool operator==(const std::string& other) const { return other == this->innerType; }
@@ -288,7 +325,7 @@ struct Type {
 
         return ss.str();
     }
-};
+    };
 
 // Must be initialized here since the type is incomplete inside the class definition.
 inline Type Type::Invalid = Type("<Invalid>", Type::IsArray::DontCare);

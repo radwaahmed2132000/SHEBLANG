@@ -1,4 +1,4 @@
 const int x = 3;
 if (x > 4) { }
 ===
-Warning in line number: 2 .Condition in an if statement is always false
+Warning at line 2. If statement condition is always false.

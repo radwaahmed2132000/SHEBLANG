@@ -7,4 +7,4 @@ switch(a) {
     case "foo": { print "foo"; }
 }
 ===
-Error in line number: 6 .The label expression of the case statement is not of the same type as the switch variable
+Error at line 6. Mismatched switch variable and case label types (string, int).

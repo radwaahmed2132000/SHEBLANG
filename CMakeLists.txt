@@ -13,7 +13,7 @@ set(CMAKE_CXX_EXTENSIONS TRUE)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -flto")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS "-stdlib=libstdc++ -Wno-write-strings -Wno-format-security -ferror-limit=1")
+set(CMAKE_CXX_FLAGS "-stdlib=libstdc++ -Wno-write-strings -Wno-format-security -ferror-limit=5")
 set(CMAKE_CXX_COMPILER "clang++-16")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY          ${PROJECT_SOURCE_DIR})
@@ -42,6 +42,7 @@ set(SHARED_SOURCES
   semantic_utils.cpp
   setup_scopes.cpp
   value_operators.cpp
+  const_expr_checker.cpp
   ${LEXER_OUT}
   ${PARSER_OUT}
 )

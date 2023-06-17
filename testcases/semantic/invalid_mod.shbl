@@ -1,6 +1,6 @@
 float x=5.0;
 int y=10.0%x;
 ===
-Warning in line number: 2 .Variable y is declared but never used
-Error in line number: 2 .The LHS in a modulo operation can't be float
-Error in line number: 2 .The RHS in a modulo operation can't be float
+Warning at line: 2. Variable y is declared but never used
+Error at line: 2. LHS in a modulo operation can't be 'float'
+Error at line: 2. RHS in a modulo operation can't be 'float'

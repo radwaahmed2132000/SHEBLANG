@@ -2,11 +2,16 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
+#include <optional>
 #include <string>
 #include <sstream>
 #include <set>
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
+#include <vector>
+#include <ranges>
 
 namespace Utils {
     // Extends `destination` by appending `source` to its end.
@@ -16,6 +21,30 @@ namespace Utils {
     // Lvalue version
     template<typename T>
     void extendVector(std::vector<T>& destination, const std::vector<T>& source) { destination.insert(destination.end(), source.begin(), source.end()); }
+
+    template<typename OutputType, typename InputType, typename Transformer>
+    std::vector<OutputType> transform(std::vector<InputType>& input, Transformer transformer) {
+        std::vector<OutputType> t;
+        std::transform(input.begin(), input.end(), std::back_inserter(t), transformer);
+        return t;
+    }
+
+    template<typename InputType, typename Transformer>
+    bool all_of(std::vector<InputType>& input, Transformer transformer) {
+        return std::all_of(input.begin(), input.end(), transformer);
+    }
+
+    template<typename InputType, typename Predicate>
+    std::vector<InputType> filter(std::vector<InputType>& input, Predicate predicate) {
+        namespace views = std::ranges::views;
+        auto filtered = input | views::filter(predicate);
+        return std::vector(filtered.begin(), filtered.end());
+    }
+
+    template<typename InputType, typename Transformer>
+    void foreach(std::vector<InputType>& input, Transformer transformer) {
+        std::for_each(input.begin(), input.end(), transformer);
+    }
 }
 
 /**
@@ -56,6 +85,11 @@ std::string lineError(std::string fmt, int lineNo, Args&& ... args) {
   return fmtInternal("Error at line %d. ", lineNo) + fmtInternal(fmt, convert(std::forward<Args>(args))...);
 }
 
+template<typename ... Args>
+std::string lineWarning(std::string fmt, int lineNo, Args&& ... args) {
+  return fmtInternal("Warning at line %d. ", lineNo) + fmtInternal(fmt, convert(std::forward<Args>(args))...);
+}
+
 
 template<typename Iterable>
 using Iter = typename Iterable::iterator;
@@ -87,3 +121,14 @@ std::string collectStrings(
     return s.str();
 }
 
+using std::decay_t, std::is_constructible_v, std::optional, std::enable_if_t;
+
+template <typename T>
+constexpr enable_if_t<is_constructible_v<decay_t<T>, T>, optional<decay_t<T>>>
+Opt(T &&value) { return std::make_optional<T>(std::forward<T>(value)); }
+
+template<typename T>
+struct OptRef : std::optional<std::reference_wrapper<T>>{
+    static OptRef Some(T& val) { return { std::make_optional(std::ref(val)) }; }
+    inline static OptRef None = { std::nullopt };
+};

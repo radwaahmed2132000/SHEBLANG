@@ -39,7 +39,6 @@ struct Value : std::variant<PRIMITIVE_TYPES, PrimitiveArray> {
     template<typename SubType>
     Value(SubType s): std::variant<PRIMITIVE_TYPES, PrimitiveArray>(s) {}
 
-    Value(const struct ControlFlow& cf);
     Value operator=(const struct ControlFlow& cf);
 
     // For use in `if`, `while`, `for`, etc...
@@ -127,10 +126,16 @@ struct Value : std::variant<PRIMITIVE_TYPES, PrimitiveArray> {
         );
     }
 
-    Value operator[](const int n) const {
-        auto vv = std::get<PrimitiveArray>(*this);
-        assert(n < vv.size());
-        return vv[n];
+    const Value& operator[](int n) const {
+        const auto* vv = std::get_if<PrimitiveArray>(this);
+        assert(n < vv->size());
+        return (*vv)[n];
+    }
+
+    void setIndex(int n, Value val) {
+        auto* vv = std::get_if<PrimitiveArray>(this);
+        assert(n < vv->size());
+        (*vv)[n] = val;
     }
 };
 

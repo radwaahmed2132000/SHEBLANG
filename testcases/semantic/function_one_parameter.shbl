@@ -1,8 +1,8 @@
 fn test(int param){}
 ===
-Warning in line number: -1 .Variable param is declared but never used
+Warning at line: 1. Variable param is declared but never used
 ===
-Warning in line number: -1 .Variable param is declared but never used
+Warning at line: 1. Variable param is declared but never used
 test:
     pop param
     ret

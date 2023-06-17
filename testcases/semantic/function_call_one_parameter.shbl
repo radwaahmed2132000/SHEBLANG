@@ -1,10 +1,10 @@
 test(a);
 ===
-Error in line number: 1 .The function test is not declared
-Error in line number: 1 .Identifier a is not declared
-Error in line number: 1 .The function parameter number: 0 is not valid
+Error at line 1. Identifier 'a' is not declared.
+Error at line 1. Function 'test': The 1st function parameter expression is invalid.
+Error at line 1. Function 'test' is not declared in this scope.
 ===
-Error in line number: 1 .The function test is not declared
-Error in line number: 1 .Identifier a is not declared
-Error in line number: 1 .The function parameter number: 0 is not valid
+Error at line 1. Identifier 'a' is not declared.
+Error at line 1. Function 'test': The 1st function parameter expression is invalid.
+Error at line 1. Function 'test' is not declared in this scope.
 

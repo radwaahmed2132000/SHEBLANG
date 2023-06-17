@@ -1,0 +1,14 @@
+int[] foo = [1, 2, 3];
+
+foo[0] = 42;
+
+print foo;
+
+for(int i = 0; i < 3; i += 1) {
+    foo[i] = 2 - i;
+}
+
+print foo;
+===
+[42, 2, 3]
+[2, 1, 0]

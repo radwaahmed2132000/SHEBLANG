@@ -5,8 +5,8 @@ if(x>y)
     print "x is greater than y";
 }
 ===
-Error in line number: 3 .Cannot cast to or from string
-Error in line number: 3 .Condition in an if statement is invalid
+Error at line 3. Cannot cast to or from 'string'.
+Error at line 3. Invalid if statement condition.
 ===
-Error in line number: 3 .Cannot cast to or from string
-Error in line number: 3 .Condition in an if statement is invalid
+Error at line 3. Cannot cast to or from 'string'.
+Error at line 3. Invalid if statement condition.

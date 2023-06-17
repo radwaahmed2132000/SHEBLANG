@@ -6,6 +6,6 @@ fn foo(int a, int b) int {
     }
 }
 ===
-Error at line(s): 3, 5. Mismatched return statements (int, string) in function with return type 'int'.
+Error at line(s): 3, 5. Mismatched return statements (int, string) in function 'foo' with return type 'int'.
 ===
-Error at line(s): 3, 5. Mismatched return statements (int, string) in function with return type 'int'.
+Error at line(s): 3, 5. Mismatched return statements (int, string) in function 'foo' with return type 'int'.

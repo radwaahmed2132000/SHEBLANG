@@ -210,8 +210,6 @@ UNARY_OPERATOR(-, UnaryMinus)
 
 std::ostream& operator<<(std::ostream& os, const Value& v) { return os << std::string(v); }
 
-Value::Value(const struct ControlFlow& cf) : Value(cf.val){ } 
-
 Value Value::operator=(const struct ControlFlow& cf) {
     return Value(cf);
 }

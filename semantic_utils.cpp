@@ -4,7 +4,7 @@
 
 Type getReturnType(Node* returnStatement) {
     auto& retOpr = returnStatement->as<UnOp>();
-    auto returnType = semantic_analysis(retOpr.operand);
+    auto returnType = semanticAnalysis(retOpr.operand);
 
     // At this point, the function should be semantically fine, so no need to
     // check for the failure case?
@@ -72,9 +72,10 @@ struct ArrayLiteralVisitor {
     }
 
     int operator()(idNodeType& id) const {
-        auto* scope = getSymbolScope(id.id, p->currentScope);
-        if(scope != nullptr) {
-            return scope->sym2[id.id].type.depth;
+        auto [symScope, _] = getSymbolScope(id.id, p->currentScope);
+
+        if(symScope != nullptr) {
+            return symScope->sym2[id.id].type.depth;
         }
 
         return 0;

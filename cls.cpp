@@ -13,12 +13,14 @@
 #include <sstream>
 
 #include "cl.h"
+#include "node.h"
 #include "nodes.h"
 #include "parser.h"
 #include "result.h"
 #include "semantic_utils.h"
 #include "template_utils.h"
 #include "value.h"
+#include "const_expr_checker.h"
 
 using ErrorList = std::vector<std::string>;
 using SemResult = Result<Type, ErrorList>;
@@ -31,9 +33,9 @@ using namespace std::string_literals;
    analysis, we check if the return node has a parent.
 */
 
-#define LEFT_VALID(oper) SemResult left = semantic_analysis(oper);
+#define LEFT_VALID(oper) SemResult left = semanticAnalysis(oper);
 
-#define RIGHT_VALID(oper) SemResult right = semantic_analysis(oper);
+#define RIGHT_VALID(oper) SemResult right = semanticAnalysis(oper);
 
 #define NOT_CONST(oper, lineNo, sym2)                                          \
     auto lhsName = oper->as<idNodeType>().id;                                  \
@@ -110,24 +112,27 @@ int getTypePriority(const Type& type, Node* nodePtr) {
     return typesPriority["int"];
 }
 
-SemResult cast_opr(const Type& leftType, const Type& rightType, BinOp& bop) {
+SemResult castBinOp(const Type& leftType, const Type& rightType, BinOp& bop) {
     using enum BinOper;
 
     int startingSize = errors.size();
+
     if (leftType == "string" && rightType == "string") {
         if (bop.op == Assign) {
             return SemResult::ok("string"s);
         } else if (bop.op == Equal or bop.op == NotEqual) {
             return SemResult::ok("bool"s);
         } else {
-            errors.push_back(
-                "Error in line number: " + std::to_string(bop.lOperand->lineNo) +
-                " .Cannot perform this operation on strings");
+            errors.push_back(lineError(
+                "Cannot perform operation '%s' on strings.",
+                bop.lOperand->lineNo,
+                bop
+            ));
         }
     } else if (leftType == "string" || rightType == "string") {
         errors.push_back(
-            "Error in line number: " + std::to_string((bop.lOperand->lineNo)) +
-            " .Cannot cast to or from string");
+            lineError("Cannot cast to or from 'string'.", bop.lOperand->lineNo)
+        );
     }
 
     switch (bop.op) {
@@ -166,23 +171,27 @@ SemResult cast_opr(const Type& leftType, const Type& rightType, BinOp& bop) {
 
     case Mod: {
         std::string castResult = "int";
+
         if (leftType == "float" || leftType == "string") {
-            errors.push_back(
-                "Error in line number: " + std::to_string(bop.lOperand->lineNo) +
-                " .The LHS in a modulo operation can't be " + std::string(leftType));
+            errors.push_back(lineError(
+                "LHS in a modulo operation can't be '%s'.",
+                bop.lOperand->lineNo,
+                std::string(leftType)
+            ));
         }
+
         if (rightType == "float" || rightType == "string") {
-            errors.push_back(
-                "Error in line number: " + std::to_string(bop.rOperand->lineNo) +
-                " .The RHS in a modulo operation can't be " + std::string(rightType));
+            errors.push_back(lineError(
+                "RHS in a modulo operation can't be '%s'.",
+                bop.rOperand->lineNo,
+                std::string(rightType)
+            ));
         }
+
         if (startingSize == errors.size()) {
-            if (leftType != castResult) {
-                bop.lOperand->conversionType = castResult;
-            }
-            if (rightType != castResult) {
-                bop.rOperand->conversionType = castResult;
-            }
+            if (leftType != castResult) { bop.lOperand->conversionType = castResult; }
+            if (rightType != castResult) { bop.rOperand->conversionType = castResult; }
+
         } else {
             return SemResult::Err;
         }
@@ -196,23 +205,26 @@ SemResult cast_opr(const Type& leftType, const Type& rightType, BinOp& bop) {
     case LShift:
     case RShift: {
         std::string castResult = "int";
+
         if (leftType == "float" || leftType == "string") {
-            errors.push_back(
-                "Error in line number: " + std::to_string(bop.lOperand->lineNo) +
-                " .The LHS in a bitwise operation can't be " + std::string(leftType));
+            errors.push_back(lineError(
+                "LHS in a bitwise operation can't be '%s'.",
+                bop.lOperand->lineNo,
+                std::string(leftType)
+            ));
         }
+
         if (rightType == "float" || rightType == "string") {
-            errors.push_back(
-                "Error in line number: " + std::to_string(bop.rOperand->lineNo) +
-                " .The RHS in bitwise operation can't be " + std::string(rightType));
+            errors.push_back(lineError(
+                "RHS in a bitwise operation can't be '%s'.",
+                bop.rOperand->lineNo,
+                std::string(rightType)
+            ));
         }
+
         if (startingSize == errors.size()) {
-            if (leftType != castResult) {
-                bop.lOperand->conversionType = castResult;
-            }
-            if (rightType != castResult) {
-                bop.rOperand->conversionType = castResult;
-            }
+            if (leftType != castResult) { bop.lOperand->conversionType = castResult; }
+            if (rightType != castResult) { bop.rOperand->conversionType = castResult; }
         } else {
             return SemResult::Err;
         }
@@ -266,29 +278,8 @@ SemResult cast_opr(const Type& leftType, const Type& rightType, BinOp& bop) {
         }
         return SemResult::ok(castResult);
     } break;
-    default: {
-        return SemResult::err(
-            "Error in line number: " + std::to_string(bop.lOperand->lineNo) +
-            " .Invalid operator");
-    }
     }
 }
-
-#define LEFT_SAME_TYPE_AS_RIGHT(left, right, lineNo, opr)      \
-    if (!left.isSuccess()) {                                   \
-        return left;                                           \
-    }                                                          \
-    if (!right.isSuccess()) {                                  \
-        return right;                                          \
-    }                                                          \
-    auto leftType = std::get<Type>(left);                      \
-    auto rightType = std::get<Type>(right);                    \
-    auto finalType = leftType;                                 \
-    SemResult castResult = cast_opr(leftType, rightType, opr); \
-    if (!castResult.isSuccess()) {                             \
-    } else {                                                   \
-        finalType = std::get<Type>(castResult);                \
-    }                                                          \
 
 #define LEFT_TYPE(left) \
     auto leftType = std::get<Type>(left); \
@@ -306,152 +297,41 @@ void getEnumTypes(ScopeSymbolTables* p, std::unordered_set<std::string>& enumTyp
     getEnumTypes(p->parentScope, enumTypes);
 }
 
-#define EXISTING_TYPE(type, lineNo)                                            \
-    static std::unordered_set<std::string> builtinTypes = {                    \
-        "float", "int", "char", "string", "bool", "void"};                     \
-    std::unordered_set<std::string> enumTypes;                                 \
-    getEnumTypes(currentNodePtr->currentScope, enumTypes);                     \
-    if (type != Type::Invalid &&                                               \
-        builtinTypes.find(type) == builtinTypes.end() &&                       \
-        enumTypes.find(type) == enumTypes.end()) {                             \
-        errors.push_back(                                                      \
-            "Error in line number: " + std::to_string(lineNo) +                \
-            " .The data type \"" + type + "\" is not valid"                    \
-        );                                                                     \
-    }
+bool isValidSymbol(Type semanticType,  Node* currentNode) {
+    static std::unordered_set<std::string> builtinTypes = {
+        "float",
+        "int",
+        "char",
+        "string",
+        "bool",
+        "void",
+    };
 
-SemResult ex_const_kak_TM(Node *p);
+    std::unordered_set<std::string> enumTypes;                                 
+    getEnumTypes(currentNode->currentScope, enumTypes);
 
-struct ex_const_visitor {
-    Node* currentNodePtr;
+    bool notBuiltinType = builtinTypes.find(semanticType.innerType) == builtinTypes.end();
+    bool notEnumType = enumTypes.find(semanticType.innerType) == enumTypes.end();
+    bool isInvalid = semanticType == Type::Invalid;
 
-    SemResult operator()(conNodeType& con) { 
-        auto res = SemResult::ok(con.getType());
-        res.value = &con;
-        return res;
-    }
+    return isInvalid || (notBuiltinType && notEnumType);
+}
 
-    SemResult operator()(idNodeType& id) const {
-        auto* idScope = getSymbolScope(id.id, currentNodePtr->currentScope);
-
-        if(idScope != nullptr) {
-            auto& entry = idScope->sym2[id.id];
-            auto isConstant = entry.isConstant;
-            auto hasInit = entry.initExpr != nullptr;
-            auto* literalInit  = entry.initExpr->asPtr<conNodeType>();
-
-            if (literalInit != nullptr && isConstant && hasInit) {
-                SemResult result = SemResult::ok(entry.type);
-                result.value = &entry.value;
-                return result;
-            } 
-        }
+SemResult checkType(Type semanticType, Node* currentNode, std::string dataType) {
+    if (isValidSymbol(semanticType, currentNode)) {
+        errors.push_back(lineError(
+            "The datatype '%s' is not valid.",
+            currentNode->lineNo,
+            std::string(dataType)
+        ));
 
         return SemResult::Err;
     }
 
-    SemResult operator() (BinOp& bop) { 
-        using enum BinOper;
-
-        auto left = ex_const_kak_TM(bop.lOperand);
-        auto right = ex_const_kak_TM(bop.rOperand);
-
-        if (!left.isSuccess()) { return left; }
-        if (!right.isSuccess()) { return right; }
-
-        SemResult result;
-        switch (bop.op) {
-            case Add:
-            case Sub:
-            case Mul:
-            case Div: {
-
-                auto finalType = std::get<Type>(left) == "float" ? "float" : "int";
-                finalType = std::get<Type>(right) == "float" ? "float" : finalType;
-
-                result = SemResult::ok(Type(finalType));
-
-                if (bop.op == Add) { result.value = new Value(*left.value + *right.value); }
-                if (bop.op == Sub) { result.value = new Value(*left.value - *right.value); }
-                if (bop.op == Mul) { result.value = new Value(*left.value * *right.value); }
-                if (bop.op == Div) { result.value = new Value(*left.value / *right.value); }
-                if (bop.op == Mod) { result.value = new Value(*left.value % *right.value); }
-
-                return result;
-            } break;
-
-            case Mod: 
-            case BitAnd:
-            case BitOr:
-            case BitXor:
-            case LShift:
-            case RShift: {
-                result = SemResult::ok(std::get<Type>(left));
-
-                if (bop.op == BitAnd) { result.value = new Value(*left.value & *right.value); }
-                if (bop.op == BitOr) { result.value = new Value(*left.value | *right.value); }
-                if (bop.op == BitXor) { result.value = new Value(*left.value ^ *right.value); }
-                if (bop.op == LShift) { result.value = new Value(*left.value << *right.value); }
-                if (bop.op == RShift) { result.value = new Value(*left.value >> *right.value); }
-
-                return result;
-            } break;
-
-            case LessThan:
-            case GreaterThan:
-            case Equal:
-            case NotEqual:
-            case GreaterEqual:
-            case LessEqual:
-            case And:
-            case Or: {
-                result = SemResult::ok(Type("bool"));
-
-                if (bop.op == LessThan) { result.value = new Value(*left.value < *right.value); }
-                if (bop.op == GreaterThan) { result.value = new Value(*left.value > *right.value); }
-                if (bop.op == Equal) { result.value = new Value(*left.value == *right.value); }
-                if (bop.op == NotEqual) { result.value = new Value(*left.value != *right.value); }
-                if (bop.op == GreaterEqual) { result.value = new Value(*left.value >= *right.value); }
-                if (bop.op == LessEqual) { result.value = new Value(*left.value <= *right.value); }
-
-                return result;
-            }
-
-          case Assign: { /* Do nothing */ }
-        }
-
-        if(result.isSuccess()) 
-          return result;
-
-        return SemResult::err("");
-    }
-
-    SemResult operator()(IfNode& ifNode) {
-        auto conditionResult = ex_const_kak_TM(ifNode.condition);
-        if(!conditionResult.isSuccess()) return conditionResult;
-
-        auto ifResult = ex_const_kak_TM(ifNode.ifCode);
-        if(!ifResult.isSuccess()) return ifResult;
-
-        if(ifNode.elseCode != nullptr) {
-            auto elseResult = ex_const_kak_TM(ifNode.elseCode);
-            if(!elseResult.isSuccess()) return elseResult;
-        }
-
-        return SemResult::Ok;
-    }
-
-    // the default case:
-    template<typename T> 
-    SemResult operator()(T const & /*UNUSED*/ ) const { return SemResult::Ok; }  
-};
-
-SemResult ex_const_kak_TM(Node *p) {    
-    if (p == nullptr) return SemResult::Ok;
-    return std::visit(ex_const_visitor{p}, *p);
+    return SemResult::Ok;
 }
 
-struct semantic_analysis_visitor {
+struct SemanticAnalysisVisitor {
     Node* currentNodePtr;
 
     SemResult operator()(conNodeType& con) { 
@@ -464,30 +344,29 @@ struct semantic_analysis_visitor {
         */
 
         int startingSize = errors.size();
-        /* Check that the type of the variable is valid */
+
         auto type = vd.getType();
-
-        /* Check that the type & name are valid */
-
-        EXISTING_TYPE(type.innerType, vd.type->lineNo);
-        
-        auto* symTable = currentNodePtr->currentScope;
-        /* Check if the variable is already declared in this scope */
         auto nameStr = vd.getName();
-        if (symTable->sym2.find(nameStr) != symTable->sym2.end()) {
-          errors.push_back("Error in line number: " +
-            std::to_string(vd.type->lineNo) + " .The variable " +
-            nameStr + " is already declared in this scope.");
+
+        auto* symTable = currentNodePtr->currentScope;
+
+        /* Check if the variable is already declared in this scope */
+        if (symTable->sym2.contains(nameStr)) {
+            errors.push_back(lineError(
+                "The variable '%s' is already declared in this scope.",
+                vd.type->lineNo,
+                nameStr
+            ));
         } else {
-          /* Add the variable name & type as a new entry in the symbol table */
-          // TODO: Use a SymbolTableEntry constructor?
-          SymbolTableEntry entry = SymbolTableEntry();
-          entry.type = type;
-          entry.declaredAtLine = vd.type->lineNo;
-          entry.isUsed = false;
-          symTable->sym2[nameStr] = entry;
-          return SemResult::ok(entry.type);
+            /* Add the variable name & type as a new entry in the symbol table */
+            auto declTypeResult = checkType(type, currentNodePtr, type.innerType);
+
+            if(declTypeResult.isSuccess()) {
+                symTable->sym2[nameStr] = SymbolTableEntry(type, vd.type->lineNo, false);
+                return SemResult::ok(type);
+            }         
         };
+
         return SemResult::Err;
     }
 
@@ -496,7 +375,7 @@ struct semantic_analysis_visitor {
 
       /* Check if the variable is declared */
       vd.decl->self->currentScope = currentNodePtr->currentScope;
-      SemResult decl = semantic_analysis(vd.decl->self); 
+      SemResult decl = semanticAnalysis(vd.decl->self); 
 
       if(!decl.isSuccess()) { error(decl); }
 
@@ -504,7 +383,7 @@ struct semantic_analysis_visitor {
       SemResult initResult;
 
       if (vd.initExpr != nullptr) {
-        initResult = semantic_analysis(vd.initExpr);
+        initResult = semanticAnalysis(vd.initExpr);
       } else {
         /* The initialization expression doesn't exist*/
         if (vd.isConstant) {
@@ -524,44 +403,46 @@ struct semantic_analysis_visitor {
         if(!castResult.isSuccess()) {
             error(castResult);
         } else {
-            auto &varEntry = getSymEntry(vd.decl->getName(), currentNodePtr->currentScope);
+            auto &varEntry = getVarEntry(vd.decl->getName(), currentNodePtr->currentScope);
 
             varEntry.isConstant = vd.isConstant;
-            varEntry.initExpr = vd.initExpr;
         }
       }
 
       return decl;
     }
     
-
-    // Check if the given identifier exists in the current or preceeding scopes.
     SemResult operator()(idNodeType &identifier) const {
         int startingSize = errors.size();
-        auto *symTable =
-            getSymbolScope(identifier.id, currentNodePtr->currentScope);
 
-        if (symTable == nullptr) {
+        auto [symbolScope, symbolType] = getSymbolScope(identifier.id, currentNodePtr->currentScope);
+
+        // Check if the given identifier exists in the current or preceeding scopes.
+        if (symbolScope == nullptr || symbolType != SymbolType::Variable) {
             /* If not, then it's not in any scope. */
-            errors.push_back(
-                "Error in line number: " +
-                std::to_string(currentNodePtr->lineNo) + " .Identifier " +
-                identifier.id + " is not declared"
-            );
+            errors.push_back(lineError(
+                "Identifier '%s' is not declared.",
+                currentNodePtr->lineNo,
+                identifier.id
+            ));
+
             return SemResult::Err;
         }
 
-        EXISTING_TYPE(
-            symTable->sym2[identifier.id].type.innerType, currentNodePtr->lineNo
-        );
-        symTable->sym2[identifier.id].isUsed = true;
+        auto type = symbolScope->sym2[identifier.id].type.innerType;
+        auto typeResult = checkType(type, currentNodePtr, type);
 
-        return SemResult::ok(symTable->sym2[identifier.id].type);
+        if (typeResult.isSuccess()) {
+            symbolScope->sym2[identifier.id].isUsed = true;
+            return SemResult::ok(symbolScope->sym2[identifier.id].type);
+        } 
+
+        return SemResult::Err;
     }
 
     SemResult operator()(caseNodeType& cs) {
-        auto bodyResult = semantic_analysis(cs.caseBody);
-        auto labelResult = semantic_analysis(cs.labelExpr);
+        auto bodyResult = semanticAnalysis(cs.caseBody);
+        auto labelResult = semanticAnalysis(cs.labelExpr);
 
         if(bodyResult.isSuccess() && labelResult.isSuccess()) return SemResult::Ok;
 
@@ -575,28 +456,27 @@ struct semantic_analysis_visitor {
     // evaluate to the same type.
     SemResult operator()(switchNodeType &sw) const {
         int startingSize = errors.size();
-        auto var = semantic_analysis(sw.var);
+        auto var = semanticAnalysis(sw.var);
 
         if (!var.isSuccess()) {
-            errors.push_back(
-                "Error in line number: " + std::to_string(sw.var->lineNo) +
-                " .The switch variable is not valid"
-            );
+            errors.push_back(lineError(
+                "Invalid switch variable '%s'.",
+                sw.var->lineNo,
+                sw.var->as<idNodeType>().id
+            ));
         }
 
         auto cases = sw.caseListTail->as<caseNodeType>().toVec();
 
         for (int i = 0; i < cases.size(); i++) {
-            auto labelExprResult = semantic_analysis(cases[i]->labelExpr);
+            auto labelExprResult = semanticAnalysis(cases[i]->labelExpr);
 
             /* Label Expression must be of the same type as the switch variable
              * & must be a constant or a literal */
             if (!labelExprResult.isSuccess()) {
-                errors.push_back(
-                    "Error in line number: " +
-                    std::to_string(cases[i]->labelExpr->lineNo) +
-                    " .The label expression of the case statement is not valid"
-                );
+                errors.push_back(lineError(
+                    "Invalid case label expression.", cases[i]->labelExpr->lineNo
+                ));
                 continue;
             }
 
@@ -610,14 +490,12 @@ struct semantic_analysis_visitor {
                 if(var.isSuccess()) {
                     auto varType = std::get<Type>(var);
                     if (varType != Type::Invalid && labelExprType != varType) {
-                        auto lineNo =
-                            std::to_string(cases[i]->labelExpr->lineNo);
-                        errors.push_back(
-                            "Error in line number: " + lineNo +
-                            " .The label expression of the case statement is "
-                            "not "
-                            "of the same type as the switch variable"
-                        );
+                        errors.push_back(lineError(
+                            "Mismatched switch variable and case label types (%s, %s).",
+                            cases[i]->labelExpr->lineNo,
+                            std::string(varType),
+                            std::string(labelExprType)
+                        ));
                     }
                 }
 
@@ -629,7 +507,7 @@ struct semantic_analysis_visitor {
 
                     auto &labelName = labelExpr->as<idNodeType>().id;
                     auto &labelSymTableEntry =
-                        getSymEntry(labelName, currentNodePtr->currentScope);
+                        getVarEntry(labelName, currentNodePtr->currentScope);
                     isConstant = labelSymTableEntry.isConstant;
 
                 } else if (labelExpr->is<conNodeType>() || labelExpr->is<enumUseNode>()) {
@@ -637,22 +515,19 @@ struct semantic_analysis_visitor {
                 }
 
                 if (!isConstant && !isLiteral) {
-                    errors.push_back(
-                        "Error in line number: " +
-                        std::to_string(cases[i]->labelExpr->lineNo) +
-                        " .The label expression of the case statement must be "
-                        "a constant or a literal"
-                    );
+                    errors.push_back(lineError(
+                        "Case label expressions must be "
+                        "constants or literals.",
+                        cases[i]->labelExpr->lineNo
+                    ));
                 }
             }
 
-            auto caseBody = semantic_analysis(cases[i]->caseBody);
+            auto caseBody = semanticAnalysis(cases[i]->caseBody);
             if (!caseBody.isSuccess()) {
-                errors.push_back(
-                    "Error in line number: " +
-                    std::to_string(cases[i]->labelExpr->lineNo) +
-                    " .The case body of the case statement is not valid"
-                );
+                errors.push_back(lineError(
+                    "Invalid case body.", cases[i]->labelExpr->lineNo
+                ));
             }
         }
 
@@ -665,37 +540,44 @@ struct semantic_analysis_visitor {
 
     SemResult operator()(breakNodeType& br) const { 
         if(br.parent_switch == nullptr) {
-            auto lineNo = std::to_string(currentNodePtr->lineNo);
-            errors.push_back("Error at line: " + lineNo + ". Break statements are valid inside for loops, while loops, or do while loops only." );
+            errors.push_back(lineError(
+                "Break statements are valid only inside loops",
+                currentNodePtr->lineNo
+            ));
 
             return SemResult::Err;
         }
         return SemResult::Ok; 
     } 
 
-    SemResult operator()(enumNode& en) const { 
+    SemResult operator()(enumNode& en) const {
 
-      /* Check that an enum with the same name is not declared already */
-      std::string enumName = en.name->as<idNodeType>().id;
-			auto* enumScope = getSymbolScope(enumName, currentNodePtr->currentScope);
+        /* Check that an enum with the same name is not declared already */
+        std::string enumName = en.name->as<idNodeType>().id;
+        auto [enumScope, _] =
+            getSymbolScope(enumName, currentNodePtr->currentScope);
 
-			// If the enum can be found in the current scope or the ones before it, register an error.
-			if(enumScope != nullptr) {
-        errors.push_back("Error in line number: " + std::to_string(en.name->lineNo) +
-                              " .The enum " + enumName + " is already declared");
-			}
+        // If the enum can be found in the current scope or the ones before it,
+        // register an error.
+        if (enumScope != nullptr) {
+            errors.push_back(lineError(
+                "The enum '%s' is already declared", en.name->lineNo, enumName
+            ));
+        }
 
-      /* Check that all members are unique */
-      std::unordered_set<std::string> members(en.enumMembers.begin(), en.enumMembers.end());
+        /* Check that all members are unique */
+        std::unordered_set<std::string> members(en.enumMembers.begin(), en.enumMembers.end());
 
-      if(members.size() != en.enumMembers.size()) {
-        errors.push_back("Enum has duplicate memebers in line "+std::to_string(en.name->lineNo) );
-      }
-    
-      /* Add the enum to the enums table */
-      currentNodePtr->currentScope->enums[enumName] = en;
-      
-      return SemResult::Ok;
+        if (members.size() != en.enumMembers.size()) {
+            errors.push_back(lineError(
+                "Enum '%s' has duplicate members.", en.name->lineNo, enumName
+            ));
+        }
+
+        /* Add the enum to the enums table */
+        currentNodePtr->currentScope->enums[enumName] = en;
+
+        return SemResult::Ok;
     } 
 
     SemResult operator()(enumUseNode& eu) const { 
@@ -703,24 +585,30 @@ struct semantic_analysis_visitor {
       int startingSize = errors.size();
       
       /* Check that the enum is declared */
-      auto* scope = getSymbolScope(eu.enumName, currentNodePtr->currentScope);
+      auto [symbolScope, symbolType] = getSymbolScope(eu.enumName, currentNodePtr->currentScope);
 
-      if(scope == nullptr) {
-					errors.push_back("Error in line number: " + std::to_string(eu.lineNo) +
-									" .The enum " + eu.enumName + " is not declared");
+      if(symbolScope == nullptr || symbolType != SymbolType::Enum) {
+          errors.push_back(
+              lineError("The enum '%s' is not declared", eu.lineNo, eu.enumName)
+          );
       } else {
-        auto enumMembers = scope->enums[eu.enumName].enumMembers;
+
+        auto enumMembers = symbolScope->enums[eu.enumName].enumMembers;
         /* Check that the member name is part of the enum members */
-        if (std::find(enumMembers.begin(), enumMembers.end(), eu.memberName) == enumMembers.end()) {
-						errors.push_back("Error in line number: " + std::to_string(eu.lineNo) +
-										" .The enum member " + eu.memberName + " is not part of the enum " + eu.enumName);
+        auto memberIter = std::find(enumMembers.begin(), enumMembers.end(), eu.memberName);
+        bool notFound = memberIter == enumMembers.end();
+
+        if (notFound) {
+            errors.push_back(lineError(
+                "The symbol '%s' is not a member of enum '%s'",
+                eu.lineNo,
+                eu.memberName,
+                eu.enumName
+            ));
         }
       }
 
-      if (startingSize != errors.size()) {
-        return SemResult::Err;
-      }
-
+      if (startingSize != errors.size()) { return SemResult::Err; }
       return SemResult::ok(eu.enumName);
     }
 
@@ -730,12 +618,12 @@ struct semantic_analysis_visitor {
 
         /* Function Declaration code */
         auto functionName = fn.name->as<idNodeType>().id;
-        auto *functionScope = getSymbolScope(functionName, currentNodePtr->currentScope);
+        auto [functionScope, _] = getSymbolScope(functionName, currentNodePtr->currentScope);
 
         // Already declared.
         if (functionScope != nullptr) {
             errors.push_back(lineError(
-                "Function '%s' is already declared in this scope",
+                "Function '%s' is already declared in this scope.",
                 fn.name->lineNo,
                 functionName
             ));
@@ -752,112 +640,127 @@ struct semantic_analysis_visitor {
 
         for (int i = 0; i < parameters.size(); i++) {
             auto *param = parameters[i];
-
-            /* Check if the parameter list is emtpy */
-            if (param->type == nullptr || param->varName == nullptr) {
-                break;
-            }
-
             auto* paramPtr = parameterNodes[i];
+
             paramPtr->currentScope = fn.statements->currentScope;
-            auto paramResult = semantic_analysis(paramPtr);
+            auto paramResult = semanticAnalysis(paramPtr);
 
             if (!paramResult.isSuccess()) {
                 errors.push_back(lineError(
-                    "The function parameter '%s' is not valid",
+                    "Function '%s': parameter '%s' is not valid",
                     param->type->lineNo,
+                    functionName,
                     param->varName->as<idNodeType>().id 
+                ));
+            }
+
+            auto paramName = param->getName();
+            if(paramName == functionName) {
+                errors.push_back(lineError(
+                    "Function '%s': cannot have a parameter with the same name as the function",
+                    param->varName->lineNo,
+                    functionName
                 ));
             }
         }
 
+        /* Check if the return type is valid */
+        auto returnType = fn.return_type->as<Type>();
+        auto returnTypeResult = checkType(returnType, currentNodePtr, getFnType(fn));
+        
+        if(!returnTypeResult.isSuccess()) {
+            errors.push_back(lineError(
+                "Function '%s': return type is not valid",
+                fn.return_type->lineNo,
+                functionName
+            ));
+        }
+
         /* Check if the function body is valid */
-        auto functionBody = semantic_analysis(fn.statements);
+        auto functionBody = semanticAnalysis(fn.statements);
         if (!functionBody.isSuccess()) {
             errors.push_back(lineError(
-                "The function body is not valid", fn.statements->lineNo
+                "Function '%s': body is not valid", 
+                fn.statements->lineNo,
+                functionName
             ));
-        }
+        } else {
 
-        /* Check if the return type is valid */
-        auto returnType = fn.return_type->as<idNodeType>().id;
-        EXISTING_TYPE(returnType, fn.return_type->lineNo);
-        if (errors.size() != startingSize) {
-            errors.push_back(lineError(
-                "The function return type '%s' is not valid",
-                fn.return_type->lineNo,
-                returnType
-            ));
-        }
+            // If the function body is valid, check the return types.
 
-        auto innerReturnStatements = getFnReturnStatements(fn.statements);
+            auto innerReturnStatements = getFnReturnStatements(fn.statements);
 
-        // Need to perserve the order, hence no unordered_set
-        auto innerReturnTypes = std::set<std::string>();
-        for (auto *ret : innerReturnStatements) {
-            innerReturnTypes.insert(getReturnType(ret).innerType);
-        }
+            // Need to perserve the order, hence no unordered_set
+            auto innerReturnTypes = std::set<std::string>();
+            for (auto *ret : innerReturnStatements) {
+                innerReturnTypes.insert(getReturnType(ret).innerType);
+            }
 
-        auto returnLines = collectStrings<std::vector<Node *>>(
-            innerReturnStatements.begin(),
-            innerReturnStatements.end(),
-            [](auto iter) { return std::to_string(iter->lineNo); }
-        );
+            auto returnLines = collectStrings<std::vector<Node *>>(
+                innerReturnStatements.begin(),
+                innerReturnStatements.end(),
+                [](auto iter) { return std::to_string(iter->lineNo); }
+            );
 
-        // Cases to check
-        //  - Function with no returns but the return type is NOT void
-        //  - Function with returns but the return type is void
-        //  - Function with multiple return types
-
-        if (returnType == "void") {
-            if(!innerReturnTypes.empty()) {
-                auto returnTypes = collectStrings<std::set<std::string>>(innerReturnTypes.begin(), innerReturnTypes.end());
-                errors.push_back(
-                    fmt("Error at line(s): %s. Void functions cannot return "
+            // Cases to check
+            //  - Function with no returns but the return type is NOT void
+            //  - Function with returns but the return type is void
+            //  - Function with multiple return types
+            if (returnType == "void") {
+                if(!innerReturnTypes.empty()) {
+                    auto returnTypes = collectStrings<std::set<std::string>>(innerReturnTypes.begin(), innerReturnTypes.end());
+                    errors.push_back(fmt(
+                        "Error at line(s): %s. Void function '%s' cannot return "
                         "types (%s).",
                         returnLines,
-                        returnTypes)
-                );
-            }
-        } else {
-            if (innerReturnTypes.empty()) {
-                // No return types
-                errors.push_back(
-                    fmt("Error at lines(s): %s. Function with return type '%s' "
-                        "has no returns.",
-                        returnLines,
-                        returnType)
-                );
-            } else if (innerReturnTypes.size() != 1) {
-                // Multiple return types
-
-                auto returnTypes = collectStrings<std::set<std::string>>(innerReturnTypes.begin(), innerReturnTypes.end());
-                errors.push_back(
-                    fmt("Error at line(s): %s. Mismatched return statements "
-                        "(%s) in function with return type '%s'.",
-                        returnLines,
-                        returnTypes,
-                        returnType)
-                );
-
-            } else if (innerReturnTypes.size() == 1) {
-                // Just one return type
-                // Need to make sure that the type of the return is castable to
-                // the function's return type.
-                auto innerType = *innerReturnTypes.begin();
-
-                auto castInnerReturnTypes =
-                    castToTarget(innerType, returnType, currentNodePtr,
-                                 currentNodePtr->lineNo);
-
-                if (!castInnerReturnTypes.isSuccess()) {
-                    errors.push_back(lineError(
-                        "Cannot return type '%s' from a "
-                        "function with return type '%s'. ",
-                        currentNodePtr->lineNo,
-                        innerType,
-                        returnType
+                        functionName,
+                        returnTypes
                     ));
+                }
+            } else {
+                if (innerReturnTypes.empty()) {
+                    // No return types
+                    errors.push_back(
+                        fmt("Error at lines(s): %s. Function '%s' with return type "
+                            "'%s' has no returns.",
+                            returnLines,
+                            functionName,
+                            returnType.innerType)
+                    );
+                } else if (innerReturnTypes.size() != 1) {
+                    // Multiple return types
+                    auto returnTypes = collectStrings<std::set<std::string>>(innerReturnTypes.begin(), innerReturnTypes.end());
+                    errors.push_back(
+                        fmt("Error at line(s): %s. Mismatched return statements "
+                            "(%s) in function '%s' with return type '%s'.",
+                            returnLines,
+                            returnTypes,
+                            functionName,
+                            returnType.innerType)
+                    );
+                } else if (innerReturnTypes.size() == 1) {
+                    // Just one return type
+                    // Need to make sure that the type of the return is castable to
+                    // the function's return type.
+                    auto innerType = *innerReturnTypes.begin();
+
+                    auto castInnerReturnTypes = castToTarget(
+                        innerType,
+                        returnType,
+                        currentNodePtr,
+                        currentNodePtr->lineNo
+                    );
+
+                    if (!castInnerReturnTypes.isSuccess()) {
+                        errors.push_back(lineError(
+                            "Cannot return type '%s' from "
+                            "function '%s' with return type '%s'. ",
+                            currentNodePtr->lineNo,
+                            innerType,
+                            functionName,
+                            returnType.innerType
+                        ));
+                    }
                 }
             }
         }
@@ -868,107 +771,112 @@ struct semantic_analysis_visitor {
         return SemResult::ok(returnType);
     }
 
-        // Checks if the function has already been declared
-		// Checks if the function call arguments have the same count and type as the parameters.
+    // Checks if the function has already been declared
+    // Checks if the function call arguments have the same count and type as the parameters.
     SemResult operator()(FunctionCall& fc) const { 
+        auto intToOrdinal = [](int i) {
+            using namespace std::string_literals;
+            if (i == 0) {
+                return "1st"s;
+            } else if (i == 1) {
+                return "2nd"s;
+            } else if (i == 2) {
+                return "3rd"s;
+            } else {
+                return fmt("%dth", i + 1);
+            }
+        };
+
         int startingSize = errors.size();
 
-        /* Check if the function exists in the functions table or not */
-        auto* fnScope = getSymbolScope(fc.functionName, currentNodePtr->currentScope); 
-        auto callArgExprs = fc.parameterExpressions;
-        std::vector<VarDecl*> fnParams;
+        auto exprResults = Utils::transform<SemResult>(
+            fc.parameterExpressions,
+            [](ExprListNode *expr) { return semanticAnalysis(expr->exprCode); }
+        );
 
-        // Function can't be found in current or preceeding scopes => not declared.
-        if(fnScope == nullptr) {
-            errors.push_back("Error in line number: " + 
-                    std::to_string(fc.lineNo) + " .The function "
-                    + fc.functionName + " is not declared");
-        } else {
-            auto &fnRef = fnScope->functions[fc.functionName];
-            fnParams = fnRef.getParameters();
+        auto exprErrors = Utils::filter(exprResults, [](const SemResult &r) {
+            return !r.isSuccess();
+        });
 
-            if (fnParams.size() != callArgExprs.size()) {
-                errors.push_back(
-                    "Error in line number: " + std::to_string(fc.lineNo) +
-                    ". The number of arguments to the function call "
-                    "doesn't match the number of parameters in the "
-                    "function definition");
-            }
+        for (int i = 0; i < exprErrors.size(); i++) {
+            errors.push_back(lineError(
+                "Function '%s': The %s function parameter expression is invalid.",
+                fc.parameterExpressions[i]->exprCode->lineNo,
+                fc.functionName,
+                intToOrdinal(i)
+            ));
         }
 
-        /* Check if the Expression List is valid */
-        for(int i = 0; i < fc.parameterExpressions.size(); i++) {
-            auto* arg = callArgExprs[i];
-            /* Check if the Expression list is emtpy */
-            if (arg->exprCode == nullptr) { break; } 
+        /* Check if the function exists in the functions table or not */
+        auto [fnScope, symbolType] =
+            getSymbolScope(fc.functionName, currentNodePtr->currentScope);
 
-            /* Check that the parameter types match with the function types */
-            auto expression = semantic_analysis(arg->exprCode);
-            if (!expression.isSuccess()) {
-                errors.push_back("Error in line number: " +
-                        std::to_string(arg->exprCode->lineNo) + 
-                        " .The function parameter number: " + std::to_string(i) + " is not valid");
-            } else {
-                if (fnScope != nullptr) {
-                    auto *param = fnParams[i];
+        // Function can't be found in current or preceeding scopes => not declared.
+        if(fnScope == nullptr || symbolType != SymbolType::Function) {
+            errors.push_back(lineError(
+                "Function '%s' is not declared in this scope.", fc.lineNo, fc.functionName
+            ));
+        } else {
+            auto &fnRef = fnScope->functions[fc.functionName];
+            auto fnParams = fnRef.getParameters();
 
-                    // Check if the passed  expression matches the parameter's
-                    // type
-                    auto paramType = param->getType();
-                    auto exprType = std::get<Type>(expression);
+            if (fnParams.size() != fc.parameterExpressions.size()) {
+                errors.push_back(lineError(
+                    "Number of arguments to function '%s' doesn't match the "
+                    "number of parameters in its definition.",
+                    fc.lineNo,
+                    fc.functionName
+                ));
+            }
 
-                    auto paramExprTypeMatchesParamType =
-                        (paramType == exprType);
-                    SemResult exprIsCastable = castToTarget(exprType, paramType, arg->exprCode, fc.lineNo);
+            /* Check if the Expression List is valid */
+            for (int i = 0; i < std::min(fc.parameterExpressions.size(), fnParams.size()); i++) {
+                /* Check that the parameter types match with the function types */
+                auto exprResult = exprResults[i];
+                auto exprCodeLine = fc.parameterExpressions[i]->exprCode->lineNo;
+
+                if (exprResult.isSuccess()) {
+                    // Check if the passed  expression matches the parameter's type
+                    auto paramType = fnParams[i]->getType();
+                    auto exprType = std::get<Type>(exprResult);
+
+                    SemResult exprIsCastable = castToTarget(exprType, paramType, fc.parameterExpressions[i]->self, fc.lineNo);
 
                     if (!exprIsCastable.isSuccess()) {
-                        errors.push_back(
-                            "Error in line number: " +
-                            std::to_string(arg->exprCode->lineNo) +
-                            " . The function parameter number: " +
-                            std::to_string(i) + " type does not match");
+                        errors.push_back(lineError(
+                            "The %s function paramter to '%s' "
+                            "has a mismatched type.",
+                            exprCodeLine,
+                            intToOrdinal(i)
+                        ));
                     }
                 }
             }
         }
 
-        if (startingSize != errors.size()) {
-            return SemResult::Err;
-        }
+        if (startingSize != errors.size()) { return SemResult::Err; }
 
-        auto fnReturnType = fnScope->functions[fc.functionName].return_type->as<idNodeType>().id;
+        auto fnReturnType = fnScope->functions[fc.functionName].return_type->as<Type>().innerType;
         return SemResult::ok(fnReturnType);
     } 
+
     /* 
       Entry point, we get a list of statements & iterate over each of them & make sure they are
       Semantically correct
     */
-    SemResult operator()(StatementList& sl) {
-        SemResult ret = SemResult::Ok;
-        for(const auto& statement: sl.statements) {
-            auto statementError = semantic_analysis(statement);
+    SemResult operator()(StatementList& sl) const {
+        
+        auto statementResults = Utils::transform<SemResult>(sl.statements, semanticAnalysis);
+        SemResult ret = SemResult::mergeResults(statementResults);
 
-            /* 
-              If the child statement returned an error, convert the result
-              we'll return to an error if it's not already, then add all child
-              statement errors to the returned result.
-            */
-
-            if(auto* e = std::get_if<ErrorList>(&statementError); e) {
-                if(ret.isSuccess()) {
-                    ret = statementError;
-                }
-                ret.mergeErrors(*e);
-            }
-        }
-
-        for(const auto& [name, entry]: currentNodePtr->currentScope->sym2) {
+        auto variables = currentNodePtr->currentScope->sym2;
+        for(const auto& [name, entry]: variables) {
             if(!entry.isUsed) {
-                warnings.push_back(
-                    "Warning in line number: " +
-                    std::to_string(entry.declaredAtLine) + " .Variable " +
-                    name + " is declared but never used"
-                );
+                warnings.push_back(lineWarning(
+                    "Variable '%s' is declared but never used.",
+                    entry.declLine,
+                    name
+                ));
             }
         }
 
@@ -978,7 +886,7 @@ struct semantic_analysis_visitor {
     SemResult operator()(doWhileNodeType& dw) {
         int startingSize = errors.size();
 
-        auto condition = semantic_analysis(dw.condition);
+        auto condition = semanticAnalysis(dw.condition);
         if (!condition.isSuccess()){
             errors.push_back("Error in line number: " +
                     std::to_string(dw.condition->lineNo) +
@@ -994,7 +902,7 @@ struct semantic_analysis_visitor {
             }
         }
 
-        auto loop = semantic_analysis(dw.loop_body); 
+        auto loop = semanticAnalysis(dw.loop_body); 
         if (!loop.isSuccess()){
             errors.push_back("Error in line number: " +
                     std::to_string(dw.loop_body->lineNo) +
@@ -1007,7 +915,7 @@ struct semantic_analysis_visitor {
 
     SemResult operator()(whileNodeType& w) { 
         int startingSize = errors.size();
-        auto condition = semantic_analysis(w.condition);
+        auto condition = semanticAnalysis(w.condition);
         if (!condition.isSuccess()){
             errors.push_back("Error in line number: " +
                     std::to_string(w.condition->lineNo) +
@@ -1021,7 +929,7 @@ struct semantic_analysis_visitor {
                 }
             }
         }  
-        auto loop = semantic_analysis( w.loop_body);
+        auto loop = semanticAnalysis( w.loop_body);
         if (!loop.isSuccess()){
             errors.push_back("Error in line number: " +
                     std::to_string(w.loop_body->lineNo) +
@@ -1035,18 +943,19 @@ struct semantic_analysis_visitor {
     SemResult operator()(forNodeType& f) { 
         int startingSize = errors.size();
 
-        auto init_statement = semantic_analysis( f.init_statement);
+        auto init_statement = semanticAnalysis( f.init_statement);
         if (!init_statement.isSuccess()){
-            errors.push_back("Error in line number: " +
-                    std::to_string(f.init_statement->lineNo) +
-                    " .The initialization statement in the for loop is not valid");
+            errors.push_back(lineError(
+                "Invalid for loop initialization statament.",
+                f.init_statement->lineNo
+            ));
         }
 
-        auto condition = semantic_analysis(f.loop_condition);
+        auto condition = semanticAnalysis(f.loop_condition);
         if (!condition.isSuccess()){
-            errors.push_back("Error in line number: " +
-                    std::to_string(f.loop_condition->lineNo) +
-                    " .The condition in the for loop is not valid");
+            errors.push_back(lineError(
+                "Invalid for loop condition.", f.loop_condition->lineNo
+            ));
         } else {
             auto conditionType = std::get<Type>(condition);
             if (conditionType != "bool") {
@@ -1058,18 +967,19 @@ struct semantic_analysis_visitor {
             }
         }
 
-        auto loop = semantic_analysis(f.loop_body);
+        auto loop = semanticAnalysis(f.loop_body);
         if (!loop.isSuccess()){
-            errors.push_back("Error in line number: " +
-                    std::to_string(f.loop_body->lineNo) +
-                    " .The body in the for loop is not valid");
+            errors.push_back(
+                lineError("Invalid for loop body.", f.loop_body->lineNo)
+            );
         }
 
-        auto post_statement = semantic_analysis(f.post_loop_statement);
+        auto post_statement = semanticAnalysis(f.post_loop_statement);
         if (!post_statement.isSuccess()){
-            errors.push_back("Error in line number: " +
-                    std::to_string(f.post_loop_statement->lineNo) +
-                    " .The post body statement in the for loop is not valid");
+            errors.push_back(lineError(
+                "Invalid for loop post body statement.",
+                f.post_loop_statement->lineNo
+            ));
         }
 
         if(startingSize != errors.size()) { return SemResult::Err; }             
@@ -1079,8 +989,8 @@ struct semantic_analysis_visitor {
 
     SemResult operator()(BinOp& bop) const {
       /* 
-       * TODO: Implement the followinging check when the function identifier is added
-       to the symbol table
+       * TODO: Implement the following check when the function identifier is
+       * added to the symbol table
        * Check that the right expression is not a function identifier but a function call *
        * Check that the left identifier is not a function *
 
@@ -1089,30 +999,34 @@ struct semantic_analysis_visitor {
 
       int startingSize = errors.size();
 
-      /* Check that the left expression is valid (identifier is declared) */
-      LEFT_VALID(bop.lOperand); // * gives left
+      SemResult left = semanticAnalysis(bop.lOperand);
+      SemResult right = semanticAnalysis(bop.rOperand);
 
-      /* Check that the right expression is semantically valid */
-      RIGHT_VALID(bop.rOperand); // * gives right
+      if (!left.isSuccess()) { return left; }
+      if (!right.isSuccess()) { return right; }
 
-      /*  Check that the two expressions on the left & on the right are of the
-       * same type */
-      LEFT_SAME_TYPE_AS_RIGHT(
-          left, right, bop.lOperand->lineNo,
-          bop); // * gives leftType & rightType & finalType
+      /* Check that the two expressions on the left & on the right are of the
+       * same type, or the RHS is castable to the LHS's type. */
+
+      auto leftType = std::get<Type>(left);
+      auto rightType = std::get<Type>(right);
+      auto finalType = leftType;
+
+      SemResult castResult = castBinOp(leftType, rightType, bop);
+      if (castResult.isSuccess()) {
+          finalType = std ::get<Type>(castResult);
+      }
 
       auto setIdNodeAsUsed =
         [currentScope = currentNodePtr->currentScope](Node *ptr) {
           ptr->currentScope = currentScope;
 
           if (auto *idNode = ptr->asPtr<idNodeType>(); idNode) {
-            auto nodeSymEntry = getSymEntry(idNode->id, ptr->currentScope);
+            auto nodeSymEntry = getVarEntry(idNode->id, ptr->currentScope);
             nodeSymEntry.isUsed = true;
           }
         };
 
-      /* Check that the left and right are either both integers or both float
-      */
       setIdNodeAsUsed(bop.lOperand);
       setIdNodeAsUsed(bop.rOperand);
 
@@ -1133,12 +1047,12 @@ struct semantic_analysis_visitor {
       } break;
 
       case Return: {
-          if (uop.operand != nullptr) return semantic_analysis(uop.operand);
+          if (uop.operand != nullptr) return semanticAnalysis(uop.operand);
       } break;
 
       case Minus:
       case Plus: {
-          return semantic_analysis(uop.operand);
+          return semanticAnalysis(uop.operand);
       } break;
 
       case Increment:
@@ -1188,13 +1102,12 @@ struct semantic_analysis_visitor {
     SemResult operator()(IfNode &ifNode) {
         int startingSize = errors.size();
 
-        SemResult condition = semantic_analysis(ifNode.condition);
+        SemResult condition = semanticAnalysis(ifNode.condition);
 
         if (!condition.isSuccess()) {
-            errors.push_back(
-                "Error in line number: " + std::to_string(ifNode.condition->lineNo) +
-                " .Condition in an if statement is invalid"
-            );
+            errors.push_back(lineError(
+                "Invalid if statement condition.", ifNode.condition->lineNo
+            ));
         } else {
             auto conditionType = std::get<Type>(condition);
 
@@ -1214,38 +1127,33 @@ struct semantic_analysis_visitor {
 
         /* Check if the case condition is always false */
         if (condition.isSuccess()) {
-            SemResult alwaysFalseResult = ex_const_kak_TM(ifNode.condition);
+            ConstOpt alwaysFalseResult = checkConstantExpressions(ifNode.condition);
 
-            if (alwaysFalseResult.isSuccess() &&
-                std::get<Type>(alwaysFalseResult) == "bool") {
-                Value val = *alwaysFalseResult.value;
+            if (alwaysFalseResult.has_value() && std::get<Type>(condition) == "bool") {
+                Value val = alwaysFalseResult.value();
 
                 if (bool(val) == false) {
-                    warnings.push_back(
-                        "Warning in line number: " +
-                        std::to_string(ifNode.condition->lineNo) +
-                        " .Condition in an if statement is always false"
-                    );
+                    warnings.push_back(lineWarning(
+                        "If statement condition is always false.",
+                        ifNode.condition->lineNo
+                    ));
                 }
             }
         }
 
-        SemResult ifBody = semantic_analysis(ifNode.ifCode);
+        SemResult ifBody = semanticAnalysis(ifNode.ifCode);
         if (!ifBody.isSuccess()) {
             errors.push_back(
-                "Error in line number: " + std::to_string(ifNode.ifCode->lineNo) +
-                " .Body of an if statement is invalid"
+                lineError("Invalid if statement block.", ifNode.ifCode->lineNo)
             );
         }
 
         if (ifNode.elseCode != nullptr) {
-            SemResult elseBody = semantic_analysis(ifNode.elseCode);
+            SemResult elseBody = semanticAnalysis(ifNode.elseCode);
             if (!ifBody.isSuccess()) {
-                errors.push_back(
-                    "Error in line number: " +
-                    std::to_string(ifNode.elseCode->lineNo) +
-                    " .Body of an if statement is invalid"
-                );
+                errors.push_back(lineError(
+                    "Invalid else statement block.", ifNode.elseCode->lineNo
+                ));
             }
         }
 
@@ -1264,7 +1172,7 @@ struct semantic_analysis_visitor {
 
         bool anyElementErrored = false;
         for (auto &exp : al.expressions) {
-            SemResult exprResult = semantic_analysis(exp);
+            SemResult exprResult = semanticAnalysis(exp);
 
             if (!exprResult.isSuccess()) {
                 errors.push_back(
@@ -1300,7 +1208,7 @@ struct semantic_analysis_visitor {
     }
 
     SemResult operator()(ArrayIndex& ai) {
-        auto arrayExprResult = semantic_analysis(ai.arrayExpr);
+        auto arrayExprResult = semanticAnalysis(ai.arrayExpr);
 
         if(!arrayExprResult.isSuccess()) {
             errors.push_back(lineError("Invalid array expression.", currentLineNo));
@@ -1312,7 +1220,7 @@ struct semantic_analysis_visitor {
         }
 
 
-        auto indexExprResult = semantic_analysis(ai.indexExpr);
+        auto indexExprResult = semanticAnalysis(ai.indexExpr);
         if(!arrayExprResult.isSuccess()) {
             errors.push_back(lineError("Invalid array indexing expression.", currentLineNo));
         } else {
@@ -1330,7 +1238,7 @@ struct semantic_analysis_visitor {
     SemResult operator()(T const & /*UNUSED*/ ) const { return SemResult::Ok; } 
 };
 
-SemResult semantic_analysis(Node *p) {    
+SemResult semanticAnalysis(Node *p) {    
     if (p == nullptr) return SemResult::Ok;
-    return std::visit(semantic_analysis_visitor{p}, *p);
+    return std::visit(SemanticAnalysisVisitor{p}, *p);
 }

@@ -1,8 +1,8 @@
 char x=5;
 ===
-Warning in line number: 1 .Variable x is declared but never used
+Warning at line: 1. Variable x is declared but never used
 ===
-Warning in line number: 1 .Variable x is declared but never used
+Warning at line: 1. Variable x is declared but never used
 push 5
 intToChar
 pop x

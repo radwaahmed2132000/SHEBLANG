@@ -1,8 +1,11 @@
 #pragma once
+#include "template_utils.h"
 #include "value.h"
+#include <algorithm>
 #include <variant>
 #include <iostream>
 #include <vector>
+#include <type_traits>
 
 // auto success = Result::Success("int");
 // auto error  = Result::Error("LHS = int, RHS = string");
@@ -10,8 +13,6 @@
 
 template<typename S = std::string, typename E = std::vector<std::string>>
 struct Result: std::variant<S, E> {
-    Value * value = nullptr;
-
     inline static Result<S,E> Err = Result{std::variant<S, E>(E{})};
     inline static Result<S,E> Ok = Result{std::variant<S, E>(S{})};
 
@@ -42,12 +43,23 @@ struct Result: std::variant<S, E> {
         return *this;
     }
 
-    Result& mergeErrors(E& errors) {
+    Result& mergeErrors(const E& errors) {
         for(const auto& err: errors) {
             this->addError(err);
         }
 
         return *this;
+    }
+
+    static Result<S,E> mergeResults(std::vector<Result<S,E>>& results) {
+        auto errors = Utils::filter(results, [](Result& res) { return !res.isSuccess(); });
+
+        if(errors.empty()) { return Result::Ok; }
+
+        Result<S,E> final = Result<S,E>::Err;
+        for(const auto& err: errors) { final.mergeErrors(std::get<E>(err)); }
+
+        return final;
     }
 
     void print() {
